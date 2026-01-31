@@ -1,10 +1,9 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { RouterView } from 'vue-router'
+</script>
 
 <template>
-  <div class="flex flex-col items-center justify-center h-screen">
-    <h1 class="text-3xl">Helloworld</h1>
-    <p class="text-zinc-500">NodeGet Board</p>
-  </div>
+  <RouterView />
 </template>
 
 <style scoped></style>
