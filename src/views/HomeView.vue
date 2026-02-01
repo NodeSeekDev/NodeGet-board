@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Progress } from '@/components/ui/progress'
-import { AlertCircle, Activity, Server, Zap, Database, HardDrive, Network, Cpu, Clock, Moon, Sun } from 'lucide-vue-next'
+import { AlertCircle, Activity, Server, Database, HardDrive, Network, Cpu, Clock } from 'lucide-vue-next'
+import HeaderView from '@/components/HeaderView.vue'
+import FooterView from '@/components/FooterView.vue'
 
 const status = ref<'disconnected' | 'connecting' | 'connected'>('disconnected')
-const isDark = ref(false)
 const error = ref('')
 const servers = ref<any[]>([])
 const ws = ref<WebSocket | null>(null)
@@ -198,27 +197,7 @@ const getDiskUsage = (server: any) => {
     return 'N/A'
 }
 
-
-const toggleTheme = () => {
-    isDark.value = !isDark.value
-    if (isDark.value) {
-        document.documentElement.classList.add('dark')
-        document.cookie = "theme=dark; path=/; max-age=31536000" // 1 year
-    } else {
-        document.documentElement.classList.remove('dark')
-        document.cookie = "theme=light; path=/; max-age=31536000" // 1 year
-    }
-}
-
 onMounted(() => {
-  const themeCookie = document.cookie.split('; ').find(row => row.startsWith('theme='))?.split('=')[1]
-  if (themeCookie === 'dark') {
-      isDark.value = true
-      document.documentElement.classList.add('dark')
-  } else {
-      isDark.value = false
-      document.documentElement.classList.remove('dark')
-  }
   connect()
 })
 
@@ -231,24 +210,10 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="container mx-auto p-6 space-y-6">
+  <div class="flex flex-col min-h-screen">
+    <div class="container mx-auto p-6 space-y-6 flex-1">
     
-    <div class="flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <h1 class="text-3xl font-bold tracking-tight">NodeGet</h1>
-        
-      </div>
-      <div class="flex items-center gap-2 text-sm text-muted-foreground">
-        <Button variant="ghost" size="icon" @click="toggleTheme">
-            <Moon v-if="!isDark" class="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-            <Sun v-else class="h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-            <span class="sr-only">Toggle theme</span>
-        </Button>
-        <Badge :variant="status === 'connected' ? 'default' : (status === 'connecting' ? 'secondary' : 'destructive')">
-          {{ status === 'connected' ? 'Online' : (status === 'connecting' ? 'Connecting...' : 'Offline') }}
-        </Badge>
-      </div>
-    </div>
+    <HeaderView :status="status" />
 
     <Alert v-if="error" variant="destructive">
       <AlertCircle class="h-4 w-4" />
@@ -319,6 +284,8 @@ onUnmounted(() => {
         </CardFooter>
       </Card>
     </div>
+    <FooterView />
+  </div>
   </div>
 </template>
 
