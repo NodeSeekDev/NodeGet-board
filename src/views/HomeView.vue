@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Progress } from '@/components/ui/progress'
-import { AlertCircle, Activity, Server, Database, HardDrive, Network, Cpu, Clock } from 'lucide-vue-next'
+import { AlertCircle, Activity, Server, Database, HardDrive, Network, Cpu, Clock, Timer, NetworkIcon } from 'lucide-vue-next'
 import HeaderView from '@/components/HeaderView.vue'
 import FooterView from '@/components/FooterView.vue'
 
@@ -46,8 +47,14 @@ const connect = () => {
         const msg = JSON.parse(event.data)
         if (msg.result && Array.isArray(msg.result)) {
           servers.value = msg.result
+          if (error.value) error.value = ''
+        } else if (msg.result && msg.result.error_message) {
+          error.value = msg.result.error_message
+          stopPolling()
         } else if (msg.error) {
           console.error('RPC Error:', msg.error)
+          error.value = typeof msg.error === 'string' ? msg.error : (msg.error.message || JSON.stringify(msg.error))
+          stopPolling()
         }
       } catch (e) {
         console.error('Failed to parse message:', event.data)
@@ -197,6 +204,39 @@ const getDiskUsage = (server: any) => {
     return 'N/A'
 }
 
+const getDiskPercent = (server: any) => {
+    const text = getDiskUsage(server)
+    if (text === 'N/A') return 0
+    const parts = text.split(': ')
+    if (parts.length === 2) {
+        return parseFloat(parts[1] as string)
+    }
+    return 0
+}
+
+const getDiskDisplay = (server: any) => {
+    const text = getDiskUsage(server)
+    if (text === 'N/A') return 'N/A'
+    const parts = text.split(': ')
+    return parts.length === 2 ? parts[1] : 'N/A'
+}
+
+
+const formatUptime = (uptime: number) => {
+  if (!uptime) return '0m'
+  const days = Math.floor(uptime / (3600 * 24))
+  const hours = Math.floor((uptime % (3600 * 24)) / 3600)
+  const minutes = Math.floor((uptime % 3600) / 60)
+  
+  const parts = []
+  if (days > 0) parts.push(`${days}d`)
+  if (hours > 0) parts.push(`${hours}h`)
+  if (minutes > 0) parts.push(`${minutes}m`)
+  
+  return parts.join(' ') || '< 1m'
+}
+
+
 onMounted(() => {
   connect()
 })
@@ -227,60 +267,87 @@ onUnmounted(() => {
 
     <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       <Card v-for="server in servers" :key="server.uuid" class="hover:shadow-md transition-shadow">
-        <CardHeader class="pb-2">
-          <CardTitle class="flex items-center gap-2 text-lg">
-            <Server class="h-5 w-5 text-primary" />
-            <span class="truncate" :title="getHostname(server)">{{ getHostname(server) }}</span>
-          </CardTitle>
-          <p class="text-xs text-muted-foreground truncate" :title="getOS(server)">{{ getOS(server) }}</p>
+        <CardHeader class="pb-3">
+          <div class="flex items-start justify-between">
+            <CardTitle class="flex items-center gap-2 text-base font-medium">
+              <div class="p-2 bg-primary/10 rounded-lg">
+                <Server class="h-4 w-4 text-primary" />
+              </div>
+              <div class="flex flex-col">
+                <span class="truncate leading-none" :title="getHostname(server)">{{ getHostname(server) }}</span>
+                <span class="text-[10px] text-muted-foreground font-normal mt-1 flex items-center gap-1">
+                   <Clock class="h-3 w-3" /> {{ formatUptime(server.system.uptime) }}
+                </span>
+              </div>
+            </CardTitle>
+             <Badge variant="outline" class="font-normal text-xs" :title="getOS(server)">{{ getOS(server) }}</Badge>
+          </div>
         </CardHeader>
         <CardContent class="grid gap-4 text-sm">
             
+
             <!-- CPU -->
-            <div class="flex flex-col gap-1">
-                <div class="flex justify-between items-center text-muted-foreground">
-                    <span class="flex items-center gap-1"><Cpu class="h-3 w-3" /> CPU</span>
-                    <span class="font-medium text-foreground">{{ getCpuPercent(server).toFixed(1) }}%</span>
+            <div class="space-y-1">
+                <div class="flex justify-between text-xs">
+                    <span class="text-muted-foreground flex items-center gap-1"><Cpu class="h-3 w-3" /> CPU</span>
+                    <span class="font-medium">{{ getCpuPercent(server).toFixed(1) }}%</span>
                 </div>
-                <Progress :model-value="getCpuPercent(server)" class="h-2" />
+                <Progress :model-value="getCpuPercent(server)" class="h-1.5" />
             </div>
 
             <!-- RAM -->
-            <div class="flex flex-col gap-1">
-                <div class="flex justify-between items-center text-muted-foreground">
-                    <span class="flex items-center gap-1"><Database class="h-3 w-3" /> RAM</span>
-                    <span class="font-medium text-foreground">{{ getRamPercent(server).toFixed(1) }}%</span>
+            <div class="space-y-1">
+                <div class="flex justify-between text-xs">
+                    <span class="text-muted-foreground flex items-center gap-1"><Database class="h-3 w-3" /> RAM</span>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] text-muted-foreground">{{ getRamText(server) }}</span>
+                        <span class="font-medium">{{ getRamPercent(server).toFixed(1) }}%</span>
+                    </div>
                 </div>
-                <Progress :model-value="getRamPercent(server)" class="h-2" />
-                <div class="text-xs text-right text-muted-foreground">{{ getRamText(server) }}</div>
+                <Progress :model-value="getRamPercent(server)" class="h-1.5" />
             </div>
 
             <!-- Load -->
-            <div class="flex justify-between items-center border-t pt-2">
-                 <span class="text-muted-foreground flex items-center gap-1"><Activity class="h-3 w-3" /> Load</span>
-                 <span class="font-mono">{{ formatLoad(server.load) }}</span>
+            <div class="grid gap-2 text-xs">
+                <div class="flex items-center gap-2 p-2 bg-muted/50 rounded-md">
+                   <Activity class="h-3.5 w-3.5 text-muted-foreground" />
+                   <div class="flex flex-col">
+                        <span class="text-xs text-muted-foreground">Load</span>
+                        <span class="font-medium font-mono">{{ formatLoad(server.load) }}</span>
+                   </div>
+                </div>
             </div>
 
-            <!-- Network -->
-            <div class="flex justify-between items-center border-t pt-2" v-if="server.network">
-                 <span class="text-muted-foreground flex items-center gap-1"><Network class="h-3 w-3" /> Net</span>
-                 <div class="text-right text-xs">
-                    <div>{{ getNetworkSpeed(server, 'rx') }} ↓</div>
-                    <div>{{ getNetworkSpeed(server, 'tx') }} ↑</div>
-                 </div>
-            </div>
-            
-             <!-- Disk -->
-             <div class="flex justify-between items-center border-t pt-2" v-if="server.disk && server.disk.length > 0">
-                 <span class="text-muted-foreground flex items-center gap-1"><HardDrive class="h-3 w-3" /> Disk </span>
-                 <span class="text-xs">{{ getDiskUsage(server) }}</span>
-            </div>
+            <!-- Network & Disk -->
+             <div class="grid grid-cols-2 gap-4 pt-2 border-t">
+                 <!-- Network -->
+                <div class="flex flex-col gap-1" v-if="server.network">
+                     <span class="text-[10px] text-muted-foreground flex items-center gap-1 uppercase tracking-wider"><NetworkIcon class="h-3 w-3" />Network</span>
+                     <div class="flex flex-col text-xs font-mono">
+                         <div class="flex justify-between items-center">
+                            <span class="text-muted-foreground">↓</span>
+                            <span>{{ getNetworkSpeed(server, 'rx') }}</span>
+                         </div>
+                         <div class="flex justify-between items-center">
+                            <span class="text-muted-foreground">↑</span>
+                            <span>{{ getNetworkSpeed(server, 'tx') }}</span>
+                         </div>
+                     </div>
+                </div>
 
-
+                <!-- Disk -->
+                <div class="flex flex-col gap-1" v-if="server.disk && server.disk.length > 0">
+                    <span class="text-[10px] text-muted-foreground flex items-center gap-1 uppercase tracking-wider"><HardDrive class="h-3 w-3" />Disk</span>
+                    <div class="flex items-center justify-between text-xs">
+                         <span class="truncate flex-1" :title="server.disk[0].name">{{ server.disk[0].name }}</span>
+                         <span class="font-medium">{{ getDiskDisplay(server) }}</span>
+                    </div>
+                     <Progress :model-value="getDiskPercent(server)" class="h-1 mt-1" />
+                </div>
+             </div>
         </CardContent>
-        <CardFooter class="pt-0 text-xs text-muted-foreground flex justify-between">
-            <span>{{ server.uuid.substring(0, 8) }}...</span>
-             <span class="flex items-center gap-1"><Clock class="h-3 w-3" /> {{ new Date(server.timestamp).toLocaleTimeString() }}</span>
+        <CardFooter class="pt-0 pb-3 text-[10px] text-muted-foreground flex justify-between px-6">
+            <span class="font-mono">ID: {{ server.uuid.substring(0, 8) }}</span>
         </CardFooter>
       </Card>
     </div>
