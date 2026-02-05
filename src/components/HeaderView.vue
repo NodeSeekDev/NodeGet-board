@@ -39,7 +39,7 @@ onMounted(() => {
 <template>
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <h1 class="text-3xl font-bold tracking-tight">NodeGet</h1>
+        <h1 class="text-3xl font-bold tracking-tight animate-pulse">NodeGet</h1>
       </div>
       <div class="flex items-center gap-2 text-sm text-muted-foreground">
         
