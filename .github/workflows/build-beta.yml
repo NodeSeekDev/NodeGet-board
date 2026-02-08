@@ -1,0 +1,59 @@
+name: Beta Build
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Install pnpm
+        run: npm install pnpm -g
+
+      - name: Install dependencies
+        run: pnpm i
+
+      - name: Build
+        run: pnpm build
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          publish_branch: gh-pages
+          cname: magnetkopf.com
+
+    release:
+        runs-on: ubuntu-latest
+        needs: build
+        steps:
+        - uses: actions/download-artifact@v4
+        with:
+            path: dist
+
+        - name: Compress
+          run: |
+            zip nodeget-board.zip dist/**/*
+            tar -czvf nodeget-board.tar.gz dist/**/*
+        
+        - name: Upload assets
+          uses: softprops/action-gh-release@v2
+          with:
+            files: nodeget-board.zip nodeget-board.tar.gz
+            prerelease: true
+            tag_name: beta
