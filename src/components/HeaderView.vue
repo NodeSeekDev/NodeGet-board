@@ -2,8 +2,7 @@
 import { ref, onMounted, inject, type Ref } from 'vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Moon, Sun } from 'lucide-vue-next'
+import { Moon, Sun, Server as ServerIcon, Sparkles, Circle } from 'lucide-vue-next'
 
 defineProps<{
   status: 'disconnected' | 'connecting' | 'connected'
@@ -12,6 +11,7 @@ defineProps<{
 const isDark = ref(false)
 const background = inject<Ref<'default' | 'flickering'>>('background')
 const setBackground = inject<(val: 'default' | 'flickering') => void>('setBackground')
+const openBackendSwitcher = inject<() => void>('openBackendSwitcher')
 
 const toggleTheme = () => {
     isDark.value = !isDark.value
@@ -43,20 +43,21 @@ onMounted(() => {
       </div>
       <div class="flex items-center gap-2 text-sm text-muted-foreground">
         
-        <Select :model-value="background" @update:model-value="(v) => setBackground?.(v as 'default' | 'flickering')">
-          <SelectTrigger class="w-[120px] h-8 text-xs">
-            <SelectValue placeholder="Background" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="default">Default</SelectItem>
-            <SelectItem value="flickering">Flickering</SelectItem>
-          </SelectContent>
-        </Select>
+
+        <Button variant="ghost" size="icon" @click="setBackground?.(background === 'default' ? 'flickering' : 'default')" title="Toggle background">
+            <Circle v-if="background === 'default'" class="h-4 w-4" />  
+            <Sparkles v-else class="h-4 w-4" />
+            <span class="sr-only">Toggle background</span>
+        </Button>
 
         <Button variant="ghost" size="icon" @click="toggleTheme">
-            <Moon v-if="!isDark" class="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-            <Sun v-else class="h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+            <Moon v-if="!isDark" class="h-[1.2rem] w-[1rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+            <Sun v-else class="h-[1.2rem] w-[1rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
             <span class="sr-only">Toggle theme</span>
+        </Button>
+        <Button variant="ghost" size="icon" @click="openBackendSwitcher?.()">
+            <ServerIcon class="h-4 w-4" />
+            <span class="sr-only">Switch backend</span>
         </Button>
         <Badge :variant="status === 'connected' ? 'default' : (status === 'connecting' ? 'secondary' : 'destructive')">
           {{ status === 'connected' ? 'Online' : (status === 'connecting' ? 'Connecting...' : 'Offline') }}

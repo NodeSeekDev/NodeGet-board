@@ -103,7 +103,7 @@ const historyAreaPath = computed(() => {
 </script>
 
 <template>
-  <div class="flex flex-col h-screen bg-background text-foreground">
+  <div class="flex flex-col h-screen text-foreground">
     <div class="border-b">
         <div class="container mx-auto py-3 px-4 flex items-center gap-4">
             <Button variant="ghost" size="icon" class="md:hidden" @click="isSidebarOpen = true">
@@ -216,7 +216,7 @@ const historyAreaPath = computed(() => {
         </aside>
 
         <!-- Main Content -->
-        <main class="flex-1 flex flex-col min-w-0 bg-background">
+        <main class="flex-1 flex flex-col min-w-0">
              <div v-if="!server" class="flex-1 flex items-center justify-center text-muted-foreground">
                 <div class="flex flex-col items-center gap-2">
                     <div v-if="dynamicError" class="text-destructive flex items-center gap-2">

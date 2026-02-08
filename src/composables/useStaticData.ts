@@ -1,4 +1,5 @@
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
+import { useBackendStore } from './useBackendStore'
 
 // Static data state (separate from dynamic)
 const staticStatus = ref<'disconnected' | 'connecting' | 'connected'>('disconnected')
@@ -8,8 +9,8 @@ const staticWs = ref<WebSocket | null>(null)
 let staticReconnectTimeout: any = null
 let staticNextId = 1000 // Different starting ID to avoid conflicts
 
-const token = import.meta.env.VITE_BACKEND_TOKEN
-const wsUrl = import.meta.env.VITE_BACKEND_WS
+const { currentBackend } = useBackendStore()
+
 const queryFields = ['cpu', 'system', 'gpu']
 
 const scheduleReconnect = () => {
@@ -20,7 +21,7 @@ const scheduleReconnect = () => {
 }
 
 const sendQuery = () => {
-    if (!staticWs.value || staticStatus.value !== 'connected') return
+    if (!staticWs.value || staticStatus.value !== 'connected' || !currentBackend.value) return
 
     const queryObj = {
         fields: queryFields,
@@ -31,7 +32,7 @@ const sendQuery = () => {
         jsonrpc: "2.0",
         id: staticNextId++,
         method: "agent_query_static",
-        params: [token, queryObj]
+        params: [currentBackend.value.token, queryObj]
     }
 
     try {
@@ -44,16 +45,24 @@ const sendQuery = () => {
 const connect = () => {
     if (staticStatus.value === 'connected' || staticStatus.value === 'connecting') return
 
-    if (!wsUrl || !token) {
-        staticError.value = 'Missing VITE_BACKEND_WS or VITE_BACKEND_TOKEN in environment.'
+    if (!currentBackend.value) {
+        staticError.value = 'No backend selected.'
+        staticStatus.value = 'disconnected'
         return
+    }
+
+    const { url, token } = currentBackend.value
+    if (!url || !token) {
+         staticError.value = 'Invalid backend configuration.'
+         staticStatus.value = 'disconnected'
+         return
     }
 
     staticStatus.value = 'connecting'
     staticError.value = ''
 
     try {
-        const socket = new WebSocket(wsUrl)
+        const socket = new WebSocket(url)
         staticWs.value = socket
 
         socket.onopen = () => {
@@ -82,7 +91,10 @@ const connect = () => {
         socket.onclose = () => {
             staticStatus.value = 'disconnected'
             staticWs.value = null
-            scheduleReconnect()
+            // Only reconnect if we still have a backend and it hasn't changed manually
+            if (currentBackend.value) {
+                scheduleReconnect()
+            }
         }
 
         socket.onerror = (e) => {
@@ -95,6 +107,24 @@ const connect = () => {
         scheduleReconnect()
     }
 }
+
+// Watch for backend changes
+watch(currentBackend, (newVal, oldVal) => {
+    // If connection info changed
+    if (newVal?.url !== oldVal?.url || newVal?.token !== oldVal?.token) {
+        // Close existing
+        if (staticWs.value) {
+            staticWs.value.close() // onclose will trigger, but we want to ensure clean switch
+            staticWs.value = null
+        }
+        staticStatus.value = 'disconnected'
+        if (staticReconnectTimeout) clearTimeout(staticReconnectTimeout)
+        
+        if (newVal) {
+             connect()
+        }
+    }
+}, { deep: true })
 
 export function useStaticData() {
     return {

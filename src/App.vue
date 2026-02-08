@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { RouterView } from 'vue-router'
 import FlickeringGrid from '@/components/ui/flickering-grid/FlickeringGrid.vue'
-import { ref, provide, onMounted } from 'vue'
+import { ref, provide, onMounted, watch } from 'vue'
+import BackendSwitcher from '@/components/BackendSwitcher.vue'
+import { useBackendStore } from '@/composables/useBackendStore'
 
 const background = ref<'default' | 'flickering'>('default')
 
@@ -13,10 +15,24 @@ const setBackground = (val: 'default' | 'flickering') => {
 provide('background', background)
 provide('setBackground', setBackground)
 
+// Backend Switcher Logic
+const isBackendSwitcherOpen = ref(false)
+const openBackendSwitcher = () => {
+    isBackendSwitcherOpen.value = true
+}
+provide('openBackendSwitcher', openBackendSwitcher)
+
+const { backends, currentBackend } = useBackendStore()
+
 onMounted(() => {
   const bgCookie = document.cookie.split('; ').find(row => row.startsWith('background='))?.split('=')[1]
   if (bgCookie === 'flickering') {
       background.value = 'flickering'
+  }
+
+  // Check if we need to force open backend switcher
+  if (!import.meta.env.DEV && backends.value.length === 0) {
+      isBackendSwitcherOpen.value = true
   }
 })
 </script>
@@ -33,5 +49,6 @@ onMounted(() => {
       />
   </div>
   <RouterView />
+  <BackendSwitcher v-model:open="isBackendSwitcherOpen" />
 </template>
 <style scoped></style>

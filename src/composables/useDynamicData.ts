@@ -1,4 +1,5 @@
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
+import { useBackendStore } from './useBackendStore'
 
 // Dynamic data state (separate from static)
 const dynamicStatus = ref<'disconnected' | 'connecting' | 'connected'>('disconnected')
@@ -9,8 +10,8 @@ let dynamicPollInterval: any = null
 let dynamicReconnectTimeout: any = null
 let dynamicNextId = 1 // Different starting ID to avoid conflicts
 
-const token = import.meta.env.VITE_BACKEND_TOKEN
-const wsUrl = import.meta.env.VITE_BACKEND_WS
+const { currentBackend } = useBackendStore()
+
 const queryFields = ['cpu', 'ram', 'load', 'system', 'disk', 'network']
 
 const scheduleReconnect = () => {
@@ -21,7 +22,7 @@ const scheduleReconnect = () => {
 }
 
 const sendQuery = () => {
-    if (!dynamicWs.value || dynamicStatus.value !== 'connected') return
+    if (!dynamicWs.value || dynamicStatus.value !== 'connected' || !currentBackend.value) return
 
     const queryObj = {
         fields: queryFields,
@@ -32,7 +33,7 @@ const sendQuery = () => {
         jsonrpc: "2.0",
         id: dynamicNextId++,
         method: "agent_query_dynamic",
-        params: [token, queryObj]
+        params: [currentBackend.value.token, queryObj]
     }
 
     try {
@@ -56,8 +57,16 @@ const stopPolling = () => {
 const connect = () => {
     if (dynamicStatus.value === 'connected' || dynamicStatus.value === 'connecting') return
 
-    if (!wsUrl || !token) {
-        dynamicError.value = 'Missing VITE_BACKEND_WS or VITE_BACKEND_TOKEN in environment.'
+    if (!currentBackend.value) {
+        dynamicError.value = 'No backend selected.'
+        dynamicStatus.value = 'disconnected'
+        return
+    }
+
+    const { url, token } = currentBackend.value
+    if (!url || !token) {
+        dynamicError.value = 'Invalid backend configuration.'
+        dynamicStatus.value = 'disconnected'
         return
     }
 
@@ -65,7 +74,7 @@ const connect = () => {
     dynamicError.value = ''
 
     try {
-        const socket = new WebSocket(wsUrl)
+        const socket = new WebSocket(url)
         dynamicWs.value = socket
 
         socket.onopen = () => {
@@ -97,7 +106,9 @@ const connect = () => {
             dynamicStatus.value = 'disconnected'
             dynamicWs.value = null
             stopPolling()
-            scheduleReconnect()
+            if (currentBackend.value) {
+                scheduleReconnect()
+            }
         }
 
         socket.onerror = (e) => {
@@ -110,6 +121,22 @@ const connect = () => {
         scheduleReconnect()
     }
 }
+
+// Watch for backend changes
+watch(currentBackend, (newVal, oldVal) => {
+    if (newVal?.url !== oldVal?.url || newVal?.token !== oldVal?.token) {
+        if (dynamicWs.value) {
+            dynamicWs.value.close()
+            dynamicWs.value = null
+        }
+        dynamicStatus.value = 'disconnected'
+        if (dynamicReconnectTimeout) clearTimeout(dynamicReconnectTimeout)
+
+        if (newVal) {
+            connect()
+        }
+    }
+}, { deep: true })
 
 export function useDynamicData() {
     return {

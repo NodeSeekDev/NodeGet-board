@@ -19,6 +19,7 @@ import { Github } from 'lucide-vue-next'
           GitHub
         </a>
       </div>
+      
     </div>
   </footer>
 </template>
