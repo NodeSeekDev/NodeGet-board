@@ -16,7 +16,6 @@ interface TokenLimit {
 }
 
 export interface TokenInfo {
-  id?: number
   version?: number
   token_key?: string
   timestamp_from?: number | null
@@ -161,7 +160,7 @@ export const usePermissionStore = defineStore('permission', () => {
   const permissionIndex = ref(new Set<string>())
   const normalizedPermissions = ref<NormalizedPermission[]>([])
   const isSuperToken = computed(
-    () => tokenInfo.value?.id === 1 && normalizeText(tokenInfo.value?.username) === 'root',
+    () => normalizeText(tokenInfo.value?.username) === 'root',
   )
 
   const clear = () => {
