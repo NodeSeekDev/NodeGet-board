@@ -4,6 +4,7 @@ import FlickeringGrid from '@/components/ui/flickering-grid/FlickeringGrid.vue'
 import { ref, provide, onMounted, watch } from 'vue'
 import BackendSwitcher from '@/components/BackendSwitcher.vue'
 import { useBackendStore } from '@/composables/useBackendStore'
+import { usePermissionStore } from '@/stores/usePermissionStore'
 
 const background = ref<'default' | 'flickering'>('default')
 
@@ -23,6 +24,7 @@ const openBackendSwitcher = () => {
 provide('openBackendSwitcher', openBackendSwitcher)
 
 const { backends, currentBackend } = useBackendStore()
+const permissionStore = usePermissionStore()
 
 onMounted(() => {
   const bgCookie = document.cookie.split('; ').find(row => row.startsWith('background='))?.split('=')[1]
@@ -35,6 +37,14 @@ onMounted(() => {
       isBackendSwitcherOpen.value = true
   }
 })
+
+watch(
+  currentBackend,
+  (backend) => {
+    permissionStore.refreshByBackend(backend)
+  },
+  { deep: true, immediate: true },
+)
 </script>
 
 <template>
