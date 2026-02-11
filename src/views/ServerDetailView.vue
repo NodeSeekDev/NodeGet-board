@@ -271,7 +271,8 @@ const historyAreaPath = computed(() => {
                     </div>
 
                     <!-- CPU View -->
-                    <div v-if="activeTab === 'cpu'" class="space-y-6">
+                    <Transition name="fade" mode="out-in">
+                        <div v-if="activeTab === 'cpu'" key="cpu" class="space-y-6">
                         <Card>
                             <CardHeader>
                                 <div class="flex items-center justify-between">
@@ -360,7 +361,7 @@ const historyAreaPath = computed(() => {
                     </div>
 
                     <!-- Memory View -->
-                    <div v-if="activeTab === 'memory'" class="space-y-6">
+                        <div v-else-if="activeTab === 'memory'" key="memory" class="space-y-6">
                          <div class="grid md:grid-cols-2 gap-6">
                              <Card>
                                  <CardHeader>
@@ -401,7 +402,7 @@ const historyAreaPath = computed(() => {
                     </div>
 
                     <!-- Disk View -->
-                    <div v-if="activeTab === 'disk'" class="space-y-6">
+                        <div v-else-if="activeTab === 'disk'" key="disk" class="space-y-6">
                         <div class="grid gap-4">
                             <Card v-for="(disk, index) in server.disk" :key="index">
                                 <CardHeader class="pb-2">
@@ -431,7 +432,7 @@ const historyAreaPath = computed(() => {
                     </div>
 
                     <!-- Network View -->
-                    <div v-if="activeTab === 'network'" class="space-y-6">
+                        <div v-else-if="activeTab === 'network'" key="network" class="space-y-6">
                         <div class="grid md:grid-cols-2 gap-6">
                             <Card class="">
                                 <CardContent class="pt-2">
@@ -473,7 +474,8 @@ const historyAreaPath = computed(() => {
                                 </div>
                             </CardContent>
                         </Card>
-                    </div>
+                        </div>
+                    </Transition>
 
                 </div>
              </div>

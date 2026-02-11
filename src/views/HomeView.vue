@@ -64,7 +64,11 @@ onMounted(() => {
       Waiting for server data...
     </div>
 
-    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <TransitionGroup 
+      tag="div" 
+      name="list" 
+      class="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+    >
       <router-link 
         v-for="server in mergedServers" 
         :key="server.uuid" 
@@ -156,7 +160,7 @@ onMounted(() => {
         </CardFooter>
       </Card>
       </router-link>
-    </div>
+    </TransitionGroup>
     <FooterView />
   </div>
   </div>
