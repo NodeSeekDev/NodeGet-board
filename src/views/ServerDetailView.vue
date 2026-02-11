@@ -2,7 +2,7 @@
 import { onMounted, computed, ref, watch } from 'vue'
 import { useDynamicData } from '@/composables/useDynamicData'
 import { useStaticData } from '@/composables/useStaticData'
-import { formatLoad, formatBytes, formatUptime } from '@/utils/format'
+import { formatLoad, formatBytes, formatUptime, formatTimestamp } from '@/utils/format'
 import { showHostname, showOS, showCpuPercent, showRamPercent, showRamText, showNetworkSpeed, showDiskUsage, showDiskPercent, showDiskDisplay } from '@/utils/show'
 
 import { useRoute } from 'vue-router'
@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import HeaderView from '@/components/HeaderView.vue'
 import { Button } from '@/components/ui/button'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ArrowLeft, Cpu, Database, HardDrive, Network, AlertCircle, Menu, X, Clock, Container, Fish } from 'lucide-vue-next'
 
 const route = useRoute()
@@ -22,7 +23,8 @@ const {
   status: dynamicStatus, 
   error: dynamicError, 
   servers: dynamicServers, 
-  connect: connectDynamic 
+  connect: connectDynamic,
+  fetchCpuHistory
 } = useDynamicData()
 
 const { 
@@ -65,6 +67,9 @@ onMounted(() =>  {
 })
 
 const cpuHistory = ref<number[]>([])
+const cpuMode = ref('realtime')
+const historyData = ref<any[]>([])
+const isLoadingHistory = ref(false)
 
 watch(server, (newServer: any) => {
     if (newServer) {
@@ -76,29 +81,58 @@ watch(server, (newServer: any) => {
     }
 })
 
+const loadHistory = async () => {
+    if (!uuid) return
+    isLoadingHistory.value = true
+    try {
+        const res = await fetchCpuHistory(uuid)
+        if (Array.isArray(res)) {
+             historyData.value = res.reverse() //oldest first for chart
+
+        }
+    } catch (e) {
+        console.error("Failed to fetch history", e)
+    } finally {
+        isLoadingHistory.value = false
+    }
+}
+
+watch(cpuMode, (newMode) => {
+    if (newMode === 'history') {
+        loadHistory()
+    }
+})
+
+const displayData = computed(() => {
+    if (cpuMode.value === 'history') {
+        return historyData.value.map(item => item.cpu.total_cpu_usage)
+    }
+    return cpuHistory.value
+})
+
 const historyPath = computed(() => {
-    if (cpuHistory.value.length < 2) return ''
+    const data = displayData.value
+    if (data.length < 2) return ''
     
     const width = 100
     const height = 40
-    const maxVal = Math.max(...cpuHistory.value, 1) // Dynamic max, min 1%
+    const maxVal = 100 
     
-    return 'M ' + cpuHistory.value.map((val, i) => {
-        const x = (i / 29) * width
+    return 'M ' + data.map((val, i) => {
+        const x = (i / (data.length - 1)) * width
         const y = height - (val / maxVal) * height
         return `${x.toFixed(1)},${y.toFixed(1)}`
     }).join(' L ')
 })
 
 const historyAreaPath = computed(() => {
-    if (cpuHistory.value.length < 2) return ''
+    const data = displayData.value
+    if (data.length < 2) return ''
     const path = historyPath.value
     
-    // Connect to bottom right then bottom left then close
-    const lastX = ((cpuHistory.value.length - 1) / 29) * 100
-    
-    return `${path} L ${lastX.toFixed(1)},40 L 0,40 Z`
+    return `${path} L 100,40 L 0,40 Z`
 })
+
 
 </script>
 
@@ -240,11 +274,37 @@ const historyAreaPath = computed(() => {
                     <div v-if="activeTab === 'cpu'" class="space-y-6">
                         <Card>
                             <CardHeader>
-                                <CardTitle class="text-sm font-medium text-muted-foreground">Total Utilization</CardTitle>
-                                <div class="text-4xl font-bold tracking-tighter">{{ showCpuPercent(server).toFixed(1) }}%</div>
+                                <div class="flex items-center justify-between">
+                                    <CardTitle class="text-sm font-medium text-muted-foreground">Total Utilization</CardTitle>
+                                    <Tabs v-model="cpuMode" class="w-[200px]">
+                                        <TabsList class="grid w-full grid-cols-2 h-8">
+                                            <TabsTrigger value="realtime" class="text-xs">Realtime</TabsTrigger>
+                                            <TabsTrigger value="history" class="text-xs">History</TabsTrigger>
+                                        </TabsList>
+                                    </Tabs>
+                                </div>
+                                <div class="text-4xl font-bold tracking-tighter" v-if="cpuMode === 'realtime'">{{ showCpuPercent(server).toFixed(1) }}%</div>
+                                <div class="h-9 flex items-end" v-else>
+                                    <span class="text-sm text-muted-foreground" v-if="isLoadingHistory">Loading history...</span>
+                                    <span class="text-sm text-muted-foreground" v-else-if="historyData.length > 0">
+                                         Last {{ historyData.length }} records
+                                    </span>
+                                </div>
                             </CardHeader>
                             <CardContent>
                                 <div class="h-[200px] w-full bg-muted/10 rounded-md border flex items-end p-0 relative overflow-hidden group">
+                                     <!-- Axis Guide -->
+                                     <div class="absolute inset-y-0 left-0 w-8 flex flex-col justify-between py-2 text-[10px] text-muted-foreground/60 font-mono select-none pointer-events-none pl-2 z-10">
+                                         <div>100%</div>
+                                         <div>50%</div>
+                                         <div>0%</div>
+                                     </div>
+                                     <!-- Grid Lines -->
+                                     <div class="absolute inset-0 flex flex-col justify-between pointer-events-none z-0">
+                                          <div class="border-t border-border/40 opacity-50"></div>
+                                          <div class="border-t border-border/40 border-dashed opacity-50"></div>
+                                          <div class="border-b border-border/40 opacity-50"></div>
+                                     </div>
                                      <svg 
                                         viewBox="0 0 100 40" 
                                         preserveAspectRatio="none"
@@ -271,7 +331,13 @@ const historyAreaPath = computed(() => {
                                         />
                                      </svg>
                                      <div class="absolute inset-0 flex items-center justify-center text-muted-foreground/20 font-bold text-6xl select-none pointer-events-none group-hover:opacity-0 transition-opacity">
-                                         CPU
+                                         {{ cpuMode === 'realtime' ? 'REALTIME' : 'HISTORY' }}
+                                     </div>
+                                     <div v-if="cpuMode === 'history' && historyData.length > 0" class="absolute bottom-1 left-12 text-[10px] text-muted-foreground font-mono">
+                                         {{ formatTimestamp(historyData[0].timestamp) }}
+                                     </div>
+                                     <div v-if="cpuMode === 'history' && historyData.length > 0" class="absolute bottom-1 right-2 text-[10px] text-muted-foreground font-mono">
+                                         {{ formatTimestamp(historyData[historyData.length - 1].timestamp) }}
                                      </div>
                                 </div>
                             </CardContent>

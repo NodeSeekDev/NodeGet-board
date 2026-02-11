@@ -21,7 +21,7 @@ const scheduleReconnect = () => {
     }, 3000)
 }
 
-const sendQuery = () => {
+const sendQuery = async () => {
     if (!dynamicWs.value || dynamicStatus.value !== 'connected' || !currentBackend.value) return
 
     const queryObj = {
@@ -29,17 +29,22 @@ const sendQuery = () => {
         condition: [{"last": null}]
     }
 
-    const payload = {
-        jsonrpc: "2.0",
-        id: dynamicNextId++,
-        method: "agent_query_dynamic",
-        params: [currentBackend.value.token, queryObj]
-    }
-
     try {
-        dynamicWs.value.send(JSON.stringify(payload))
-    } catch (e) {
+        const result = await sendRequest("agent_query_dynamic", [currentBackend.value.token, queryObj])
+        
+        if (Array.isArray(result)) {
+            dynamicServers.value = result
+            if (dynamicError.value) dynamicError.value = ''
+        } else if (result && result.error_message) {
+            dynamicError.value = result.error_message
+            stopPolling()
+        }
+    } catch (e: any) {
         console.error("[Dynamic] Send failed", e)
+        if (e.message !== 'Request timed out') {
+            dynamicError.value = typeof e === 'string' ? e : (e.message || JSON.stringify(e))
+            stopPolling()
+        }
     }
 }
 
@@ -86,6 +91,20 @@ const connect = () => {
         socket.onmessage = (event) => {
             try {
                 const msg = JSON.parse(event.data)
+                
+                // Check if it's a response to a pending request
+                if (msg.id && pendingRequests.has(msg.id)) {
+                    const { resolve, reject } = pendingRequests.get(msg.id)!
+                    pendingRequests.delete(msg.id)
+                    
+                    if (msg.error) {
+                        reject(msg.error)
+                    } else {
+                        resolve(msg.result)
+                    }
+                    return
+                }
+
                 if (msg.result && Array.isArray(msg.result)) {
                     dynamicServers.value = msg.result
                     if (dynamicError.value) dynamicError.value = ''
@@ -138,11 +157,62 @@ watch(currentBackend, (newVal, oldVal) => {
     }
 }, { deep: true })
 
+const pendingRequests = new Map<number, { resolve: (value: any) => void, reject: (reason: any) => void }>()
+
+const sendRequest = (method: string, params: any): Promise<any> => {
+    return new Promise((resolve, reject) => {
+        if (!dynamicWs.value || dynamicStatus.value !== 'connected') {
+            reject(new Error('WebSocket not connected'))
+            return
+        }
+
+        const id = dynamicNextId++
+        pendingRequests.set(id, { resolve, reject })
+        
+        const payload = {
+            jsonrpc: "2.0",
+            id,
+            method,
+            params
+        }
+
+        try {
+            dynamicWs.value.send(JSON.stringify(payload))
+            // Timeout after 10 seconds
+            setTimeout(() => {
+                if (pendingRequests.has(id)) {
+                    pendingRequests.get(id)?.reject(new Error('Request timed out'))
+                    pendingRequests.delete(id)
+                }
+            }, 10000)
+        } catch (e) {
+            pendingRequests.delete(id)
+            reject(e)
+        }
+    })
+}
+
+const fetchCpuHistory = async (serverUuid: string) => {
+    if (!currentBackend.value) throw new Error('No backend selected')
+        
+    return sendRequest('agent_query_dynamic', [
+        currentBackend.value.token,
+        {
+            fields: ["cpu"],
+            condition: [
+                { uuid: serverUuid },
+                { limit: 200 }
+            ]
+        }
+    ])
+}
+
 export function useDynamicData() {
     return {
         status: dynamicStatus,
         error: dynamicError,
         servers: dynamicServers,
-        connect
+        connect,
+        fetchCpuHistory
     }
 }
