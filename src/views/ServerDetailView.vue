@@ -54,12 +54,25 @@ const server = computed(() => {
   return dServer
 })
 
+const tabTheme = {
+    cpu: { color: '#22d3ee', hsl: '186 86% 53%' },
+    memory: { color: '#4ade80', hsl: '142 69% 58%' },
+    disk: { color: '#fb923c', hsl: '24 94% 61%' },
+    network: { color: '#f472b6', hsl: '325 84% 70%' },
+}
+
+const getTabTheme = (id: string) => {
+    return (tabTheme as any)[id] || tabTheme.cpu
+}
+
 const tabs = [
     { id: 'cpu', label: 'CPU', icon: Cpu },
     { id: 'memory', label: 'Memory', icon: Database },
     { id: 'disk', label: 'Disk', icon: HardDrive },
     { id: 'network', label: 'Network', icon: Network },
 ]
+
+const activeTheme = computed(() => getTabTheme(activeTab.value))
 
 onMounted(() =>  {
   connectDynamic()
@@ -117,12 +130,35 @@ const historyPath = computed(() => {
     const width = 100
     const height = 40
     const maxVal = 100 
-    
-    return 'M ' + data.map((val, i) => {
+
+    const points: [number, number][] = data.map((val, i) => {
         const x = (i / (data.length - 1)) * width
         const y = height - (val / maxVal) * height
-        return `${x.toFixed(1)},${y.toFixed(1)}`
-    }).join(' L ')
+        return [x, y]
+    })
+
+    if (points.length < 2) return ''
+
+    let d = `M ${points[0]![0].toFixed(2)},${points[0]![1].toFixed(2)}`
+
+    for (let i = 0; i < points.length - 1; i++) {
+        const p0 = points[i === 0 ? 0 : i - 1]
+        const p1 = points[i]
+        const p2 = points[i + 1]
+        const p3 = points[i + 2 < points.length ? i + 2 : points.length - 1]
+
+        if (!p0 || !p1 || !p2 || !p3) continue;
+
+        const cp1x = p1[0] + (p2[0] - p0[0]) / 6
+        const cp1y = p1[1] + (p2[1] - p0[1]) / 6
+
+        const cp2x = p2[0] - (p3[0] - p1[0]) / 6
+        const cp2y = p2[1] - (p3[1] - p1[1]) / 6
+
+        d += ` C ${cp1x.toFixed(2)},${cp1y.toFixed(2)} ${cp2x.toFixed(2)},${cp2y.toFixed(2)} ${p2[0].toFixed(2)},${p2[1].toFixed(2)}`
+    }
+
+    return d
 })
 
 const historyAreaPath = computed(() => {
@@ -202,24 +238,30 @@ const historyAreaPath = computed(() => {
                         :key="tab.id"
                         @click="() => { activeTab = tab.id; isSidebarOpen = false; }"
                         :title="tab.label"
+                        :style="activeTab === tab.id ? { 
+                            backgroundColor: `${getTabTheme(tab.id).color}20`, 
+                            borderColor: getTabTheme(tab.id).color,
+                        } : {}"
                         :class="[
-                            'w-full flex items-center gap-3 p-3 text-left rounded-lg transition-all border border-transparent',
-                            activeTab === tab.id 
-                                ? 'bg-primary/20 border-border shadow-sm text-foreground' 
-                                : 'hover:bg-muted/50 text-muted-foreground hover:text-foreground',
+                            'w-full flex items-center gap-3 p-3 text-left rounded-lg transition-all border',
+                             activeTab === tab.id 
+                                ? 'shadow-sm' 
+                                : 'border-transparent hover:bg-muted/50 text-muted-foreground hover:text-foreground',
                         ]"
                     >
                         <div :class="[
                             'p-2 rounded-md shrink-0 transition-all',
-                            activeTab === tab.id ? 'bg-primary/10' : 'bg-muted'
-                        ]">
+                            activeTab === tab.id ? '' : 'bg-muted'
+                        ]" :style="activeTab === tab.id ? { backgroundColor: `${getTabTheme(tab.id).color}20` } : {}">
                             <component :is="tab.icon" :class="[
                                 'h-5 w-5',
-                                activeTab === tab.id ? 'text-primary' : 'text-muted-foreground'
-                            ]" />
+                                activeTab === tab.id ? '' : 'text-muted-foreground'
+                            ]" 
+                            :style="activeTab === tab.id ? { color: getTabTheme(tab.id).color } : {}"
+                            />
                         </div>
                         <div class="flex-1 min-w-0 transition-all duration-300">
-                            <div class="font-medium text-sm truncate">{{ tab.label }}</div>
+                            <div class="font-medium text-sm truncate" :style="activeTab === tab.id ? { color: getTabTheme(tab.id).color } : {}">{{ tab.label }}</div>
                             <div class="text-xs text-muted-foreground mt-0.5 font-mono truncate">
                                 <span v-if="tab.id === 'cpu'">{{ showCpuPercent(server).toFixed(1) }}%</span>
                                 <span v-else-if="tab.id === 'memory'">{{ showRamPercent(server).toFixed(1) }}%</span>
@@ -228,12 +270,13 @@ const historyAreaPath = computed(() => {
                             </div>
                         </div>
                         <div 
-                            class="w-1 h-8 rounded-full bg-primary/20 overflow-hidden shrink-0 transition-all duration-300" 
+                            class="w-1 h-8 rounded-full bg-muted/20 overflow-hidden shrink-0 transition-all duration-300" 
                             v-if="['cpu', 'memory', 'disk'].includes(tab.id)"
                         >
                             <div 
-                                class="w-full bg-primary transition-all duration-500 rounded-full"
+                                class="w-full transition-all duration-500 rounded-full"
                                 :style="{ 
+                                    backgroundColor: getTabTheme(tab.id).color,
                                     height: (
                                         tab.id === 'cpu' ? showCpuPercent(server) : 
                                         tab.id === 'memory' ? showRamPercent(server) : 
@@ -260,7 +303,7 @@ const historyAreaPath = computed(() => {
                 </div>
              </div>
              
-             <div v-else class="flex-1 p-6 overflow-y-auto">
+             <div v-else class="flex-1 p-6 overflow-y-auto" :style="{ '--primary': activeTheme.hsl }">
                 <div class="max-w-5xl mx-auto space-y-6">
                     <div class="flex items-center justify-between">
                          <h1 class="text-3xl font-bold tracking-light">{{ tabs.find(t => t.id === activeTab)?.label }}</h1>
@@ -313,9 +356,16 @@ const historyAreaPath = computed(() => {
                                      >
                                         <defs>
                                             <linearGradient id="cpuGradient" x1="0" x2="0" y1="0" y2="1">
-                                                <stop offset="0%" stop-color="currentColor" stop-opacity="0.5" />
-                                                <stop offset="100%" stop-color="currentColor" stop-opacity="0" />
+                                                <stop offset="0%" :stop-color="activeTheme.color" stop-opacity="0.5" />
+                                                <stop offset="100%" :stop-color="activeTheme.color" stop-opacity="0" />
                                             </linearGradient>
+                                            <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                                                <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+                                                <feMerge>
+                                                    <feMergeNode in="coloredBlur" />
+                                                    <feMergeNode in="SourceGraphic" />
+                                                </feMerge>
+                                            </filter>
                                         </defs>
                                         
                                         <path 
@@ -326,8 +376,11 @@ const historyAreaPath = computed(() => {
                                         <path 
                                             :d="historyPath" 
                                             fill="none" 
-                                            stroke="currentColor" 
-                                            stroke-width="0.5" 
+                                            :stroke="activeTheme.color" 
+                                            stroke-width="1.5" 
+                                            filter="url(#glow)"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
                                             vector-effect="non-scaling-stroke"
                                         />
                                      </svg>
