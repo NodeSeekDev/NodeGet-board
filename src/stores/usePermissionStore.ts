@@ -11,7 +11,7 @@ interface PermissionEntry {
 
 type ScopeEntry =
   | 'global'
-  | { global?: null; agent_uuid?: string; kv_namespace?: string }
+  | { global?: null; agent_uuid?: string }
   | string
 
 interface TokenLimit {
@@ -43,12 +43,16 @@ const normalizeText = (value: unknown) => String(value ?? '').trim().toLowerCase
 
 const normalizeScope = (scope: ScopeEntry): string | null => {
   if (scope === 'global') return 'global'
-  if (typeof scope === 'string') return scope
+  if (typeof scope === 'string') {
+    const normalized = normalizeText(scope)
+    if (normalized === 'global') return normalized
+    if (normalized.startsWith('agent_uuid:')) return normalized
+    return null
+  }
   if (!scope || typeof scope !== 'object') return null
   if ('global' in scope) return 'global'
-  if (typeof scope.agent_uuid === 'string' && scope.agent_uuid) return `agent_uuid:${scope.agent_uuid}`
-  if (typeof scope.kv_namespace === 'string' && scope.kv_namespace) {
-    return `kv_namespace:${scope.kv_namespace}`
+  if (typeof scope.agent_uuid === 'string' && scope.agent_uuid) {
+    return `agent_uuid:${normalizeText(scope.agent_uuid)}`
   }
   return null
 }
@@ -172,19 +176,18 @@ export const usePermissionStore = defineStore('permission', () => {
   const hasPermission = (
     resourceRaw: string,
     actionRaw: string,
-    options?: { field?: string; scope?: string },
+    options?: { field?: string; agentUuid?: string },
   ) => {
     if (isSuperToken.value) return true
 
     const resource = normalizeText(resourceRaw)
     const action = normalizeText(actionRaw)
     const field = options?.field ? normalizeText(options.field) : ''
-    const scopes = options?.scope
-      ? [normalizeText(options.scope)]
-      : availableScopes.value.length > 0
-        // By default, treat permissions as valid if any scope grants it.
-        ? availableScopes.value
-        : ['global']
+    const agentUuid = options?.agentUuid ? normalizeText(options.agentUuid) : ''
+    // Context checks:
+    // - With agentUuid, allow agent-specific permission or global fallback.
+    // - Without agentUuid, only check global scope.
+    const scopes = agentUuid ? [`agent_uuid:${agentUuid}`, 'global'] : ['global']
 
     for (const scope of scopes) {
       if (!scope) continue
