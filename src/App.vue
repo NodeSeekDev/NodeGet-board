@@ -49,16 +49,20 @@ watch(
 
 <template>
   <div class="fixed inset-0 z-[-1]" v-if="background === 'flickering'">
-      <FlickeringGrid
-        class="relative inset-0 z-0 [mask-image:radial-gradient(300px_circle_at_center,white,transparent)] md:[mask-image:radial-gradient(400px_circle_at_center,white,transparent)]"
-        :square-size="4"
-        :grid-gap="6"
-        color="#6B7280"
-        :max-opacity="0.5"
-        :flicker-chance="0.1"
-      />
+    <FlickeringGrid
+      class="relative inset-0 z-0 [mask-image:radial-gradient(200px_circle_at_50%_25%,white,transparent)] md:[mask-image:radial-gradient(400px_circle_at_50%_25%,white,transparent)]"
+      :square-size="4"
+      :grid-gap="6"
+      color="#6B7280"
+      :max-opacity="0.5"
+      :flicker-chance="0.1"
+    />
   </div>
-  <RouterView />
+  <RouterView v-slot="{ Component }">
+    <Transition name="page" mode="out-in">
+      <component :is="Component" />
+    </Transition>
+  </RouterView>
   <BackendSwitcher v-model:open="isBackendSwitcherOpen" />
 </template>
 <style scoped></style>
