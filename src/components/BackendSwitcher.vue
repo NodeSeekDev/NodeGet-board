@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useBackendStore, type Backend } from '@/composables/useBackendStore'
 import { Plus, Trash2 } from 'lucide-vue-next'
+import { RainbowButton } from '@/components/ui/rainbow-button'
 
 const props = defineProps<{
   open?: boolean
@@ -119,7 +120,7 @@ const handleSelect = (b: Backend) => {
                     <Label for="token">Token</Label>
                     <Input id="token" v-model="newToken" type="password" placeholder="key:secret username|password" />
                </div>
-               <Button @click="handleAdd" :disabled="!newName || !newUrl || !newToken">Add Backend</Button>
+               <RainbowButton @click="handleAdd" :disabled="!newName || !newUrl || !newToken">Add Backend</RainbowButton>
            </div>
       </div>
     </DialogContent>

@@ -2,6 +2,7 @@
 import { onMounted, onUnmounted, computed } from 'vue'
 import { useDynamicData } from '@/composables/useDynamicData'
 import { useStaticData } from '@/composables/useStaticData'
+import { colors } from '@/composables/color'
 import { formatLoad, formatBytes, formatUptime } from '@/utils/format'
 import { showHostname, showOS, showCpuPercent, showRamPercent, showRamText, showNetworkSpeed, showDiskUsage, showDiskPercent, showDiskDisplay } from '@/utils/show'
 
@@ -64,7 +65,11 @@ onMounted(() => {
       Waiting for server data...
     </div>
 
-    <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <TransitionGroup 
+      tag="div" 
+      name="list" 
+      class="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+    >
       <router-link 
         v-for="server in mergedServers" 
         :key="server.uuid" 
@@ -91,19 +96,20 @@ onMounted(() => {
         <CardContent class="grid gap-4 text-sm">
             
 
+
             <!-- CPU -->
-            <div class="space-y-1">
+            <div class="space-y-1" :style="{ '--primary': `hsl(${colors.cpu.hsl})` }">
                 <div class="flex justify-between text-xs">
-                    <span class="text-muted-foreground flex items-center gap-1"><Cpu class="h-3 w-3" /> CPU</span>
+                    <span class="text-muted-foreground flex items-center gap-1"><Cpu class="h-3 w-3" :style="{ color: colors.cpu.color }" /> CPU</span>
                     <span class="font-medium">{{ showCpuPercent(server).toFixed(1) }}%</span>
                 </div>
                 <Progress :model-value="showCpuPercent(server)" class="h-1.5" />
             </div>
 
             <!-- RAM -->
-            <div class="space-y-1">
+            <div class="space-y-1" :style="{ '--primary': `hsl(${colors.memory.hsl})` }">
                 <div class="flex justify-between text-xs">
-                    <span class="text-muted-foreground flex items-center gap-1"><Database class="h-3 w-3" /> RAM</span>
+                    <span class="text-muted-foreground flex items-center gap-1"><Database class="h-3 w-3" :style="{ color: colors.memory.color }" /> RAM</span>
                     <div class="flex items-center gap-2">
                         <span class="text-[10px] text-muted-foreground">{{ showRamText(server) }}</span>
                         <span class="font-medium">{{ showRamPercent(server).toFixed(1) }}%</span>
@@ -127,7 +133,7 @@ onMounted(() => {
              <div class="grid grid-cols-2 gap-4 pt-2 border-t">
                  <!-- Network -->
                 <div class="flex flex-col gap-1" v-if="server.network">
-                     <span class="text-[10px] text-muted-foreground flex items-center gap-1 uppercase tracking-wider"><NetworkIcon class="h-3 w-3" />Network</span>
+                     <span class="text-[10px] text-muted-foreground flex items-center gap-1 uppercase tracking-wider"><NetworkIcon class="h-3 w-3" :style="{ color: colors.network.color }" />Network</span>
                      <div class="flex flex-col text-xs font-mono">
                          <div class="flex justify-between items-center">
                             <span class="text-muted-foreground">↓</span>
@@ -141,8 +147,8 @@ onMounted(() => {
                 </div>
 
                 <!-- Disk -->
-                <div class="flex flex-col gap-1" v-if="server.disk && server.disk.length > 0">
-                    <span class="text-[10px] text-muted-foreground flex items-center gap-1 uppercase tracking-wider"><HardDrive class="h-3 w-3" />Disk</span>
+                <div class="flex flex-col gap-1" v-if="server.disk && server.disk.length > 0" :style="{ '--primary': `hsl(${colors.disk.hsl})` }">
+                    <span class="text-[10px] text-muted-foreground flex items-center gap-1 uppercase tracking-wider"><HardDrive class="h-3 w-3" :style="{ color: colors.disk.color }" />Disk</span>
                     <div class="flex items-center justify-between text-xs">
                          <span class="truncate flex-1" :title="server.disk[0].name">{{ server.disk[0].name }}</span>
                          <span class="font-medium">{{ showDiskDisplay(server) }}</span>
@@ -156,7 +162,7 @@ onMounted(() => {
         </CardFooter>
       </Card>
       </router-link>
-    </div>
+    </TransitionGroup>
     <FooterView />
   </div>
   </div>

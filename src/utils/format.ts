@@ -28,3 +28,8 @@ export const formatUptime = (uptime: number) => {
   
   return parts.join(' ') || '< 1m'
 }
+
+
+export const formatTimestamp = (ts: number) => {
+    return new Date(ts).toLocaleTimeString()
+}
