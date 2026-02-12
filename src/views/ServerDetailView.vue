@@ -2,6 +2,7 @@
 import { onMounted, computed, ref, watch } from 'vue'
 import { useDynamicData } from '@/composables/useDynamicData'
 import { useStaticData } from '@/composables/useStaticData'
+import { colors } from '@/composables/color'
 import { formatLoad, formatBytes, formatUptime, formatTimestamp } from '@/utils/format'
 import { showHostname, showOS, showCpuPercent, showRamPercent, showRamText, showNetworkSpeed, showDiskUsage, showDiskPercent, showDiskDisplay } from '@/utils/show'
 
@@ -54,15 +55,9 @@ const server = computed(() => {
   return dServer
 })
 
-const tabTheme = {
-    cpu: { color: '#22d3ee', hsl: '186 86% 53%' },
-    memory: { color: '#4ade80', hsl: '142 69% 58%' },
-    disk: { color: '#fb923c', hsl: '24 94% 61%' },
-    network: { color: '#f472b6', hsl: '325 84% 70%' },
-}
 
-const getTabTheme = (id: string) => {
-    return (tabTheme as any)[id] || tabTheme.cpu
+const getcolors = (id: string) => {
+    return (colors as any)[id] || colors.cpu
 }
 
 const tabs = [
@@ -72,7 +67,7 @@ const tabs = [
     { id: 'network', label: 'Network', icon: Network },
 ]
 
-const activeTheme = computed(() => getTabTheme(activeTab.value))
+const activeTheme = computed(() => getcolors(activeTab.value))
 
 onMounted(() =>  {
   connectDynamic()
@@ -239,8 +234,8 @@ const historyAreaPath = computed(() => {
                         @click="() => { activeTab = tab.id; isSidebarOpen = false; }"
                         :title="tab.label"
                         :style="activeTab === tab.id ? { 
-                            backgroundColor: `${getTabTheme(tab.id).color}20`, 
-                            borderColor: getTabTheme(tab.id).color,
+                            backgroundColor: `${getcolors(tab.id).color}20`, 
+                            borderColor: getcolors(tab.id).color,
                         } : {}"
                         :class="[
                             'w-full flex items-center gap-3 p-3 text-left rounded-lg transition-all border',
@@ -252,16 +247,16 @@ const historyAreaPath = computed(() => {
                         <div :class="[
                             'p-2 rounded-md shrink-0 transition-all',
                             activeTab === tab.id ? '' : 'bg-muted'
-                        ]" :style="activeTab === tab.id ? { backgroundColor: `${getTabTheme(tab.id).color}20` } : {}">
+                        ]" :style="activeTab === tab.id ? { backgroundColor: `${getcolors(tab.id).color}20` } : {}">
                             <component :is="tab.icon" :class="[
                                 'h-5 w-5',
                                 activeTab === tab.id ? '' : 'text-muted-foreground'
                             ]" 
-                            :style="activeTab === tab.id ? { color: getTabTheme(tab.id).color } : {}"
+                            :style="activeTab === tab.id ? { color: getcolors(tab.id).color } : {}"
                             />
                         </div>
                         <div class="flex-1 min-w-0 transition-all duration-300">
-                            <div class="font-medium text-sm truncate" :style="activeTab === tab.id ? { color: getTabTheme(tab.id).color } : {}">{{ tab.label }}</div>
+                            <div class="font-medium text-sm truncate" :style="activeTab === tab.id ? { color: getcolors(tab.id).color } : {}">{{ tab.label }}</div>
                             <div class="text-xs text-muted-foreground mt-0.5 font-mono truncate">
                                 <span v-if="tab.id === 'cpu'">{{ showCpuPercent(server).toFixed(1) }}%</span>
                                 <span v-else-if="tab.id === 'memory'">{{ showRamPercent(server).toFixed(1) }}%</span>
@@ -276,7 +271,7 @@ const historyAreaPath = computed(() => {
                             <div 
                                 class="w-full transition-all duration-500 rounded-full"
                                 :style="{ 
-                                    backgroundColor: getTabTheme(tab.id).color,
+                                    backgroundColor: getcolors(tab.id).color,
                                     height: (
                                         tab.id === 'cpu' ? showCpuPercent(server) : 
                                         tab.id === 'memory' ? showRamPercent(server) : 
@@ -303,7 +298,7 @@ const historyAreaPath = computed(() => {
                 </div>
              </div>
              
-             <div v-else class="flex-1 p-6 overflow-y-auto" :style="{ '--primary': activeTheme.hsl }">
+             <div v-else class="flex-1 p-6 overflow-y-auto" :style="{ '--primary': `hsl(${activeTheme.hsl})` }">
                 <div class="max-w-5xl mx-auto space-y-6">
                     <div class="flex items-center justify-between">
                          <h1 class="text-3xl font-bold tracking-light">{{ tabs.find(t => t.id === activeTab)?.label }}</h1>
@@ -463,8 +458,9 @@ const historyAreaPath = computed(() => {
                                          <CardTitle class="text-base font-medium flex items-center gap-2">
                                              <HardDrive class="h-4 w-4" /> 
                                              <span>{{ disk.device_name || 'Disk ' + index }}</span>
-                                             <Badge variant="secondary" class="ml-2 font-mono" v-if="disk.mount_point.length<16">{{ disk.mount_point }}</Badge>
-                                             <Badge variant="secondary" class="ml-2 font-mono" v-else>{{ disk.mount_point.substring(0, 16)+"..." }}</Badge>
+                                             <Badge variant="secondary" class="ml-2 font-mono bg-primary/10 text-primary">{{ 
+                                             disk.mount_point.length<16 ? disk.mount_point : disk.mount_point.substring(0, 16)+"..." 
+                                             }}</Badge>
                                          </CardTitle>
                                          <span class="text-sm text-muted-foreground font-mono">{{ disk.kind }}</span>
                                      </div>
