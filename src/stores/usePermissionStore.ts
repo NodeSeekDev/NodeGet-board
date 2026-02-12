@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import type { Backend } from '@/composables/useBackendStore'
+import { wsRpcCall } from '@/composables/useWsRpc'
 
 type PermissionValue = string | Record<string, unknown>
 
@@ -87,80 +88,6 @@ const normalizePermissionEntry = (entry: PermissionEntry): NormalizedPermission[
   return records
 }
 
-// One-shot RPC call over WS, used to fetch current token details.
-const requestTokenGet = (url: string, params: unknown): Promise<TokenInfo> => {
-  return new Promise((resolve, reject) => {
-    const ws = new WebSocket(url)
-    const requestId = Date.now()
-    const timeout = setTimeout(() => {
-      ws.close()
-      reject(new Error('token_get request timeout'))
-    }, 8000)
-
-    const cleanup = () => clearTimeout(timeout)
-
-    ws.onopen = () => {
-      ws.send(
-        JSON.stringify({
-          jsonrpc: '2.0',
-          id: requestId,
-          method: 'token_get',
-          params,
-        }),
-      )
-    }
-
-    ws.onerror = () => {
-      cleanup()
-      reject(new Error('token_get websocket error'))
-      ws.close()
-    }
-
-    ws.onmessage = (event) => {
-      let msg: any
-      try {
-        msg = JSON.parse(event.data)
-      } catch {
-        cleanup()
-        reject(new Error('token_get invalid response'))
-        ws.close()
-        return
-      }
-
-      if (msg?.id !== requestId) return
-
-      if (msg?.error) {
-        const message =
-          typeof msg.error === 'string'
-            ? msg.error
-            : [msg.error.message, msg.error.data].filter(Boolean).join(' | ')
-        cleanup()
-        reject(new Error(message || 'token_get rpc error'))
-        ws.close()
-        return
-      }
-
-      if (msg?.result?.error_message) {
-        cleanup()
-        reject(new Error(msg.result.error_message))
-        ws.close()
-        return
-      }
-
-      if (!msg?.result || typeof msg.result !== 'object') {
-        cleanup()
-        reject(new Error('token_get empty result'))
-        ws.close()
-        return
-      }
-
-      cleanup()
-      resolve(msg.result as TokenInfo)
-      ws.close()
-    }
-  })
-}
-
 export const usePermissionStore = defineStore('permission', () => {
   const status = ref<'idle' | 'loading' | 'ready' | 'error'>('idle')
   const error = ref('')
@@ -225,7 +152,10 @@ export const usePermissionStore = defineStore('permission', () => {
 
     try {
       // token_get docs format: params = { token: "..." }
-      const result = await requestTokenGet(backend.url, { token: backend.token })
+      const result = await wsRpcCall<TokenInfo>(backend.url, 'token_get', { token: backend.token })
+      if (!result || typeof result !== 'object') {
+        throw new Error('token_get empty result')
+      }
 
       tokenInfo.value = result
       rebuildPermissions(result)
