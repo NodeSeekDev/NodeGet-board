@@ -13,6 +13,11 @@ const router = createRouter({
       name: 'server-detail',
       component: () => import('./views/ServerDetailView.vue'),
     },
+    {
+      path: '/token',
+      name: 'token-manage',
+      component: () => import('./views/TokenManageView.vue'),
+    },
   ],
 })
 
