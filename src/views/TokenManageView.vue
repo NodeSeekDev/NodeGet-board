@@ -20,9 +20,11 @@ const backendStatus = computed<'disconnected' | 'connecting' | 'connected'>(() =
   <div class="min-h-screen">
     <div class="container mx-auto p-6 space-y-6">
       <HeaderView :status="backendStatus" />
-      <div class="grid gap-6" :class="isSuperToken ? 'xl:grid-cols-2' : 'xl:grid-cols-1'">
+      <div class="grid gap-6 xl:grid-cols-2">
         <CreateTokenCard v-if="isSuperToken" />
-        <DeleteTokenCard />
+        <div :class="isSuperToken ? '' : 'xl:col-span-2 xl:w-1/2 xl:mx-auto w-full'">
+          <DeleteTokenCard />
+        </div>
       </div>
     </div>
   </div>
