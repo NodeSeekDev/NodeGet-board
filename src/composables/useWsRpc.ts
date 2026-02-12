@@ -105,30 +105,3 @@ export const wsRpcCall = <T = unknown>(
     }
   })
 }
-
-export const wsRpcCallWithFallback = async <T = unknown>(
-  url: string,
-  method: string,
-  paramCandidates: unknown[],
-  options: WsRpcFallbackOptions = {},
-): Promise<T> => {
-  let lastError: Error | null = null
-
-  for (let index = 0; index < paramCandidates.length; index += 1) {
-    try {
-      return await wsRpcCall<T>(url, method, paramCandidates[index], options)
-    } catch (error: unknown) {
-      const normalizedError = error instanceof Error ? error : new Error(String(error))
-      lastError = normalizedError
-      const isLast = index === paramCandidates.length - 1
-      if (isLast) throw normalizedError
-
-      const shouldRetry = options.shouldRetry
-        ? options.shouldRetry(normalizedError, index, paramCandidates.length)
-        : true
-      if (!shouldRetry) throw normalizedError
-    }
-  }
-
-  throw lastError || new Error(`${method} failed`)
-}
