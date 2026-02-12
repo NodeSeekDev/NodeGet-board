@@ -8,7 +8,10 @@ interface PermissionEntry {
   [resource: string]: PermissionValue
 }
 
-type ScopeEntry = 'global' | { global?: null; agent_uuid?: string } | string
+type ScopeEntry =
+  | 'global'
+  | { global?: null; agent_uuid?: string; kv_namespace?: string }
+  | string
 
 interface TokenLimit {
   scopes?: ScopeEntry[]
@@ -43,6 +46,9 @@ const normalizeScope = (scope: ScopeEntry): string | null => {
   if (!scope || typeof scope !== 'object') return null
   if ('global' in scope) return 'global'
   if (typeof scope.agent_uuid === 'string' && scope.agent_uuid) return `agent_uuid:${scope.agent_uuid}`
+  if (typeof scope.kv_namespace === 'string' && scope.kv_namespace) {
+    return `kv_namespace:${scope.kv_namespace}`
+  }
   return null
 }
 
@@ -82,7 +88,7 @@ const normalizePermissionEntry = (entry: PermissionEntry): NormalizedPermission[
 }
 
 // One-shot RPC call over WS, used to fetch current token details.
-const requestTokenGet = (url: string, params: unknown[]): Promise<TokenInfo> => {
+const requestTokenGet = (url: string, params: unknown): Promise<TokenInfo> => {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(url)
     const requestId = Date.now()
@@ -124,7 +130,10 @@ const requestTokenGet = (url: string, params: unknown[]): Promise<TokenInfo> => 
       if (msg?.id !== requestId) return
 
       if (msg?.error) {
-        const message = typeof msg.error === 'string' ? msg.error : msg.error.message
+        const message =
+          typeof msg.error === 'string'
+            ? msg.error
+            : [msg.error.message, msg.error.data].filter(Boolean).join(' | ')
         cleanup()
         reject(new Error(message || 'token_get rpc error'))
         ws.close()
@@ -215,14 +224,8 @@ export const usePermissionStore = defineStore('permission', () => {
     currentBackendKey.value = backendKey
 
     try {
-      let result: TokenInfo
-      try {
-        // Preferred payload format in docs.
-        result = await requestTokenGet(backend.url, [{ token: backend.token }])
-      } catch {
-        // Compatibility fallback for servers expecting raw token param.
-        result = await requestTokenGet(backend.url, [backend.token])
-      }
+      // token_get docs format: params = { token: "..." }
+      const result = await requestTokenGet(backend.url, { token: backend.token })
 
       tokenInfo.value = result
       rebuildPermissions(result)
