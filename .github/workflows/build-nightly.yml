@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - dev
 
 permissions:
   contents: write
@@ -50,4 +49,4 @@ jobs:
         with:
           files: nodeget-board.zip nodeget-board.tar.gz
           prerelease: true
-          tag_name: dev
+          tag_name: nightly
