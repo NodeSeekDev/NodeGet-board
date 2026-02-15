@@ -6,6 +6,8 @@ import '@xterm/xterm/css/xterm.css'
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { Button } from '@/components/ui/button'
 import { wsRpcCall } from '@/composables/useWsRpc'
+import { useFullscreen } from '@vueuse/core'
+import { Maximize, Minimize, Maximize2, Minimize2 } from 'lucide-vue-next'
 
 const props = withDefaults(defineProps<{
   rpcUrl: string
@@ -22,9 +24,18 @@ const emit = defineEmits<{
   error: [message: string]
 }>()
 
+const wrapperRef = ref<HTMLElement | null>(null)
 const containerRef = ref<HTMLDivElement | null>(null)
 const status = ref<'idle' | 'connecting' | 'connected' | 'disconnected' | 'error'>('idle')
 const statusText = ref('Waiting')
+
+const { isFullscreen, toggle: toggleFullscreen } = useFullscreen(wrapperRef)
+const isWindowFull = ref(false)
+
+const toggleWindowFull = () => {
+  isWindowFull.value = !isWindowFull.value
+  nextTick(() => fit())
+}
 
 let socket: WebSocket | null = null
 let terminal: Terminal | null = null
@@ -245,13 +256,33 @@ defineExpose({
 </script>
 
 <template>
-  <div class="rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden">
-    <div class="h-11 px-3 border-b bg-muted/30 flex items-center justify-between">
+  <div
+    ref="wrapperRef"
+    class="rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden flex flex-col box-border"
+    :class="{
+      'fixed inset-0 z-50 w-screen h-screen rounded-none border-0': isWindowFull
+    }"
+  >
+    <div class="h-11 px-3 border-b bg-muted/30 flex items-center justify-between shrink-0">
       <div class="text-sm text-muted-foreground">
         Status: <span class="font-mono">{{ statusText }}</span>
       </div>
-      <Button size="sm" variant="secondary" @click="connect">Reconnect</Button>
+      <div class="flex items-center gap-2">
+        <Button size="icon" variant="ghost" @click="toggleWindowFull" title="Toggle Full Window">
+          <Minimize2 v-if="isWindowFull" class="w-4 h-4" />
+          <Maximize2 v-else class="w-4 h-4" />
+        </Button>
+        <Button size="icon" variant="ghost" @click="toggleFullscreen" title="Toggle Full Screen">
+          <Minimize v-if="isFullscreen" class="w-4 h-4" />
+          <Maximize v-else class="w-4 h-4" />
+        </Button>
+        <Button size="sm" variant="secondary" @click="connect">Reconnect</Button>
+      </div>
     </div>
-    <div ref="containerRef" class="h-[560px] w-full bg-black" />
+    <div
+      ref="containerRef"
+      class="w-full bg-black"
+      :class="(isFullscreen || isWindowFull) ? 'flex-1 h-0' : 'h-[560px]'"
+    />
   </div>
 </template>
