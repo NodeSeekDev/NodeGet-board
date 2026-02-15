@@ -20,7 +20,8 @@ const props = withDefaults(defineProps<FlickeringGridProps>(), {
   maxOpacity: 0.3,
 });
 
-const { squareSize, gridGap, flickerChance, color, maxOpacity, width, height } = toRefs(props);
+const { squareSize, gridGap, flickerChance, color, maxOpacity, width, height } =
+  toRefs(props);
 
 const containerRef = ref<HTMLDivElement>();
 const canvasRef = ref<HTMLCanvasElement>();
@@ -146,6 +147,7 @@ onMounted(() => {
   });
   intersectionObserver = new IntersectionObserver(
     ([entry]) => {
+      if (!entry) return;
       isInView.value = entry.isIntersecting;
       animationFrameId = requestAnimationFrame(animate);
     },
@@ -166,11 +168,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div
-    ref="containerRef"
-    class="h-full w-full"
-    :class="[props.class]"
-  >
+  <div ref="containerRef" class="h-full w-full" :class="[props.class]">
     <canvas
       ref="canvasRef"
       class="pointer-events-none"
