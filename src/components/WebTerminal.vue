@@ -43,6 +43,7 @@ let fitAddon: FitAddon | null = null
 let resizeObserver: ResizeObserver | null = null
 let dataDisposable: { dispose: () => void } | null = null
 let containerClickHandler: (() => void) | null = null
+let heartbeatTimer: number | null = null
 
 const initTerminal = () => {
   if (!containerRef.value) return
@@ -73,6 +74,11 @@ const initTerminal = () => {
 }
 
 const destroySocket = () => {
+  if (heartbeatTimer !== null) {
+    window.clearInterval(heartbeatTimer)
+    heartbeatTimer = null
+  }
+
   if (dataDisposable) {
     dataDisposable.dispose()
     dataDisposable = null
@@ -184,6 +190,15 @@ const connect = async () => {
       }
     }) ?? null
     terminal?.focus()
+
+    if (heartbeatTimer !== null) {
+      window.clearInterval(heartbeatTimer)
+    }
+    heartbeatTimer = window.setInterval(() => {
+      if (socket?.readyState === WebSocket.OPEN) {
+        socket.send('')
+      }
+    }, 15000)
 
     emit('connected')
   }
