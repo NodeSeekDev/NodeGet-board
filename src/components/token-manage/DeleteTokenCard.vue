@@ -21,7 +21,7 @@ const { currentBackend } = useBackendStore()
 const backendUrl = computed(() => currentBackend.value?.url ?? '')
 
 const permissionStore = usePermissionStore()
-const { isSuperToken, tokenInfo } = storeToRefs(permissionStore)
+const { tokenInfo } = storeToRefs(permissionStore)
 const currentTokenKey = computed(() => tokenInfo.value?.token_key?.trim() || '')
 
 const deleteToken = ref('')
@@ -54,23 +54,15 @@ const handleDeleteToken = async () => {
     deleteTargetTokenKey.value = targetKey
   }
 
-  if (!isSuperToken.value && targetKey) {
+  if (!targetKey) {
     deleteToast.value = {
       type: 'error',
       title: 'Delete Failed',
-      message: 'Only super token can delete other tokens. Leave target_token_key empty to delete self.',
+      message: 'target_token_key is required.',
     }
     return
   }
-  if (isSuperToken.value && !targetKey) {
-    deleteToast.value = {
-      type: 'error',
-      title: 'Delete Failed',
-      message: 'target_token_key is required for super token deletion of another token.',
-    }
-    return
-  }
-  if (isSuperToken.value && currentTokenKey.value && targetKey === currentTokenKey.value) {
+  if (currentTokenKey.value && targetKey === currentTokenKey.value) {
     deleteToast.value = {
       type: 'error',
       title: 'Delete Failed',
@@ -79,8 +71,10 @@ const handleDeleteToken = async () => {
     return
   }
 
-  const payloadObj: Record<string, unknown> = { token }
-  if (isSuperToken.value && targetKey) payloadObj.target_token_key = targetKey
+  const payloadObj: Record<string, unknown> = {
+    token,
+    target_token_key: targetKey,
+  }
 
   deleteLoading.value = true
   try {
@@ -91,10 +85,7 @@ const handleDeleteToken = async () => {
     deleteToast.value = {
       type: 'success',
       title: 'Delete Requested',
-      message:
-        isSuperToken.value && targetKey
-          ? `Token with key ${targetKey} has been deleted.`
-          : 'Token has been deleted.',
+      message: `Token with key ${targetKey} has been deleted.`,
     }
   } catch (e: any) {
     deleteToast.value = {
@@ -115,9 +106,6 @@ watch(
   { immediate: true },
 )
 
-watch(isSuperToken, (next) => {
-  if (!next) deleteTargetTokenKey.value = ''
-})
 </script>
 
 <template>
@@ -131,23 +119,14 @@ watch(isSuperToken, (next) => {
     <CardContent class="space-y-5">
       <div class="space-y-2">
         <Label for="delete-token">token</Label>
-        <Input id="delete-token" v-model="deleteToken" placeholder="Token performing this deletion" />
+        <Input id="delete-token" v-model="deleteToken" placeholder="Super token performing this deletion" />
       </div>
       <div class="space-y-2">
-        <Label for="delete-target-token-key">
-          {{
-            isSuperToken
-              ? 'target_token_key (required, must be non-self)'
-              : 'target_token_key (disabled for non-super token)'
-          }}
-        </Label>
+        <Label for="delete-target-token-key">target_token_key (required, must be non-self)</Label>
         <Input
           id="delete-target-token-key"
           v-model="deleteTargetTokenKey"
-          :disabled="!isSuperToken"
-          :placeholder="
-            isSuperToken ? 'Provide another token_key to delete' : 'Non-super token can only self-delete'
-          "
+          placeholder="Provide another token_key to delete"
         />
       </div>
 
