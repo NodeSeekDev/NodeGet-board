@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { Copy, KeyRound, ShieldAlert, ShieldCheck } from 'lucide-vue-next'
 import { useBackendStore } from '@/composables/useBackendStore'
 import { wsRpcCall } from '@/composables/useWsRpc'
@@ -7,6 +7,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
@@ -15,7 +16,6 @@ type ToastState = {
   title: string
   message: string
 }
-
 type ScopeMode = 'global' | 'agent'
 
 const STATIC_FIELDS = ['cpu', 'system', 'gpu'] as const
@@ -26,7 +26,11 @@ const { currentBackend } = useBackendStore()
 const backendUrl = computed(() => currentBackend.value?.url ?? '')
 
 const scopeMode = ref<ScopeMode>('global')
-const agentUuidsText = ref('')
+const knownAgentUuids = ref<string[]>([])
+const selectedKnownAgentUuids = ref<string[]>([])
+const otherAgentUuidsText = ref('')
+const listAgentsLoading = ref(false)
+const listAgentsError = ref('')
 
 const username = ref('')
 const password = ref('')
@@ -66,6 +70,94 @@ const parseTimestamp = (val: string) => {
   return Number.isFinite(ms) ? ms : NaN
 }
 
+const parseAgentUuidsText = (text: string) => {
+  return text
+    .split(/[\n,\s]+/g)
+    .map((s) => s.trim())
+    .filter(Boolean)
+}
+
+const selectedAgentUuids = computed(() => {
+  const dedup = new Set<string>()
+  for (const uuid of selectedKnownAgentUuids.value) dedup.add(uuid)
+  for (const uuid of parseAgentUuidsText(otherAgentUuidsText.value)) dedup.add(uuid)
+  return [...dedup]
+})
+
+const toggleKnownAgentUuid = (agentUuid: string) => {
+  const idx = selectedKnownAgentUuids.value.indexOf(agentUuid)
+  if (idx >= 0) {
+    selectedKnownAgentUuids.value.splice(idx, 1)
+    return
+  }
+  selectedKnownAgentUuids.value.push(agentUuid)
+}
+
+const extractAgentUuidList = (result: unknown) => {
+  if (Array.isArray(result)) {
+    return result
+      .map((it) => {
+        if (typeof it === 'string') return it.trim()
+        if (it && typeof it === 'object') {
+          const obj = it as Record<string, unknown>
+          if (typeof obj.agent_uuid === 'string') return obj.agent_uuid.trim()
+          if (typeof obj.uuid === 'string') return obj.uuid.trim()
+        }
+        return ''
+      })
+      .filter(Boolean)
+  }
+
+  if (result && typeof result === 'object') {
+    const obj = result as Record<string, unknown>
+    for (const key of ['agent_uuid_list', 'agent_uuids', 'uuids', 'list']) {
+      if (!Array.isArray(obj[key])) continue
+      return (obj[key] as unknown[])
+        .map((it) => (typeof it === 'string' ? it.trim() : ''))
+        .filter(Boolean)
+    }
+  }
+
+  return []
+}
+
+const loadKnownAgentUuids = async () => {
+  const url = backendUrl.value
+  const token = currentBackend.value?.token?.trim() || ''
+  const selectedSet = new Set(selectedKnownAgentUuids.value)
+  knownAgentUuids.value = []
+  listAgentsError.value = ''
+  if (!url) return
+  if (!token) {
+    listAgentsError.value = 'Current backend token is empty. Cannot list agents.'
+    return
+  }
+
+  listAgentsLoading.value = true
+  try {
+    const result = await wsRpcCall<unknown>(url, 'nodeget-server_list_all_agent_uuid', { token })
+    knownAgentUuids.value = extractAgentUuidList(result)
+    selectedKnownAgentUuids.value = knownAgentUuids.value.filter((uuid) => selectedSet.has(uuid))
+  } catch (e: any) {
+    listAgentsError.value = e?.message || 'Failed to load agent list'
+  } finally {
+    listAgentsLoading.value = false
+  }
+}
+
+const setScopeMode = async (mode: ScopeMode) => {
+  if (scopeMode.value === mode) return
+  scopeMode.value = mode
+
+  if (mode === 'global') {
+    selectedKnownAgentUuids.value = []
+    otherAgentUuidsText.value = ''
+    return
+  }
+
+  await loadKnownAgentUuids()
+}
+
 const buildPermissions = () => {
   const permissions: Record<string, unknown>[] = []
 
@@ -91,11 +183,7 @@ const selectedPermissionCount = computed(() => buildPermissions().length)
 
 const scopePreview = computed(() => {
   if (scopeMode.value === 'global') return ['global']
-  return agentUuidsText.value
-    .split(/[\n,\s]+/g)
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .map((agentUuid) => ({ agent_uuid: agentUuid }))
+  return selectedAgentUuids.value.map((agentUuid) => ({ agent_uuid: agentUuid }))
 })
 
 const tokenLimitPreview = computed(() => [
@@ -179,7 +267,7 @@ const handleCreateToken = async () => {
     createToast.value = {
       type: 'error',
       title: 'Creation Failed',
-      message: 'Scope is set to agent_uuid but no agent UUID is provided.',
+      message: 'Scope is agent_uuid, but no agent UUID is selected.',
     }
     return
   }
@@ -239,6 +327,14 @@ const copyText = async (text: string) => {
   if (!text) return
   await navigator.clipboard.writeText(text)
 }
+
+onMounted(() => {
+  if (scopeMode.value === 'agent') loadKnownAgentUuids()
+})
+
+watch([backendUrl, () => currentBackend.value?.token], () => {
+  if (scopeMode.value === 'agent') loadKnownAgentUuids()
+})
 </script>
 
 <template>
@@ -252,20 +348,30 @@ const copyText = async (text: string) => {
     <CardContent class="space-y-5">
       <div class="space-y-3">
         <Label>Scope</Label>
-        <div class="flex flex-wrap gap-2">
-          <Button :variant="scopeMode === 'global' ? 'default' : 'outline'" size="sm" @click="scopeMode = 'global'">
-            global
-          </Button>
-          <Button :variant="scopeMode === 'agent' ? 'default' : 'outline'" size="sm" @click="scopeMode = 'agent'">
-            agent_uuid
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <Button :variant="scopeMode === 'global' ? 'default' : 'outline'" size="sm" @click="setScopeMode('global')">global</Button>
+            <Button :variant="scopeMode === 'agent' ? 'default' : 'outline'" size="sm" @click="setScopeMode('agent')">agent_uuid</Button>
+          </div>
+          <Button v-if="scopeMode === 'agent'" variant="outline" size="sm" :disabled="listAgentsLoading" @click="loadKnownAgentUuids">
+            {{ listAgentsLoading ? 'Loading...' : 'Refresh Agents' }}
           </Button>
         </div>
-        <textarea
-          v-if="scopeMode === 'agent'"
-          v-model="agentUuidsText"
-          class="flex min-h-[96px] w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
-          placeholder="One UUID per line, or split by comma/space."
-        />
+        <div v-if="scopeMode === 'agent'" class="rounded-md border p-3 space-y-3">
+          <div v-if="listAgentsError" class="text-sm text-destructive">{{ listAgentsError }}</div>
+          <div v-else-if="knownAgentUuids.length === 0" class="text-sm text-muted-foreground">No known agents found on current server.</div>
+          <div v-else class="grid gap-2 max-h-48 overflow-auto pr-1">
+            <label v-for="agentUuid in knownAgentUuids" :key="`known-agent-${agentUuid}`" class="flex items-center gap-2 text-sm break-all">
+              <Checkbox :checked="selectedKnownAgentUuids.includes(agentUuid)" @click.stop="toggleKnownAgentUuid(agentUuid)" />
+              <span>{{ agentUuid }}</span>
+            </label>
+          </div>
+
+          <div class="space-y-2">
+            <Label for="other-agent-uuids">Other agent UUIDs</Label>
+            <textarea id="other-agent-uuids" v-model="otherAgentUuidsText" class="flex min-h-[96px] w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]" placeholder="Optional. One UUID per line, or split by comma/space." />
+          </div>
+        </div>
       </div>
 
       <div class="space-y-3">
