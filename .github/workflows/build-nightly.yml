@@ -1,9 +1,13 @@
-name: Dev Build
+name: Nightly Build
 
 on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -11,24 +15,34 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version: 24
-
-      - name: Install pnpm
-        run: npm install pnpm -g
+          cache: "pnpm"
 
       - name: Install dependencies
-        run: pnpm i
+        run: pnpm install --frozen-lockfile
+        env:
+          HUSKY: 0
 
       - name: Build
         run: pnpm build
+
+      - name: Upload dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-files
+          path: dist
 
   release:
     runs-on: ubuntu-latest
@@ -37,16 +51,23 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
+          name: dist-files
           path: dist
 
       - name: Compress
         run: |
-          zip nodeget-board.zip dist/**/*
-          tar -czvf nodeget-board.tar.gz dist/**/*
-        
+          zip -r nodeget-board.zip dist
+          tar -czvf nodeget-board.tar.gz dist
+
       - name: Upload assets
         uses: softprops/action-gh-release@v2
         with:
-          files: nodeget-board.zip nodeget-board.tar.gz
+          files: |
+            nodeget-board.zip
+            nodeget-board.tar.gz
           prerelease: true
           tag_name: nightly
+          name: "Nightly Build"
+          body: "Auto-generated nightly build from main branch."
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
