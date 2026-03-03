@@ -4,7 +4,7 @@ import FlickeringGrid from '@/components/ui/flickering-grid/FlickeringGrid.vue'
 import { ref, provide, onMounted, watch } from 'vue'
 import BackendSwitcher from '@/components/BackendSwitcher.vue'
 import { useBackendStore } from '@/composables/useBackendStore'
-import { usePermissionStore } from '@/stores/usePermissionStore'
+import { usePermissionStore } from '@/stores/permission'
 
 const background = ref<'default' | 'flickering'>('default')
 

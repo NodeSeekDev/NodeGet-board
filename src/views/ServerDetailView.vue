@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ArrowLeft, Cpu, Database, HardDrive, Network, AlertCircle, Menu, X, Clock, Container, Fish, Terminal } from 'lucide-vue-next'
 import WebTerminal from '@/components/WebTerminal.vue'
-import { usePermissionStore } from '@/stores/usePermissionStore'
+import { usePermissionStore } from '@/stores/permission'
 
 const { hasPermission } = usePermissionStore()
 
@@ -71,7 +71,7 @@ const tabs = [
     { id: 'memory', label: 'Memory', icon: Database },
     { id: 'disk', label: 'Disk', icon: HardDrive },
     { id: 'network', label: 'Network', icon: Network },
-    { id: 'webshell', label: 'WebShell', icon: Terminal, checkDisplay: () => hasPermission('task', 'create', { field: 'web_shell', agentUuid: uuid })},
+    { id: 'webshell', label: 'WebShell', icon: Terminal, checkDisplay: () => hasPermission('task:create:web_shell', `agent_uuid:${uuid}`)},
 ]
 
 const activeTheme = computed(() => getcolors(activeTab.value))
