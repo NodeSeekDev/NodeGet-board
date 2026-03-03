@@ -2,6 +2,7 @@
 import { onMounted, computed, ref, watch } from 'vue'
 import { useDynamicData } from '@/composables/useDynamicData'
 import { useStaticData } from '@/composables/useStaticData'
+import { useBackendStore } from '@/composables/useBackendStore'
 import { colors } from '@/composables/color'
 import { formatLoad, formatBytes, formatUptime, formatTimestamp } from '@/utils/format'
 import { showHostname, showOS, showCpuPercent, showRamPercent, showRamText, showNetworkSpeed, showDiskUsage, showDiskPercent, showDiskDisplay } from '@/utils/show'
@@ -13,12 +14,17 @@ import { Progress } from '@/components/ui/progress'
 import HeaderView from '@/components/HeaderView.vue'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ArrowLeft, Cpu, Database, HardDrive, Network, AlertCircle, Menu, X, Clock, Container, Fish } from 'lucide-vue-next'
+import { ArrowLeft, Cpu, Database, HardDrive, Network, AlertCircle, Menu, X, Clock, Container, Fish, Terminal } from 'lucide-vue-next'
+import WebTerminal from '@/components/WebTerminal.vue'
+import { usePermissionStore } from '@/stores/usePermissionStore'
+
+const { hasPermission } = usePermissionStore()
 
 const route = useRoute()
 const uuid = route.params.uuid as string
 
 const isSidebarOpen = ref(false)
+const { currentBackend } = useBackendStore()
 
 const { 
   status: dynamicStatus, 
@@ -65,9 +71,13 @@ const tabs = [
     { id: 'memory', label: 'Memory', icon: Database },
     { id: 'disk', label: 'Disk', icon: HardDrive },
     { id: 'network', label: 'Network', icon: Network },
+    { id: 'webshell', label: 'WebShell', icon: Terminal, checkDisplay: () => hasPermission('task', 'create', { field: 'web_shell', agentUuid: uuid })},
 ]
 
 const activeTheme = computed(() => getcolors(activeTab.value))
+const webshellReady = computed(() => {
+    return Boolean(currentBackend.value?.url && currentBackend.value?.token && uuid)
+})
 
 onMounted(() =>  {
   connectDynamic()
@@ -228,61 +238,62 @@ const historyAreaPath = computed(() => {
             
             <div class="flex-1 overflow-y-auto overflow-x-hidden">
                 <div class="p-2 space-y-1" v-if="server">
-                    <button 
-                        v-for="tab in tabs" 
-                        :key="tab.id"
-                        @click="() => { activeTab = tab.id; isSidebarOpen = false; }"
-                        :title="tab.label"
-                        :style="activeTab === tab.id ? { 
-                            backgroundColor: `${getcolors(tab.id).color}20`, 
-                            borderColor: getcolors(tab.id).color,
-                        } : {}"
-                        :class="[
-                            'w-full flex items-center gap-3 p-3 text-left rounded-lg transition-all border',
-                             activeTab === tab.id 
-                                ? 'shadow-sm' 
-                                : 'border-transparent hover:bg-muted/50 text-muted-foreground hover:text-foreground',
-                        ]"
-                    >
-                        <div :class="[
-                            'p-2 rounded-md shrink-0 transition-all',
-                            activeTab === tab.id ? '' : 'bg-muted'
-                        ]" :style="activeTab === tab.id ? { backgroundColor: `${getcolors(tab.id).color}20` } : {}">
-                            <component :is="tab.icon" :class="[
-                                'h-5 w-5',
-                                activeTab === tab.id ? '' : 'text-muted-foreground'
-                            ]" 
-                            :style="activeTab === tab.id ? { color: getcolors(tab.id).color } : {}"
-                            />
-                        </div>
-                        <div class="flex-1 min-w-0 transition-all duration-300">
-                            <div class="font-medium text-sm truncate" :style="activeTab === tab.id ? { color: getcolors(tab.id).color } : {}">{{ tab.label }}</div>
-                            <div class="text-xs text-muted-foreground mt-0.5 font-mono truncate">
-                                <span v-if="tab.id === 'cpu'">{{ showCpuPercent(server).toFixed(1) }}%</span>
-                                <span v-else-if="tab.id === 'memory'">{{ showRamPercent(server).toFixed(1) }}%</span>
-                                <span v-else-if="tab.id === 'disk'">{{ showDiskDisplay(server) }}</span>
-                                <span v-else-if="tab.id === 'network'">{{ showNetworkSpeed(server, 'total') }}</span>
-                            </div>
-                        </div>
-                        <div 
-                            class="w-1 h-8 rounded-full bg-muted/20 overflow-hidden shrink-0 transition-all duration-300" 
-                            v-if="['cpu', 'memory', 'disk'].includes(tab.id)"
+                    <template v-for="tab in tabs" :key="tab.id">
+                        <button
+                            v-if="tab.checkDisplay === undefined || tab.checkDisplay()"
+                            @click="() => { activeTab = tab.id; isSidebarOpen = false; }"
+                            :title="tab.label"
+                            :style="activeTab === tab.id ? { 
+                                backgroundColor: `${getcolors(tab.id).color}20`, 
+                                borderColor: getcolors(tab.id).color,
+                            } : {}"
+                            :class="[
+                                'w-full flex items-center gap-3 p-3 text-left rounded-lg transition-all border',
+                                 activeTab === tab.id 
+                                    ? 'shadow-sm' 
+                                    : 'border-transparent hover:bg-muted/50 text-muted-foreground hover:text-foreground',
+                            ]"
                         >
+                            <div :class="[
+                                'p-2 rounded-md shrink-0 transition-all',
+                                activeTab === tab.id ? '' : 'bg-muted'
+                            ]" :style="activeTab === tab.id ? { backgroundColor: `${getcolors(tab.id).color}20` } : {}">
+                                <component :is="tab.icon" :class="[
+                                    'h-5 w-5',
+                                    activeTab === tab.id ? '' : 'text-muted-foreground'
+                                ]" 
+                                :style="activeTab === tab.id ? { color: getcolors(tab.id).color } : {}"
+                                />
+                            </div>
+                            <div class="flex-1 min-w-0 transition-all duration-300">
+                                <div class="font-medium text-sm truncate" :style="activeTab === tab.id ? { color: getcolors(tab.id).color } : {}">{{ tab.label }}</div>
+                                <div class="text-xs text-muted-foreground mt-0.5 font-mono truncate">
+                                    <span v-if="tab.id === 'cpu'">{{ showCpuPercent(server).toFixed(1) }}%</span>
+                                    <span v-else-if="tab.id === 'memory'">{{ showRamPercent(server).toFixed(1) }}%</span>
+                                    <span v-else-if="tab.id === 'disk'">{{ showDiskDisplay(server) }}</span>
+                                    <span v-else-if="tab.id === 'network'">{{ showNetworkSpeed(server, 'total') }}</span>
+                                </div>
+                            </div>
                             <div 
-                                class="w-full transition-all duration-500 rounded-full"
-                                :style="{ 
-                                    backgroundColor: getcolors(tab.id).color,
-                                    height: (
-                                        tab.id === 'cpu' ? showCpuPercent(server) : 
-                                        tab.id === 'memory' ? showRamPercent(server) : 
-                                        tab.id === 'disk' ? showDiskPercent(server) : 
-                                        0
-                                    ) + '%',
-                                    
-                                }"
-                            ></div>
-                        </div>
-                    </button>
+                                class="w-1 h-8 rounded-full bg-muted/20 overflow-hidden shrink-0 transition-all duration-300" 
+                                v-if="['cpu', 'memory', 'disk'].includes(tab.id)"
+                            >
+                                <div 
+                                    class="w-full transition-all duration-500 rounded-full"
+                                    :style="{ 
+                                        backgroundColor: getcolors(tab.id).color,
+                                        height: (
+                                            tab.id === 'cpu' ? showCpuPercent(server) : 
+                                            tab.id === 'memory' ? showRamPercent(server) : 
+                                            tab.id === 'disk' ? showDiskPercent(server) : 
+                                            0
+                                        ) + '%',
+                                        
+                                    }"
+                                ></div>
+                            </div>
+                        </button>
+                    </template>
                 </div>
             </div>
         </aside>
@@ -524,6 +535,21 @@ const historyAreaPath = computed(() => {
                             </CardContent>
                         </Card>
                         </div>
+
+                    <!-- WebShell View -->
+                        <div v-else-if="activeTab === 'webshell'" key="webshell" class="space-y-4">
+                        <WebTerminal
+                            v-if="webshellReady"
+                            :rpc-url="currentBackend?.url || ''"
+                            :token="currentBackend?.token || ''"
+                            :target-uuid="uuid"
+                        />
+                        <Card v-else>
+                            <CardContent class="py-6 text-sm text-muted-foreground">
+                                Current backend config is incomplete, unable to create a WebShell task.
+                            </CardContent>
+                        </Card>
+                    </div>
                     </Transition>
 
                 </div>
