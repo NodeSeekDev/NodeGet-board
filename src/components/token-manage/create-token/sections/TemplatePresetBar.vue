@@ -20,7 +20,9 @@ const {
   <div class="space-y-3">
     <div class="flex items-center justify-between gap-2">
       <Label>Templates</Label>
-      <Button variant="outline" size="sm" @click="resetPermissions">Reset Permissions</Button>
+      <Button v-if="activeTemplate === 'custom'" variant="outline" size="sm" @click="resetPermissions">
+        Reset Permissions
+      </Button>
     </div>
 
     <div class="grid gap-2 md:grid-cols-3">
