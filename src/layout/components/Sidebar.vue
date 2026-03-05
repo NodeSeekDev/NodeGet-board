@@ -1,19 +1,29 @@
 <script setup lang="ts">
-import { computed } from "vue";
-import { useRouter } from "vue-router";
-import { PanelLeftClose, PanelLeftOpen } from "lucide-vue-next";
+import { computed, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { PanelLeftClose, PanelLeftOpen, X } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import SidebarItem, { type SidebarRoute } from "./SidebarItem.vue";
 
 const props = defineProps<{
   collapsed: boolean;
+  isMobileSidebarOpen?: boolean;
 }>();
 
 const emit = defineEmits<{
   toggle: [];
+  closeMobile: [];
 }>();
 
 const router = useRouter();
+const route = useRoute();
+
+watch(
+  () => route.path,
+  () => {
+    emit("closeMobile");
+  },
+);
 
 function buildMenuTree(parentPath: string): SidebarRoute[] {
   return router
@@ -52,24 +62,49 @@ const groupedRoutes = computed<[string, SidebarRoute[]][]>(() => {
 <template>
   <aside
     :class="[
-      'flex flex-col border-r bg-background transition-[width] duration-200 ease-in-out shrink-0',
-      props.collapsed ? 'w-16' : 'w-60',
+      'flex flex-col border-r bg-background transition-all duration-300 ease-in-out shrink-0 z-50',
+      'fixed inset-y-0 left-0 h-full md:relative',
+      props.isMobileSidebarOpen
+        ? 'translate-x-0 shadow-lg md:shadow-none'
+        : '-translate-x-full md:translate-x-0',
+      props.collapsed ? 'md:w-16 w-60' : 'w-60',
     ]"
   >
     <!-- Logo & toggle -->
     <div
       class="flex h-14 shrink-0 items-center border-b px-3"
-      :class="props.collapsed ? 'justify-center' : 'justify-between'"
+      :class="
+        props.collapsed
+          ? 'md:justify-center justify-between'
+          : 'justify-between'
+      "
     >
-      <span v-if="!props.collapsed" class="text-base font-bold truncate"
+      <span
+        class="text-base font-bold truncate block"
+        :class="props.collapsed ? 'md:hidden' : ''"
         >NodeGet</span
       >
-      <Button variant="ghost" size="icon" @click="emit('toggle')">
+      <Button
+        variant="ghost"
+        size="icon"
+        @click="emit('toggle')"
+        class="hidden md:flex"
+      >
         <PanelLeftClose v-if="!props.collapsed" class="h-4 w-4" />
         <PanelLeftOpen v-else class="h-4 w-4" />
         <span class="sr-only">{{
           props.collapsed ? "展开侧边栏" : "收起侧边栏"
         }}</span>
+      </Button>
+      <!-- Mobile Close Button -->
+      <Button
+        variant="ghost"
+        size="icon"
+        class="h-8 w-8 md:hidden"
+        v-if="props.isMobileSidebarOpen"
+        @click="emit('closeMobile')"
+      >
+        <X class="h-4 w-4" />
       </Button>
     </div>
 
@@ -78,28 +113,41 @@ const groupedRoutes = computed<[string, SidebarRoute[]][]>(() => {
       <div v-for="([group, routes], index) in groupedRoutes" :key="group">
         <!-- 分组标签 -->
         <div
-          v-if="group && !props.collapsed"
+          v-if="group"
           class="px-2 pt-1 text-sm font-semibold text-muted-foreground/60 uppercase tracking-wider select-none"
+          :class="props.collapsed ? 'md:hidden' : ''"
         >
           {{ group }}
         </div>
         <!-- 折叠时用分隔线代替标签，第一个分组不显示 -->
         <div
-          v-else-if="group && props.collapsed && index > 0"
-          class="mx-2 border-t"
+          v-if="group && index > 0"
+          class="mx-2 border-t hidden"
+          :class="props.collapsed ? 'md:block' : ''"
         />
 
         <div
           class="flex flex-col gap-y-0.5"
           :class="{ 'mt-1': group && !props.collapsed }"
         >
-          <SidebarItem
-            v-for="route in routes"
-            :key="route.path"
-            :route="route"
-            :collapsed="props.collapsed"
-            :level="0"
-          />
+          <div :class="props.collapsed ? 'md:hidden contents' : 'contents'">
+            <SidebarItem
+              v-for="route in routes"
+              :key="route.path + '-full'"
+              :route="route"
+              :collapsed="false"
+              :level="0"
+            />
+          </div>
+          <div :class="props.collapsed ? 'hidden md:contents' : 'hidden'">
+            <SidebarItem
+              v-for="route in routes"
+              :key="route.path + '-collapsed'"
+              :route="route"
+              :collapsed="true"
+              :level="0"
+            />
+          </div>
         </div>
       </div>
     </nav>
