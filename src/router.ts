@@ -8,6 +8,7 @@ import {
   User,
   FileText,
   Info,
+  Key,
 } from "lucide-vue-next";
 import Layout from "@/layout/index.vue";
 import RouterViewLayout from "@/layout/components/RouterViewLayout.vue";
@@ -24,11 +25,6 @@ const router = createRouter({
       path: "/s/:uuid",
       name: "server-detail",
       component: () => import("./views/ServerDetailView.vue"),
-    },
-    {
-      path: "/token",
-      name: "token-manage",
-      component: () => import("./views/TokenManageView.vue"),
     },
     {
       path: "/dashboard",
@@ -88,19 +84,24 @@ const router = createRouter({
           ],
         },
         {
+          path: "token",
+          component: () => import("@/views/dashboard/TokenManageView.vue"),
+          meta: { title: "Token", icon: Key, order: 2, group: "系统" },
+        },
+        {
           path: "logs",
           component: () => import("@/views/dashboard/LogsView.vue"),
-          meta: { title: "日志", icon: FileText, order: 2, group: "系统" },
+          meta: { title: "日志", icon: FileText, order: 3, group: "系统" },
         },
         {
           path: "account",
           component: () => import("@/views/dashboard/AccountView.vue"),
-          meta: { title: "账户", icon: User, order: 3, group: "系统" },
+          meta: { title: "账户", icon: User, order: 4, group: "系统" },
         },
         {
           path: "about",
           component: () => import("@/views/dashboard/AboutView.vue"),
-          meta: { title: "关于", icon: Info, order: 4, group: "系统" },
+          meta: { title: "关于", icon: Info, order: 5, group: "系统" },
         },
       ],
     },
