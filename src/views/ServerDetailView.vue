@@ -48,8 +48,10 @@ import {
   Container,
   Fish,
   Terminal,
+  Radar,
 } from "lucide-vue-next";
 import WebTerminal from "@/components/WebTerminal.vue";
+import PingView from "@/components/ping/PingView.vue";
 import { usePermissionStore } from "@/stores/permission";
 
 const { hasPermission } = usePermissionStore();
@@ -110,6 +112,7 @@ const tabs = [
     checkDisplay: () =>
       hasPermission("task:create:web_shell", `agent_uuid:${uuid}`),
   },
+  { id: "ping", label: "Ping", icon: Radar },
 ];
 
 const activeTheme = computed(() => getcolors(activeTab.value));
@@ -363,6 +366,11 @@ const historyAreaPath = computed(() => {
                     <span v-else-if="tab.id === 'network'">{{
                       showNetworkSpeed(server, "total")
                     }}</span>
+                    <span
+                      v-else-if="tab.id === 'ping'"
+                      class="text-muted-foreground"
+                      >就绪</span
+                    >
                   </div>
                 </div>
                 <div
@@ -854,6 +862,15 @@ const historyAreaPath = computed(() => {
                     WebShell task.
                   </CardContent>
                 </Card>
+              </div>
+
+              <!-- Ping View -->
+              <div
+                v-else-if="activeTab === 'ping'"
+                key="ping"
+                class="space-y-4"
+              >
+                <PingView :uuid="uuid" />
               </div>
             </Transition>
           </div>
