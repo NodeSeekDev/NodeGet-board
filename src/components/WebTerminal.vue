@@ -44,6 +44,7 @@ let resizeObserver: ResizeObserver | null = null
 let dataDisposable: { dispose: () => void } | null = null
 let containerClickHandler: (() => void) | null = null
 let heartbeatTimer: number | null = null
+let connectId = 0
 
 const initTerminal = () => {
   if (!containerRef.value) return
@@ -141,6 +142,8 @@ const createTask = async () => {
 }
 
 const connect = async () => {
+  const currentId = ++connectId
+
   const targetUrl = buildWsUrl('/terminal', {
     agent_uuid: props.targetUuid?.trim(),
     token: props.token?.trim(),
@@ -163,8 +166,10 @@ const connect = async () => {
 
   try {
     await createTask()
+    if (currentId !== connectId) return
     terminal?.writeln('\x1b[1;32mWebShell task created successfully\x1b[0m')
   } catch (error: any) {
+    if (currentId !== connectId) return
     const message = error?.message || 'Failed to create task'
     status.value = 'error'
     statusText.value = 'Task creation failed'
@@ -173,63 +178,96 @@ const connect = async () => {
     return
   }
 
-  statusText.value = 'Connecting'
+  const connectWs = (retryCount = 0) => {
+    if (currentId !== connectId) return
 
-  const ws = new WebSocket(targetUrl)
-  ws.binaryType = 'arraybuffer'
-  socket = ws
+    statusText.value = retryCount > 0 ? `Connecting (Retry ${retryCount})...` : 'Connecting'
+    
+    if (retryCount > 0) {
+      destroySocket()
+    }
 
-  ws.onopen = () => {
-    status.value = 'connected'
-    statusText.value = 'Connected'
-    terminal?.writeln('\x1b[1;32mConnected successfully!\x1b[0m')
+    const ws = new WebSocket(targetUrl)
+    ws.binaryType = 'arraybuffer'
+    socket = ws
 
-    dataDisposable = terminal?.onData((data: string) => {
-      if (socket?.readyState === WebSocket.OPEN) {
-        socket.send(data)
+    let connectionEstablished = false
+    let connectionTimer: number | null = null
+
+    ws.onopen = () => {
+      if (currentId !== connectId || socket !== ws) {
+        ws.close()
+        return
       }
-    }) ?? null
-    terminal?.focus()
 
-    if (heartbeatTimer !== null) {
-      window.clearInterval(heartbeatTimer)
-    }
-    heartbeatTimer = window.setInterval(() => {
-      if (socket?.readyState === WebSocket.OPEN) {
-        socket.send('')
+      dataDisposable = terminal?.onData((data: string) => {
+        if (socket?.readyState === WebSocket.OPEN) {
+          socket.send(data)
+        }
+      }) ?? null
+      terminal?.focus()
+
+      if (heartbeatTimer !== null) {
+        window.clearInterval(heartbeatTimer)
       }
-    }, 15000)
+      heartbeatTimer = window.setInterval(() => {
+        if (socket?.readyState === WebSocket.OPEN) {
+          socket.send('')
+        }
+      }, 15000)
 
-    emit('connected')
-  }
-
-  ws.onmessage = async (event) => {
-    if (event.data instanceof ArrayBuffer) {
-      terminal?.write(new Uint8Array(event.data))
-      return
+      connectionTimer = window.setTimeout(() => {
+        if (currentId !== connectId || socket !== ws) return
+        connectionEstablished = true
+        status.value = 'connected'
+        statusText.value = 'Connected'
+        emit('connected')
+      }, 500)
     }
-    if (typeof Blob !== 'undefined' && event.data instanceof Blob) {
-      terminal?.write(await event.data.text())
-      return
+
+    ws.onmessage = async (event) => {
+      if (event.data instanceof ArrayBuffer) {
+        terminal?.write(new Uint8Array(event.data))
+        return
+      }
+      if (typeof Blob !== 'undefined' && event.data instanceof Blob) {
+        terminal?.write(await event.data.text())
+        return
+      }
+      terminal?.write(String(event.data))
     }
-    terminal?.write(String(event.data))
+
+    ws.onclose = (event) => {
+      if (socket !== ws) return
+      if (connectionTimer !== null) {
+        window.clearTimeout(connectionTimer)
+      }
+
+      if (!connectionEstablished && retryCount < 4) {
+        terminal?.writeln(`\r\n\x1b[1;33mConnection dropped, retrying in 1s...\x1b[0m`)
+        setTimeout(() => connectWs(retryCount + 1), 1000)
+        return
+      }
+
+      status.value = 'disconnected'
+      statusText.value = `Disconnected (${event.code})`
+      terminal?.writeln(`\r\n\x1b[1;31mDisconnected [code: ${event.code}]\x1b[0m`)
+      emit('disconnected', event.code)
+    }
+
+    ws.onerror = () => {
+      if (socket !== ws) return
+      if (!connectionEstablished && retryCount < 4) {
+        return // Let onclose handle retry
+      }
+      status.value = 'error'
+      statusText.value = 'Connection error'
+      terminal?.writeln('\r\n\x1b[1;31mWebSocket error occurred\x1b[0m')
+      emit('error', 'WebSocket error occurred')
+    }
   }
 
-  ws.onclose = (event) => {
-    if (socket !== ws) return
-    status.value = 'disconnected'
-    statusText.value = `Disconnected (${event.code})`
-    terminal?.writeln(`\r\n\x1b[1;31mDisconnected [code: ${event.code}]\x1b[0m`)
-    emit('disconnected', event.code)
-  }
-
-  ws.onerror = () => {
-    if (socket !== ws) return
-    status.value = 'error'
-    statusText.value = 'Connection error'
-    terminal?.writeln('\r\n\x1b[1;31mWebSocket error occurred\x1b[0m')
-    emit('error', 'WebSocket error occurred')
-  }
+  setTimeout(() => connectWs(0), 500)
 }
 
 watch(
