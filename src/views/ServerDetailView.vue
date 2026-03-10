@@ -47,11 +47,7 @@ import {
   Clock,
   Container,
   Fish,
-  Terminal,
-  Radar,
 } from "lucide-vue-next";
-import WebTerminal from "@/components/WebTerminal.vue";
-import PingView from "@/components/ping/PingView.vue";
 import { usePermissionStore } from "@/stores/permission";
 
 const { hasPermission } = usePermissionStore();
@@ -105,22 +101,9 @@ const tabs = [
   { id: "memory", label: "Memory", icon: Database },
   { id: "disk", label: "Disk", icon: HardDrive },
   { id: "network", label: "Network", icon: Network },
-  {
-    id: "webshell",
-    label: "WebShell",
-    icon: Terminal,
-    checkDisplay: () =>
-      hasPermission("task:create:web_shell", `agent_uuid:${uuid}`),
-  },
-  { id: "ping", label: "Ping", icon: Radar },
 ];
 
 const activeTheme = computed(() => getcolors(activeTab.value));
-const webshellReady = computed(() => {
-  return Boolean(
-    currentBackend.value?.url && currentBackend.value?.token && uuid,
-  );
-});
 
 onMounted(() => {
   connectDynamic();
@@ -293,7 +276,6 @@ const historyAreaPath = computed(() => {
           <div class="p-2 space-y-1" v-if="server">
             <template v-for="tab in tabs" :key="tab.id">
               <button
-                v-if="tab.checkDisplay === undefined || tab.checkDisplay()"
                 @click="
                   () => {
                     activeTab = tab.id;
@@ -837,35 +819,6 @@ const historyAreaPath = computed(() => {
                     </div>
                   </CardContent>
                 </Card>
-              </div>
-
-              <!-- WebShell View -->
-              <div
-                v-else-if="activeTab === 'webshell'"
-                key="webshell"
-                class="space-y-4"
-              >
-                <WebTerminal
-                  v-if="webshellReady"
-                  :rpc-url="currentBackend?.url || ''"
-                  :token="currentBackend?.token || ''"
-                  :target-uuid="uuid"
-                />
-                <Card v-else>
-                  <CardContent class="py-6 text-sm text-muted-foreground">
-                    Current backend config is incomplete, unable to create a
-                    WebShell task.
-                  </CardContent>
-                </Card>
-              </div>
-
-              <!-- Ping View -->
-              <div
-                v-else-if="activeTab === 'ping'"
-                key="ping"
-                class="space-y-4"
-              >
-                <PingView :uuid="uuid" />
               </div>
             </Transition>
           </div>
