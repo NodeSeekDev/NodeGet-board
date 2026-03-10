@@ -37,11 +37,6 @@ const router = createRouter({
           meta: { title: "服务器", icon: Server, order: 1, group: "监控" },
         },
         {
-          path: "latency",
-          component: () => import("@/views/dashboard/LatencyView.vue"),
-          meta: { title: "延迟检测", icon: Activity, order: 2, group: "监控" },
-        },
-        {
           path: "exec",
           component: () => import("@/views/dashboard/ExecView.vue"),
           meta: { title: "远程执行", icon: Terminal, order: 1, group: "工具" },
@@ -102,6 +97,27 @@ const router = createRouter({
           path: "about",
           component: () => import("@/views/dashboard/AboutView.vue"),
           meta: { title: "关于", icon: Info, order: 5, group: "系统" },
+        },
+        {
+          path: "node/:uuid",
+          component: () => import("@/views/dashboard/node/NodeLayout.vue"),
+          meta: { title: "节点详情", hidden: true },
+          redirect: (to) => `/dashboard/node/${to.params.uuid}/ping`,
+          children: [
+            {
+              path: "ping",
+              name: "dashboard-node-ping",
+              component: () => import("@/views/dashboard/node/PingView.vue"),
+              meta: { title: "Ping 检测" },
+            },
+            {
+              path: "webshell",
+              name: "dashboard-node-webshell",
+              component: () =>
+                import("@/views/dashboard/node/WebShellView.vue"),
+              meta: { title: "WebShell 终端" },
+            },
+          ],
         },
       ],
     },

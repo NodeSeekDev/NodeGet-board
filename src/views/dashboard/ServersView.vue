@@ -77,7 +77,7 @@ onMounted(() => {
 });
 
 const goToServerDetail = (uuid: string) => {
-  router.push({ name: "server-detail", params: { uuid } });
+  router.push(`/dashboard/node/${uuid}/ping`);
 };
 </script>
 
