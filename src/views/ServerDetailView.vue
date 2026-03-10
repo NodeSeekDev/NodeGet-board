@@ -366,11 +366,6 @@ const historyAreaPath = computed(() => {
                     <span v-else-if="tab.id === 'network'">{{
                       showNetworkSpeed(server, "total")
                     }}</span>
-                    <span
-                      v-else-if="tab.id === 'ping'"
-                      class="text-muted-foreground"
-                      >就绪</span
-                    >
                   </div>
                 </div>
                 <div

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import { useBackendStore } from "@/composables/useBackendStore";
 import { usePingTask } from "./usePingTask";
 import { type ISP, ISP_LABELS } from "@/data/pingNodes";
@@ -15,8 +15,11 @@ const { currentBackend } = useBackendStore();
 const url = computed(() => currentBackend.value?.url ?? "");
 const token = computed(() => currentBackend.value?.token ?? "");
 
-const testType = ref<"ping" | "tcp_ping">("ping");
+const testType = ref<"ping" | "tcp_ping">("tcp_ping");
 const ispFilter = ref<ISP | "all">("all");
+const concurrency = ref(5);
+const delayBeforeQueryMs = ref(400);
+const loopCount = ref(20);
 
 const { results, pingStatus, start, stop } = usePingTask(
   props.uuid,
@@ -25,22 +28,36 @@ const { results, pingStatus, start, stop } = usePingTask(
 );
 
 function runOnce() {
-  start(testType.value, ispFilter.value, false);
+  start(
+    testType.value,
+    ispFilter.value,
+    false,
+    concurrency.value,
+    delayBeforeQueryMs.value,
+  );
 }
 
-function runContinuous() {
-  start(testType.value, ispFilter.value, true);
+const isContinuousRunning = ref(false);
+
+function toggleContinuous() {
+  if (isContinuousRunning.value) {
+    stop();
+  } else {
+    isContinuousRunning.value = true;
+    start(
+      testType.value,
+      ispFilter.value,
+      true,
+      concurrency.value,
+      delayBeforeQueryMs.value,
+      loopCount.value,
+    );
+  }
 }
 
-const LATENCY_LEGEND = [
-  { label: "未测", color: "#e5e7eb" },
-  { label: "≤50ms", color: "#26a91e" },
-  { label: "51-100ms", color: "#43dd3e" },
-  { label: "101-200ms", color: "#bef663" },
-  { label: "201-250ms", color: "#f6ed44" },
-  { label: ">250ms", color: "#f69833" },
-  { label: "超时", color: "#e6170f" },
-];
+watch(pingStatus, (val) => {
+  if (val !== "running") isContinuousRunning.value = false;
+});
 
 const completedCount = computed(
   () =>
@@ -51,14 +68,12 @@ const completedCount = computed(
 
 <template>
   <div class="space-y-6">
-    <!-- 控制栏 -->
     <div class="flex flex-wrap items-center gap-3">
-      <!-- 测试类型 -->
       <div class="flex rounded-md border overflow-hidden">
         <button
           v-for="t in [
-            { id: 'ping', label: 'Ping' },
             { id: 'tcp_ping', label: 'TCP Ping' },
+            { id: 'ping', label: 'Ping' },
           ]"
           :key="t.id"
           @click="testType = t.id as 'ping' | 'tcp_ping'"
@@ -73,7 +88,6 @@ const completedCount = computed(
         </button>
       </div>
 
-      <!-- 运营商过滤 -->
       <div class="flex rounded-md border overflow-hidden">
         <button
           v-for="isp in [
@@ -96,6 +110,35 @@ const completedCount = computed(
         </button>
       </div>
 
+      <div class="flex items-center gap-2 text-sm">
+        <label class="text-muted-foreground">并发</label>
+        <input
+          v-model.number="concurrency"
+          type="number"
+          min="1"
+          max="50"
+          class="w-14 rounded-md border px-2 py-1.5 text-sm text-center bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+        />
+        <label class="text-muted-foreground">延迟</label>
+        <input
+          v-model.number="delayBeforeQueryMs"
+          type="number"
+          min="0"
+          step="100"
+          class="w-20 rounded-md border px-2 py-1.5 text-sm text-center bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+        />
+        <span class="text-muted-foreground">ms</span>
+        <label class="text-muted-foreground ml-1">循环</label>
+        <input
+          v-model.number="loopCount"
+          type="number"
+          min="1"
+          max="500"
+          class="w-16 rounded-md border px-2 py-1.5 text-sm text-center bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+        />
+        <span class="text-muted-foreground">次</span>
+      </div>
+
       <div class="flex items-center gap-2 ml-auto">
         <Button
           size="sm"
@@ -107,32 +150,13 @@ const completedCount = computed(
         </Button>
         <Button
           size="sm"
-          variant="outline"
-          :disabled="pingStatus === 'running'"
-          @click="runContinuous"
+          :variant="isContinuousRunning ? 'destructive' : 'outline'"
+          :disabled="pingStatus === 'running' && !isContinuousRunning"
+          @click="toggleContinuous"
         >
-          持续测试
-        </Button>
-        <Button
-          v-if="pingStatus === 'running'"
-          size="sm"
-          variant="destructive"
-          @click="stop"
-        >
-          停止
+          {{ isContinuousRunning ? "停止测试" : "持续测试" }}
         </Button>
       </div>
-    </div>
-
-    <!-- 进度提示 -->
-    <div class="text-sm text-muted-foreground">
-      <span v-if="pingStatus === 'running'">
-        测试中… {{ completedCount }} / {{ results.length }} 节点完成
-      </span>
-      <span v-else-if="pingStatus === 'done'">
-        测试完成：{{ completedCount }} / {{ results.length }} 节点
-      </span>
-      <span v-else class="italic">点击「单次测试」或「持续测试」开始</span>
     </div>
 
     <!-- 地图 + 直方图 -->
@@ -141,7 +165,7 @@ const completedCount = computed(
         <PingChinaMapNative :results="results" :isp-filter="ispFilter" />
       </div>
 
-      <!-- 直方图（自动填充剩余宽度，高度与地图一致） -->
+      <!-- 直方图 -->
       <div
         class="flex-1 min-w-0 border rounded-lg bg-card p-2"
         style="height: 416px"
@@ -152,7 +176,7 @@ const completedCount = computed(
 
     <!-- 结果表格 -->
     <div>
-      <PingResultTable :results="results" />
+      <PingResultTable :results="results" :loop-count="loopCount" />
     </div>
   </div>
 </template>

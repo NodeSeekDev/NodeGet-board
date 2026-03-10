@@ -203,7 +203,6 @@ onMounted(async () => {
     chart = echarts.init(chartEl.value);
     chart.setOption(initOption());
 
-    // 地图初始化完成后，立即渲染当前已有的数据
     if (props.results.length > 0) {
       chart.setOption({
         series: [{ data: buildProvinceData(props.results, props.ispFilter) }],
@@ -219,7 +218,6 @@ onUnmounted(() => {
   chart = null;
 });
 
-// 监听 results 和 ispFilter 变化，更新地图
 watch(
   () => [props.results, props.ispFilter] as const,
   ([results, ispFilter]) => {
