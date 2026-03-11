@@ -32,14 +32,8 @@ function draw() {
     } else {
       const segIdx = LATENCY_SEGMENTS.findIndex((s) => lat < s.max);
       const idx = segIdx === -1 ? LATENCY_SEGMENTS.length - 1 : segIdx;
-      const seg = LATENCY_SEGMENTS[idx]!;
-      color = seg.color;
-      const baseH = idx * 4;
-      const rangeH =
-        segIdx === -1 || seg.max === Infinity
-          ? 4
-          : ((lat - seg.min) / (seg.max - seg.min)) * 4;
-      h = Math.min(20, Math.max(1, Math.round(baseH + rangeH)));
+      color = LATENCY_SEGMENTS[idx]!.color;
+      h = Math.min(20, Math.max(1, Math.round((lat / 400) * 20)));
     }
 
     ctx.fillStyle = color;
