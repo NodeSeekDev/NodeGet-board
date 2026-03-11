@@ -9,6 +9,7 @@ export interface PingResult {
   fastest: number | null;
   slowest: number | null;
   avg: number | null;
+  jitter: number | null;
   sent: number;
   loss: number;
   latencyHistory: number[];
@@ -40,6 +41,7 @@ export function usePingTask(uuid: string, url: string, token: string) {
       fastest: null,
       slowest: null,
       avg: null,
+      jitter: null,
       sent: 0,
       loss: 0,
       latencyHistory: [],
@@ -167,91 +169,97 @@ export function usePingTask(uuid: string, url: string, token: string) {
     );
     result.status = "success";
 
+    if (history.length >= 2) {
+      let sum = 0;
+      for (let i = 1; i < history.length; i++) {
+        sum += Math.abs(history[i]! - history[i - 1]!);
+      }
+      result.jitter = sum / (history.length - 1);
+    } else {
+      result.jitter = null;
+    }
+
     if (pushBar) {
       result.qualityBars.push(latency ?? null);
     }
   }
 
   /**
-   * 处理单个节点：建任务 → 轮询直到有结果
+   * 单次探测：为指定节点建任务并查询一次结果（用于 continuous 广度优先调度）
+   */
+  async function runSingleProbe(
+    index: number,
+    nodes: PingNode[],
+    testType: "ping" | "tcp_ping",
+    delayBeforeQueryMs: number,
+    isFirstProbe: boolean,
+  ): Promise<void> {
+    const node = nodes[index]!;
+    const taskId = await createTask(node.host, testType);
+    if (taskId === null) {
+      results.value[index]!.qualityBars.push(null);
+      return;
+    }
+    if (isFirstProbe) {
+      results.value[index]!.taskId = taskId;
+      results.value[index]!.status = "running";
+    }
+    await new Promise((r) => setTimeout(r, delayBeforeQueryMs));
+    if (stopped) return;
+    const data = await queryTask(taskId);
+    updateResult(index, data, true);
+  }
+
+  /**
+   * 处理单个节点：建任务 → 轮询直到有结果（用于非 continuous 模式）
    */
   async function processNode(
     index: number,
     nodes: PingNode[],
     testType: "ping" | "tcp_ping",
-    continuous: boolean,
     delayBeforeQueryMs: number,
-    loopCount: number,
   ): Promise<void> {
     const node = nodes[index]!;
 
-    if (continuous) {
-      for (let probe = 0; probe < loopCount && !stopped; probe++) {
-        const taskId = await createTask(node.host, testType);
-        if (taskId === null) {
-          results.value[index]!.qualityBars.push(null);
-          continue;
-        }
-        if (probe === 0) {
-          results.value[index]!.taskId = taskId;
-          results.value[index]!.status = "running";
-        }
-        await new Promise((r) => setTimeout(r, delayBeforeQueryMs));
-        if (stopped) break;
-        const data = await queryTask(taskId);
-        updateResult(index, data, true);
-      }
-      if (!stopped) results.value[index]!.status = "success";
-    } else {
-      const taskId = await createTask(node.host, testType);
-      if (taskId === null) {
-        if (results.value[index]) results.value[index]!.status = "failed";
-        return;
-      }
+    const taskId = await createTask(node.host, testType);
+    if (taskId === null) {
+      if (results.value[index]) results.value[index]!.status = "failed";
+      return;
+    }
 
-      if (results.value[index]) {
-        results.value[index]!.taskId = taskId;
-        results.value[index]!.status = "running";
-      }
+    if (results.value[index]) {
+      results.value[index]!.taskId = taskId;
+      results.value[index]!.status = "running";
+    }
+
+    await new Promise((r) => setTimeout(r, delayBeforeQueryMs));
+
+    while (!stopped) {
+      const data = await queryTask(taskId);
+      updateResult(index, data);
+
+      const status = results.value[index]?.status;
+      if (status === "success" || status === "failed") break;
 
       await new Promise((r) => setTimeout(r, delayBeforeQueryMs));
-
-      while (!stopped) {
-        const data = await queryTask(taskId);
-        updateResult(index, data);
-
-        const status = results.value[index]?.status;
-        if (status === "success" || status === "failed") break;
-
-        await new Promise((r) => setTimeout(r, delayBeforeQueryMs));
-      }
     }
   }
 
   /**
-   * 滑动窗口 worker：从共享队列取节点，处理完立刻取下一个
+   * 滑动窗口 worker：从共享队列取节点，处理完立刻取下一个（仅用于非 continuous 模式）
    */
   async function worker(
     queue: number[],
     nodes: PingNode[],
     testType: "ping" | "tcp_ping",
-    continuous: boolean,
     delayBeforeQueryMs: number,
-    loopCount: number,
     startDelay: number = 0,
   ): Promise<void> {
     if (startDelay > 0) await new Promise((r) => setTimeout(r, startDelay));
     while (!stopped) {
       const index = queue.shift();
       if (index === undefined) break; // 队列已空，worker 退出
-      await processNode(
-        index,
-        nodes,
-        testType,
-        continuous,
-        delayBeforeQueryMs,
-        loopCount,
-      );
+      await processNode(index, nodes, testType, delayBeforeQueryMs);
     }
   }
 
@@ -281,24 +289,49 @@ export function usePingTask(uuid: string, url: string, token: string) {
       return;
     }
 
-    const queue = Array.from({ length: nodes.length }, (_, i) => i);
-
-    await Promise.allSettled(
-      Array.from({ length: Math.min(concurrency, nodes.length) }, (_, i) =>
-        worker(
-          queue,
-          nodes,
-          testType,
-          continuous,
-          delayBeforeQueryMs,
-          loopCount,
-          i * WORKER_START_INTERVAL_MS,
+    if (continuous) {
+      // 广度优先：外层按轮次，内层并发跑所有节点
+      for (let probe = 0; probe < loopCount && !stopped; probe++) {
+        const nodeQueue = Array.from({ length: nodes.length }, (_, i) => i);
+        await Promise.allSettled(
+          Array.from({ length: Math.min(concurrency, nodes.length) }, () =>
+            (async () => {
+              while (!stopped) {
+                const index = nodeQueue.shift();
+                if (index === undefined) break;
+                await runSingleProbe(
+                  index,
+                  nodes,
+                  testType,
+                  delayBeforeQueryMs,
+                  probe === 0,
+                );
+              }
+            })(),
+          ),
+        );
+      }
+      if (!stopped) {
+        results.value.forEach((r) => {
+          if (r.status === "running") r.status = "success";
+        });
+        pingStatus.value = "done";
+      }
+    } else {
+      // 非 continuous 模式：滑动窗口 worker 队列调度
+      const queue = Array.from({ length: nodes.length }, (_, i) => i);
+      await Promise.allSettled(
+        Array.from({ length: Math.min(concurrency, nodes.length) }, (_, i) =>
+          worker(
+            queue,
+            nodes,
+            testType,
+            delayBeforeQueryMs,
+            i * WORKER_START_INTERVAL_MS,
+          ),
         ),
-      ),
-    );
-
-    if (!stopped) {
-      pingStatus.value = "done";
+      );
+      if (!stopped) pingStatus.value = "done";
     }
   }
 

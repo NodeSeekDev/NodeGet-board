@@ -15,5 +15,5 @@ export function getLatencyColor(latency: number | null, loss: number): string {
   for (const seg of LATENCY_SEGMENTS) {
     if (latency < seg.max) return seg.color;
   }
-  return LATENCY_SEGMENTS[LATENCY_SEGMENTS.length - 1].color;
+  return LATENCY_SEGMENTS[LATENCY_SEGMENTS.length - 1]!.color;
 }

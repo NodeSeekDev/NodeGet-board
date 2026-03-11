@@ -6,7 +6,11 @@ import { GridComponent, TooltipComponent } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
 import type { EChartsType } from "echarts/core";
 import type { PingResult } from "./usePingTask";
-import { LATENCY_SEGMENTS, LOSS_COLOR } from "./pingLatencyConfig";
+import {
+  LATENCY_SEGMENTS,
+  LOSS_COLOR,
+  getLatencyColor,
+} from "./pingLatencyConfig";
 
 echarts.use([BarChart, GridComponent, TooltipComponent, CanvasRenderer]);
 
@@ -38,14 +42,28 @@ const bucketCounts = computed(() => {
 });
 
 const stats = computed(() => {
+  if (doneResults.value.length === 0)
+    return { avg: null, jitter: null, lossRate: null };
+
   const latencies = doneResults.value
     .filter((r) => r.avg !== null && r.loss < 100)
     .map((r) => r.avg as number);
-  if (latencies.length === 0) return { worst: null, best: null, avg: null };
-  const worst = Math.max(...latencies);
-  const best = Math.min(...latencies);
-  const avg = latencies.reduce((a, b) => a + b, 0) / latencies.length;
-  return { worst, best, avg };
+  const avg = latencies.length
+    ? latencies.reduce((a, b) => a + b, 0) / latencies.length
+    : null;
+
+  const jitters = doneResults.value
+    .filter((r) => r.jitter !== null && r.loss < 100)
+    .map((r) => r.jitter as number);
+  const jitter = jitters.length
+    ? jitters.reduce((a, b) => a + b, 0) / jitters.length
+    : null;
+
+  const lossRate =
+    doneResults.value.reduce((a, r) => a + r.loss, 0) /
+    doneResults.value.length;
+
+  return { avg, jitter, lossRate };
 });
 
 const option = computed(() => ({
@@ -72,6 +90,18 @@ const option = computed(() => ({
 
 function fmt(v: number | null, unit = "ms") {
   return v === null ? "—" : `${Math.round(v)}${unit}`;
+}
+
+function getLossRateColor(rate: number | null): string {
+  if (rate === null) return "#6b7280";
+  if (rate === 0) return "#26a91e";
+  if (rate < 5) return "#f6ed44";
+  if (rate < 20) return "#f69833";
+  return "#e6170f";
+}
+
+function fmtLoss(v: number | null) {
+  return v === null ? "—" : `${Math.round(v)}%`;
 }
 
 const chartRef = shallowRef<HTMLDivElement | null>(null);
@@ -101,20 +131,31 @@ watch(option, (newOption) => {
   <div class="flex flex-col h-full gap-4">
     <div class="grid grid-cols-3 gap-3">
       <div class="p-3 rounded-lg border bg-card text-center">
-        <div class="text-xs text-muted-foreground mb-1">最差</div>
-        <div class="text-lg font-mono font-bold text-red-500">
-          {{ fmt(stats.worst) }}
-        </div>
-      </div>
-      <div class="p-3 rounded-lg border bg-card text-center">
-        <div class="text-xs text-muted-foreground mb-1">最优</div>
-        <div class="text-lg font-mono font-bold text-green-500">
-          {{ fmt(stats.best) }}
-        </div>
-      </div>
-      <div class="p-3 rounded-lg border bg-card text-center">
         <div class="text-xs text-muted-foreground mb-1">平均</div>
-        <div class="text-lg font-mono font-bold">{{ fmt(stats.avg) }}</div>
+        <div
+          class="text-lg font-mono font-bold"
+          :style="{ color: getLatencyColor(stats.avg, 0) }"
+        >
+          {{ fmt(stats.avg) }}
+        </div>
+      </div>
+      <div class="p-3 rounded-lg border bg-card text-center">
+        <div class="text-xs text-muted-foreground mb-1">抖动</div>
+        <div
+          class="text-lg font-mono font-bold"
+          :style="{ color: getLatencyColor(stats.jitter, 0) }"
+        >
+          {{ fmt(stats.jitter) }}
+        </div>
+      </div>
+      <div class="p-3 rounded-lg border bg-card text-center">
+        <div class="text-xs text-muted-foreground mb-1">丢包率</div>
+        <div
+          class="text-lg font-mono font-bold"
+          :style="{ color: getLossRateColor(stats.lossRate) }"
+        >
+          {{ fmtLoss(stats.lossRate) }}
+        </div>
       </div>
     </div>
     <div class="flex-1 border rounded-lg bg-card overflow-hidden">
