@@ -1,7 +1,14 @@
 <script setup lang="ts">
 import { computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { PanelLeftClose, PanelLeftOpen, X } from "lucide-vue-next";
+import {
+  PanelLeftClose,
+  PanelLeftOpen,
+  X,
+  ArrowLeft,
+  Radar,
+  Terminal,
+} from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import SidebarItem, { type SidebarRoute } from "./SidebarItem.vue";
 
@@ -24,6 +31,42 @@ watch(
     emit("closeMobile");
   },
 );
+
+const isNodeRoute = computed(() => route.path.startsWith("/dashboard/node/"));
+const nodeUuid = computed(() => {
+  if (isNodeRoute.value) {
+    const parts = route.path.split("/");
+    return parts[3] || "";
+  }
+  return "";
+});
+
+const nodeRoutes = computed<SidebarRoute[]>(() => {
+  if (!nodeUuid.value) return [];
+  return [
+    {
+      path: "/dashboard/servers",
+      meta: {
+        title: "Back to Servers",
+        icon: ArrowLeft,
+      },
+    },
+    {
+      path: `/dashboard/node/${nodeUuid.value}/ping`,
+      meta: {
+        title: "Ping",
+        icon: Radar,
+      },
+    },
+    {
+      path: `/dashboard/node/${nodeUuid.value}/webshell`,
+      meta: {
+        title: "WebShell",
+        icon: Terminal,
+      },
+    },
+  ];
+});
 
 function buildMenuTree(parentPath: string): SidebarRoute[] {
   return router
@@ -108,7 +151,33 @@ const groupedRoutes = computed<[string, SidebarRoute[]][]>(() => {
     </div>
 
     <nav class="flex-1 flex flex-col overflow-y-auto p-2 gap-y-3">
-      <div v-for="([group, routes], index) in groupedRoutes" :key="group">
+      <div v-if="isNodeRoute">
+        <div class="flex flex-col gap-y-0.5 mt-1">
+          <div :class="props.collapsed ? 'md:hidden contents' : 'contents'">
+            <SidebarItem
+              v-for="item in nodeRoutes"
+              :key="item.path + '-full'"
+              :route="item"
+              :collapsed="false"
+              :level="0"
+            />
+          </div>
+          <div :class="props.collapsed ? 'hidden md:contents' : 'hidden'">
+            <SidebarItem
+              v-for="item in nodeRoutes"
+              :key="item.path + '-collapsed'"
+              :route="item"
+              :collapsed="true"
+              :level="0"
+            />
+          </div>
+        </div>
+      </div>
+      <div
+        v-else
+        v-for="([group, routes], index) in groupedRoutes"
+        :key="group"
+      >
         <div
           v-if="group"
           class="px-2 pt-1 text-sm font-semibold text-muted-foreground/60 uppercase tracking-wider select-none"
