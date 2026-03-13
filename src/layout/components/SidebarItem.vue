@@ -25,10 +25,12 @@ const props = withDefaults(
   defineProps<{
     route: SidebarRoute;
     collapsed: boolean;
+    isOpen: boolean;
     level?: number;
   }>(),
   {
     level: 0,
+    isOpen: false,
   },
 );
 
@@ -36,7 +38,7 @@ const hasVisibleChildren = computed(
   () => !!props.route.children && props.route.children.length > 0,
 );
 
-const isOpen = ref(true);
+const isOpen = ref(props.isOpen);
 
 const visibleChildren = computed(() =>
   (props.route.children ?? [])

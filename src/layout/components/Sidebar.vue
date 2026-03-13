@@ -9,6 +9,14 @@ import {
   Radar,
   Terminal,
   Settings,
+  Antenna,
+  CloudDownload,
+  ArrowUpDown,
+  Monitor,
+  BrickWallFire,
+  Package,
+  ChartNoAxesGantt,
+  HardDrive,
 } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import SidebarItem, { type SidebarRoute } from "./SidebarItem.vue";
@@ -46,10 +54,31 @@ const nodeRoutes = computed<SidebarRoute[]>(() => {
   if (!nodeUuid.value) return [];
   return [
     {
-      path: "/dashboard/servers",
+      path: "/dashboard/overview",
       meta: {
         title: "Back to Servers",
         icon: ArrowLeft,
+      },
+    },
+    {
+      path: `/dashboard/node/${nodeUuid.value}/status`,
+      meta: {
+        title: "Status",
+        icon: Monitor,
+      },
+    },
+    {
+      path: `/dashboard/node/${nodeUuid.value}/latency`,
+      meta: {
+        title: "latency",
+        icon: Antenna,
+      },
+    },
+    {
+      path: `/dashboard/node/${nodeUuid.value}/traffic`,
+      meta: {
+        title: "traffic",
+        icon: ArrowUpDown,
       },
     },
     {
@@ -64,6 +93,41 @@ const nodeRoutes = computed<SidebarRoute[]>(() => {
       meta: {
         title: "WebShell",
         icon: Terminal,
+      },
+    },
+    {
+      path: `/dashboard/node/${nodeUuid.value}/files`,
+      meta: {
+        title: "文件管理",
+        icon: HardDrive,
+      },
+    },
+    {
+      path: `/dashboard/node/${nodeUuid.value}/docker`,
+      meta: {
+        title: "docker管理",
+        icon: Package,
+      },
+    },
+    {
+      path: `/dashboard/node/${nodeUuid.value}/firewall`,
+      meta: {
+        title: "防火墙",
+        icon: BrickWallFire,
+      },
+    },
+    {
+      path: `/dashboard/node/${nodeUuid.value}/process`,
+      meta: {
+        title: "进程管理",
+        icon: ChartNoAxesGantt,
+      },
+    },
+    {
+      path: `/dashboard/node/${nodeUuid.value}/update`,
+      meta: {
+        title: "update",
+        icon: CloudDownload,
       },
     },
     {
@@ -167,6 +231,7 @@ const groupedRoutes = computed<[string, SidebarRoute[]][]>(() => {
               :key="item.path + '-full'"
               :route="item"
               :collapsed="false"
+              :is-open="!route.meta?.isClosed"
               :level="0"
             />
           </div>
@@ -176,6 +241,7 @@ const groupedRoutes = computed<[string, SidebarRoute[]][]>(() => {
               :key="item.path + '-collapsed'"
               :route="item"
               :collapsed="true"
+              :is-open="!route.meta?.isClosed"
               :level="0"
             />
           </div>
@@ -209,6 +275,7 @@ const groupedRoutes = computed<[string, SidebarRoute[]][]>(() => {
               :key="route.path + '-full'"
               :route="route"
               :collapsed="false"
+              :is-open="!route.meta?.isClosed"
               :level="0"
             />
           </div>
@@ -218,6 +285,7 @@ const groupedRoutes = computed<[string, SidebarRoute[]][]>(() => {
               :key="route.path + '-collapsed'"
               :route="route"
               :collapsed="true"
+              :is-open="!route.meta?.isClosed"
               :level="0"
             />
           </div>
