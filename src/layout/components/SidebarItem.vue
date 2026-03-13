@@ -82,6 +82,7 @@ const visibleChildren = computed(() =>
             :route="child"
             :collapsed="false"
             :level="level + 1"
+            :isOpen="isOpen"
           />
         </div>
       </CollapsibleContent>
