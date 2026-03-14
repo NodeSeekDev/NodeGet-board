@@ -10,7 +10,15 @@ import {
   Sparkles,
   Circle,
   LayoutDashboard,
+  Languages,
 } from "lucide-vue-next";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useI18n } from "vue-i18n";
 
 defineProps<{
   status: "disconnected" | "connecting" | "connected";
@@ -21,6 +29,12 @@ const background = inject<Ref<"default" | "flickering">>("background");
 const setBackground =
   inject<(val: "default" | "flickering") => void>("setBackground");
 const openBackendSwitcher = inject<() => void>("openBackendSwitcher");
+const { locale } = useI18n();
+
+const changeLanguage = (lang: string) => {
+  locale.value = lang;
+  localStorage.setItem("locale", lang);
+};
 
 const toggleTheme = () => {
   isDark.value = !isDark.value;
@@ -85,6 +99,24 @@ onMounted(() => {
         />
         <span class="sr-only">Toggle theme</span>
       </Button>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger as-child>
+          <Button variant="ghost" size="icon">
+            <Languages class="h-[1.2rem] w-[1rem]" />
+            <span class="sr-only">Toggle language</span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem @click="changeLanguage('en')">
+            English
+          </DropdownMenuItem>
+          <DropdownMenuItem @click="changeLanguage('zh_cn')">
+            中文简体
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
       <Button variant="ghost" size="icon" @click="openBackendSwitcher?.()">
         <ServerIcon class="h-4 w-4" />
         <span class="sr-only">Switch backend</span>
