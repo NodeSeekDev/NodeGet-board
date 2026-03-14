@@ -82,7 +82,7 @@ onMounted(() => {
 
       <Alert v-if="dynamicError" variant="destructive">
         <AlertCircle class="h-4 w-4" />
-        <AlertTitle>{{ $t("home.error") }}</AlertTitle>
+        <AlertTitle>{{ $t("common.error") }}</AlertTitle>
         <AlertDescription>{{ dynamicError }}</AlertDescription>
       </Alert>
 
@@ -147,7 +147,7 @@ onMounted(() => {
                       class="h-3 w-3"
                       :style="{ color: colors.cpu.color }"
                     />
-                    {{ $t("home.cpu") }}</span
+                    {{ $t("common.cpu") }}</span
                   >
                   <span class="font-medium"
                     >{{ showCpuPercent(server).toFixed(1) }}%</span
@@ -167,7 +167,7 @@ onMounted(() => {
                       class="h-3 w-3"
                       :style="{ color: colors.memory.color }"
                     />
-                    {{ $t("home.ram") }}</span
+                    {{ $t("common.ram") }}</span
                   >
                   <div class="flex items-center gap-2">
                     <span class="text-[10px] text-muted-foreground">{{
@@ -187,7 +187,7 @@ onMounted(() => {
                   <Activity class="h-3.5 w-3.5 text-muted-foreground" />
                   <div class="flex flex-col">
                     <span class="text-xs text-muted-foreground">{{
-                      $t("home.load")
+                      $t("common.load")
                     }}</span>
                     <span class="font-medium font-mono">{{
                       formatLoad(server.load)
@@ -205,7 +205,7 @@ onMounted(() => {
                     ><NetworkIcon
                       class="h-3 w-3"
                       :style="{ color: colors.network.color }"
-                    />{{ $t("home.network") }}</span
+                    />{{ $t("common.network") }}</span
                   >
                   <div class="flex flex-col text-xs font-mono">
                     <div class="flex justify-between items-center">
@@ -230,7 +230,7 @@ onMounted(() => {
                     ><HardDrive
                       class="h-3 w-3"
                       :style="{ color: colors.disk.color }"
-                    />{{ $t("home.disk") }}</span
+                    />{{ $t("common.disk") }}</span
                   >
                   <div class="flex items-center justify-between text-xs">
                     <span

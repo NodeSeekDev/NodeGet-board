@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, computed, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import { useDynamicData } from "@/composables/useDynamicData";
 import { useStaticData } from "@/composables/useStaticData";
 import { useBackendStore } from "@/composables/useBackendStore";
@@ -51,6 +52,7 @@ import {
 import { usePermissionStore } from "@/stores/permission";
 
 const { hasPermission } = usePermissionStore();
+const { t } = useI18n();
 
 const route = useRoute();
 const router = useRouter();
@@ -97,10 +99,22 @@ const getcolors = (id: string) => {
 };
 
 const tabs = [
-  { id: "cpu", label: "CPU", icon: Cpu },
-  { id: "memory", label: "Memory", icon: Database },
-  { id: "disk", label: "Disk", icon: HardDrive },
-  { id: "network", label: "Network", icon: Network },
+  { id: "cpu", label: computed(() => t("serverDetail.tabs.cpu")), icon: Cpu },
+  {
+    id: "memory",
+    label: computed(() => t("serverDetail.tabs.memory")),
+    icon: Database,
+  },
+  {
+    id: "disk",
+    label: computed(() => t("serverDetail.tabs.disk")),
+    icon: HardDrive,
+  },
+  {
+    id: "network",
+    label: computed(() => t("serverDetail.tabs.network")),
+    icon: Network,
+  },
 ];
 
 const activeTheme = computed(() => getcolors(activeTab.value));
@@ -258,7 +272,9 @@ const historyAreaPath = computed(() => {
                 {{ showOS(server) }}
               </p>
             </div>
-            <div v-else class="text-sm font-medium">Loading...</div>
+            <div v-else class="text-sm font-medium">
+              {{ $t("common.loading") }}
+            </div>
           </div>
 
           <!-- Mobile Close Button -->
@@ -282,7 +298,7 @@ const historyAreaPath = computed(() => {
                     isSidebarOpen = false;
                   }
                 "
-                :title="tab.label"
+                :title="tab.label.value"
                 :style="
                   activeTab === tab.id
                     ? {
@@ -331,7 +347,7 @@ const historyAreaPath = computed(() => {
                         : {}
                     "
                   >
-                    {{ tab.label }}
+                    {{ tab.label.value }}
                   </div>
                   <div
                     class="text-xs text-muted-foreground mt-0.5 font-mono truncate"
@@ -388,7 +404,7 @@ const historyAreaPath = computed(() => {
             >
               <AlertCircle class="h-5 w-5" /> {{ dynamicError }}
             </div>
-            <span v-else>Connecting to server...</span>
+            <span v-else>{{ $t("serverDetail.connecting") }}</span>
           </div>
         </div>
 
@@ -400,11 +416,12 @@ const historyAreaPath = computed(() => {
           <div class="max-w-5xl mx-auto space-y-6">
             <div class="flex items-center justify-between">
               <h1 class="text-3xl font-bold tracking-light">
-                {{ tabs.find((t) => t.id === activeTab)?.label }}
+                {{ tabs.find((t) => t.id === activeTab)?.label.value }}
               </h1>
               <Badge variant="outline" class="font-mono text-xs">
                 <Clock class="h-3 w-3 mr-1" />
-                Uptime: {{ formatUptime(server.system.uptime) }}
+                {{ $t("common.uptime") }}:
+                {{ formatUptime(server.system.uptime) }}
               </Badge>
             </div>
 
@@ -414,18 +431,17 @@ const historyAreaPath = computed(() => {
                 <Card>
                   <CardHeader>
                     <div class="flex items-center justify-between">
-                      <CardTitle
-                        class="text-sm font-medium text-muted-foreground"
-                        >Total Utilization</CardTitle
-                      >
+                      <CardTitle>{{
+                        $t("serverDetail.cpu.totalUtilization")
+                      }}</CardTitle>
                       <Tabs v-model="cpuMode" class="w-[200px]">
                         <TabsList class="grid w-full grid-cols-2 h-8">
-                          <TabsTrigger value="realtime" class="text-xs"
-                            >Realtime</TabsTrigger
-                          >
-                          <TabsTrigger value="history" class="text-xs"
-                            >History</TabsTrigger
-                          >
+                          <TabsTrigger value="realtime" class="text-xs">{{
+                            $t("serverDetail.cpu.realtime")
+                          }}</TabsTrigger>
+                          <TabsTrigger value="history" class="text-xs">{{
+                            $t("serverDetail.cpu.history")
+                          }}</TabsTrigger>
                         </TabsList>
                       </Tabs>
                     </div>
@@ -436,16 +452,18 @@ const historyAreaPath = computed(() => {
                       {{ showCpuPercent(server).toFixed(1) }}%
                     </div>
                     <div class="h-9 flex items-end" v-else>
-                      <span
-                        class="text-sm text-muted-foreground"
-                        v-if="isLoadingHistory"
-                        >Loading history...</span
-                      >
+                      <span v-if="isLoadingHistory">{{
+                        $t("serverDetail.cpu.loadingHistory")
+                      }}</span>
                       <span
                         class="text-sm text-muted-foreground"
                         v-else-if="historyData.length > 0"
                       >
-                        Last {{ historyData.length }} records
+                        {{
+                          $t("serverDetail.cpu.lastRecords", [
+                            historyData.length,
+                          ])
+                        }}
                       </span>
                     </div>
                   </CardHeader>
@@ -532,7 +550,11 @@ const historyAreaPath = computed(() => {
                       <div
                         class="absolute inset-0 flex items-center justify-center text-muted-foreground/20 font-bold text-6xl select-none pointer-events-none group-hover:opacity-0 transition-opacity"
                       >
-                        {{ cpuMode === "realtime" ? "REALTIME" : "HISTORY" }}
+                        {{
+                          cpuMode === "realtime"
+                            ? $t("serverDetail.realtime")
+                            : $t("serverDetail.history")
+                        }}
                       </div>
                       <div
                         v-if="cpuMode === 'history' && historyData.length > 0"
@@ -559,7 +581,7 @@ const historyAreaPath = computed(() => {
                     class="p-4 rounded-lg border bg-card text-card-foreground shadow-sm"
                   >
                     <div class="text-xs text-muted-foreground mb-1">
-                      Load Average
+                      {{ $t("serverDetail.cpu.loadAverage") }}
                     </div>
                     <div class="text-lg font-mono">
                       {{ formatLoad(server.load) }}
@@ -568,7 +590,9 @@ const historyAreaPath = computed(() => {
                   <div
                     class="p-4 rounded-lg border bg-card text-card-foreground shadow-sm"
                   >
-                    <div class="text-xs text-muted-foreground mb-1">Cores</div>
+                    <div class="text-xs text-muted-foreground mb-1">
+                      {{ $t("serverDetail.cpu.cores") }}
+                    </div>
                     <div class="text-lg font-mono">
                       {{ server.cpu.per_core.length }}
                     </div>
@@ -576,7 +600,9 @@ const historyAreaPath = computed(() => {
                   <div
                     class="p-4 rounded-lg border bg-card text-card-foreground shadow-sm"
                   >
-                    <div class="text-xs text-muted-foreground mb-1">Model</div>
+                    <div class="text-xs text-muted-foreground mb-1">
+                      {{ $t("serverDetail.cpu.model") }}
+                    </div>
                     <div
                       class="text-sm font-medium truncate"
                       :title="
@@ -600,10 +626,9 @@ const historyAreaPath = computed(() => {
                 <div class="grid md:grid-cols-2 gap-6">
                   <Card>
                     <CardHeader>
-                      <CardTitle
-                        class="text-sm font-medium text-muted-foreground"
-                        >Memory Usage</CardTitle
-                      >
+                      <CardTitle>{{
+                        $t("serverDetail.memory.usage")
+                      }}</CardTitle>
                       <div class="text-3xl font-bold">
                         {{ showRamPercent(server).toFixed(1) }}%
                       </div>
@@ -618,7 +643,9 @@ const historyAreaPath = computed(() => {
                       />
                       <div class="mt-4 space-y-2">
                         <div class="flex justify-between text-sm">
-                          <span class="text-muted-foreground">Used</span>
+                          <span class="text-muted-foreground">{{
+                            $t("serverDetail.memory.used")
+                          }}</span>
                           <span class="font-mono">{{
                             formatBytes(
                               server.ram.used_memory || server.ram.used,
@@ -626,7 +653,9 @@ const historyAreaPath = computed(() => {
                           }}</span>
                         </div>
                         <div class="flex justify-between text-sm">
-                          <span class="text-muted-foreground">Available</span>
+                          <span class="text-muted-foreground">{{
+                            $t("serverDetail.memory.available")
+                          }}</span>
                           <span class="font-mono">{{
                             formatBytes(
                               (server.ram.total_memory || server.ram.total) -
@@ -640,10 +669,9 @@ const historyAreaPath = computed(() => {
 
                   <Card>
                     <CardHeader>
-                      <CardTitle
-                        class="text-sm font-medium text-muted-foreground"
-                        >Swap Usage</CardTitle
-                      >
+                      <CardTitle>{{
+                        $t("serverDetail.memory.swapUsage")
+                      }}</CardTitle>
                       <div class="text-3xl font-bold">
                         {{
                           server.ram.total_swap
@@ -688,7 +716,9 @@ const historyAreaPath = computed(() => {
                           class="text-base font-medium flex items-center gap-2"
                         >
                           <HardDrive class="h-4 w-4" />
-                          <span>{{ disk.device_name || "Disk " + index }}</span>
+                          <span>{{
+                            disk.device_name || $t("common.disk") + " " + index
+                          }}</span>
                           <Badge
                             variant="secondary"
                             class="ml-2 font-mono bg-primary/10 text-primary"
@@ -718,7 +748,8 @@ const historyAreaPath = computed(() => {
                           {{
                             formatBytes(disk.total_space - disk.available_space)
                           }}
-                          used of {{ formatBytes(disk.total_space) }}
+                          {{ $t("serverDetail.disk.usedOf") }}
+                          {{ formatBytes(disk.total_space) }}
                         </div>
                       </div>
                       <Progress
@@ -744,7 +775,7 @@ const historyAreaPath = computed(() => {
                       <div
                         class="text-sm font-medium text-muted-foreground mb-2"
                       >
-                        Total Download
+                        {{ $t("serverDetail.network.totalDownload") }}
                       </div>
                       <div class="text-3xl font-bold font-mono">
                         {{ showNetworkSpeed(server, "rx") }}
@@ -756,7 +787,7 @@ const historyAreaPath = computed(() => {
                       <div
                         class="text-sm font-medium text-muted-foreground mb-2"
                       >
-                        Total Upload
+                        {{ $t("serverDetail.network.totalUpload") }}
                       </div>
                       <div class="text-3xl font-bold font-mono">
                         {{ showNetworkSpeed(server, "tx") }}
@@ -767,7 +798,9 @@ const historyAreaPath = computed(() => {
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>Network Interfaces</CardTitle>
+                    <CardTitle>{{
+                      $t("serverDetail.network.interfaces")
+                    }}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div class="space-y-4">
