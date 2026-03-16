@@ -11,7 +11,7 @@ import zh_cn from "./locales/zh_cn";
 const app = createApp(App);
 const pinia = createPinia();
 const savedLocale = localStorage.getItem("locale");
-const browserLanguage = (navigator.language || "en").split("-")[0];
+const browserLanguage = (navigator.language || "en").split("-")[0] || "en";
 const defaultLocale: string =
   savedLocale ||
   ((["en", "zh_cn"].includes(browserLanguage)

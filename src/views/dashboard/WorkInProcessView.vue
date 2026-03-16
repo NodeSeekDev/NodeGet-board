@@ -1,7 +1,7 @@
 <template>
   <div>
     <h1 class="text-2xl font-bold mb-2">
-      {{ route.meta.title }}
+      {{ route.meta.title ? $t(route.meta.title as string) : "" }}
     </h1>
 
     <p class="text-muted-foreground text-sm">
@@ -13,9 +13,10 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useRoute } from "vue-router";
+import { useI18n } from "vue-i18n";
+const { t } = useI18n();
 
 const route = useRoute();
-
 const descriptions: Record<string, string> = {
   agents: "添加 / 删除被控，批量更新被控软件版本等，页面开发中...",
   servers: "添加 / 删除主控，切换当前主控，更新主控软件版本等等。页面开发中...",
@@ -33,11 +34,7 @@ const descriptions: Record<string, string> = {
 };
 
 function getDescription(routeName?: string | symbol) {
-  if (!routeName || typeof routeName !== "string") {
-    return "页面开发中...";
-  }
-
-  return descriptions[routeName] ?? "页面开发中...";
+  return t("dashboard.workInProcess");
 }
 
 const description = computed(() => {

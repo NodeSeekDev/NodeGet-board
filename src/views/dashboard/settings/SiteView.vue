@@ -4,6 +4,7 @@ import { ref, computed, watch } from "vue";
 import { toast } from "vue-sonner";
 import { usePermissionStore } from "@/stores/permission";
 import { useKv } from "@/composables/useKv";
+import { useI18n } from "vue-i18n";
 import {
   Card,
   CardContent,
@@ -19,6 +20,7 @@ const KV_KEY_BODY = "site_custom_body";
 
 const permissionStore = usePermissionStore();
 const kv = useKv();
+const { t } = useI18n();
 
 const tokenKey = computed(() => permissionStore.tokenInfo?.token_key);
 
@@ -67,9 +69,9 @@ async function saveHeader() {
   try {
     kv.namespace.value = ns;
     await kv.setValue(KV_KEY_HEADER, { value: localHeader.value });
-    toast.success("保存成功");
+    toast.success(t("dashboard.saveSuccess"));
   } catch {
-    toast.error("保存失败");
+    toast.error(t("dashboard.saveFailed"));
   } finally {
     savingHeader.value = false;
   }
@@ -83,9 +85,9 @@ async function saveBody() {
   try {
     kv.namespace.value = ns;
     await kv.setValue(KV_KEY_BODY, { value: localBody.value });
-    toast.success("保存成功");
+    toast.success(t("dashboard.saveSuccess"));
   } catch {
-    toast.error("保存失败");
+    toast.error(t("dashboard.saveFailed"));
   } finally {
     savingBody.value = false;
   }
@@ -95,16 +97,22 @@ async function saveBody() {
 <template>
   <div class="space-y-4">
     <div>
-      <h1 class="text-xl font-bold mb-1">自定义</h1>
+      <h1 class="text-xl font-bold mb-1">
+        {{ $t("dashboard.settings.site.custom") }}
+      </h1>
       <p class="text-muted-foreground text-sm">
-        请确保代码的安全性，避免使用不受信任的内容。
+        {{ $t("dashboard.settings.site.securityWarning") }}
       </p>
     </div>
 
     <Card class="py-4 gap-3">
       <CardHeader class="px-4">
-        <CardTitle class="text-base">自定义 Header</CardTitle>
-        <CardDescription> 在页面头部添加自定义内容 </CardDescription>
+        <CardTitle class="text-base">{{
+          $t("dashboard.settings.site.customHeader")
+        }}</CardTitle>
+        <CardDescription>
+          {{ $t("dashboard.settings.site.customHeaderDesc") }}
+        </CardDescription>
       </CardHeader>
       <CardContent class="px-4">
         <textarea
@@ -120,15 +128,19 @@ async function saveBody() {
           :disabled="savingHeader || status === 'loading'"
           @click="saveHeader"
         >
-          {{ savingHeader ? "保存中..." : "保存" }}
+          {{ savingHeader ? $t("dashboard.saving") : $t("dashboard.save") }}
         </Button>
       </CardFooter>
     </Card>
 
     <Card class="py-4 gap-3">
       <CardHeader class="px-4">
-        <CardTitle class="text-base">自定义 Body</CardTitle>
-        <CardDescription> 在页面底部添加自定义内容 </CardDescription>
+        <CardTitle class="text-base">{{
+          $t("dashboard.settings.site.customBody")
+        }}</CardTitle>
+        <CardDescription>
+          {{ $t("dashboard.settings.site.customBodyDesc") }}
+        </CardDescription>
       </CardHeader>
       <CardContent class="px-4">
         <textarea
@@ -144,7 +156,7 @@ async function saveBody() {
           :disabled="savingBody || status === 'loading'"
           @click="saveBody"
         >
-          {{ savingBody ? "保存中..." : "保存" }}
+          {{ savingBody ? $t("dashboard.saving") : $t("dashboard.save") }}
         </Button>
       </CardFooter>
     </Card>

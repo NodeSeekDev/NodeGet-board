@@ -3,6 +3,7 @@ import { computed, ref } from "vue";
 import type { RouteMeta } from "vue-router";
 import { RouterLink } from "vue-router";
 import { ChevronDown } from "lucide-vue-next";
+import { useI18n } from "vue-i18n";
 import {
   Tooltip,
   TooltipContent,
@@ -48,6 +49,7 @@ const visibleChildren = computed(() =>
         ((a.meta?.order as number) ?? 99) - ((b.meta?.order as number) ?? 99),
     ),
 );
+const { t } = useI18n();
 </script>
 
 <template>
@@ -66,7 +68,9 @@ const visibleChildren = computed(() =>
             v-if="route.meta?.icon && level === 0"
             class="h-4 w-4 shrink-0"
           />
-          <span class="flex-1 truncate text-left">{{ route.meta?.title }}</span>
+          <span class="flex-1 truncate text-left">{{
+            route.meta?.title ? t(route.meta.title as string) : ""
+          }}</span>
           <ChevronDown
             class="h-3.5 w-3.5 shrink-0 transition-transform duration-200"
             :class="{ '-rotate-90': !isOpen }"
@@ -116,7 +120,9 @@ const visibleChildren = computed(() =>
           </span>
         </RouterLink>
       </TooltipTrigger>
-      <TooltipContent side="right">{{ route.meta?.title }}</TooltipContent>
+      <TooltipContent side="right">{{
+        route.meta?.title ? t(route.meta.title as string) : ""
+      }}</TooltipContent>
     </Tooltip>
     <RouterLink
       v-else
@@ -133,7 +139,9 @@ const visibleChildren = computed(() =>
         v-if="route.meta?.icon && level === 0"
         class="h-4 w-4 shrink-0"
       />
-      <span class="truncate">{{ route.meta?.title }}</span>
+      <span class="truncate">{{
+        route.meta?.title ? t(route.meta.title as string) : ""
+      }}</span>
     </RouterLink>
   </template>
 </template>

@@ -56,84 +56,84 @@ const nodeRoutes = computed<SidebarRoute[]>(() => {
     {
       path: "/dashboard/overview",
       meta: {
-        title: "Back to Servers",
+        title: "router.node.backToServers",
         icon: ArrowLeft,
       },
     },
     {
       path: `/dashboard/node/${nodeUuid.value}/status`,
       meta: {
-        title: "Status",
+        title: "router.node.status",
         icon: Monitor,
       },
     },
     {
       path: `/dashboard/node/${nodeUuid.value}/latency`,
       meta: {
-        title: "latency",
+        title: "router.node.latency",
         icon: Antenna,
       },
     },
     {
       path: `/dashboard/node/${nodeUuid.value}/traffic`,
       meta: {
-        title: "traffic",
+        title: "router.node.traffic",
         icon: ArrowUpDown,
       },
     },
     {
       path: `/dashboard/node/${nodeUuid.value}/ping`,
       meta: {
-        title: "Ping",
+        title: "router.node.ping",
         icon: Radar,
       },
     },
     {
       path: `/dashboard/node/${nodeUuid.value}/webshell`,
       meta: {
-        title: "WebShell",
+        title: "router.node.webshell",
         icon: Terminal,
       },
     },
     {
       path: `/dashboard/node/${nodeUuid.value}/files`,
       meta: {
-        title: "文件管理",
+        title: "router.node.files",
         icon: HardDrive,
       },
     },
     {
       path: `/dashboard/node/${nodeUuid.value}/docker`,
       meta: {
-        title: "docker管理",
+        title: "router.node.docker",
         icon: Package,
       },
     },
     {
       path: `/dashboard/node/${nodeUuid.value}/firewall`,
       meta: {
-        title: "防火墙",
+        title: "router.node.firewall",
         icon: BrickWallFire,
       },
     },
     {
       path: `/dashboard/node/${nodeUuid.value}/process`,
       meta: {
-        title: "进程管理",
+        title: "router.node.process",
         icon: ChartNoAxesGantt,
       },
     },
     {
       path: `/dashboard/node/${nodeUuid.value}/update`,
       meta: {
-        title: "update",
+        title: "router.node.update",
         icon: CloudDownload,
       },
     },
     {
       path: `/dashboard/node/${nodeUuid.value}/setting`,
       meta: {
-        title: "设置",
+        title: "router.node.setting",
         icon: Settings,
       },
     },
@@ -257,7 +257,7 @@ const groupedRoutes = computed<[string, SidebarRoute[]][]>(() => {
           class="px-2 pt-1 text-sm font-semibold text-muted-foreground/60 uppercase tracking-wider select-none"
           :class="props.collapsed ? 'md:hidden' : ''"
         >
-          {{ group }}
+          {{ $t(group) }}
         </div>
         <div
           v-if="group && index > 0"

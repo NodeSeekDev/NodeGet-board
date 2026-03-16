@@ -11,8 +11,10 @@ import KvNodeTable from "@/components/kv/KvNodeTable.vue";
 import KvCreateNamespaceDialog from "@/components/kv/KvCreateNamespaceDialog.vue";
 import KvViewDialog from "@/components/kv/KvViewDialog.vue";
 import KvSetDialog from "@/components/kv/KvSetDialog.vue";
+import { useI18n } from "vue-i18n";
 
 const kv = useKv();
+const { t } = useI18n();
 
 const activeTab = ref<"list" | "flat" | "node">("list");
 const selectedNamespace = ref<string | null>(null);
@@ -54,7 +56,7 @@ const handleCreate = async (ns: string) => {
     await kv.createNamespace(ns);
     createOpen.value = false;
     await kv.fetchNamespaces();
-    toast.success(`命名空间 "${ns}" 创建成功`);
+    toast.success(t("dashboard.kv.createSuccess", { ns }));
   } catch (e: unknown) {
     createError.value = e instanceof Error ? e.message : String(e);
   } finally {
@@ -94,26 +96,28 @@ const handleSave = async (key: string, value: unknown) => {
       await kv.fetchKeys();
     }
   } catch (e: unknown) {
-    toast.error(e instanceof Error ? e.message : "保存失败");
+    toast.error(e instanceof Error ? e.message : t("dashboard.saveFailed"));
   }
 };
 
 const handleDelete = async (key: string) => {
-  if (!confirm(`确定要删除 key "${key}" 吗？`)) return;
+  if (!confirm(t("dashboard.kv.deleteConfirm", { key }))) return;
   try {
     await kv.deleteKey(key);
-    toast.success("删除成功");
+    toast.success(t("dashboard.kv.deleteSuccess"));
   } catch (e: unknown) {
-    toast.error(e instanceof Error ? e.message : "删除失败");
+    toast.error(
+      e instanceof Error ? e.message : t("dashboard.kv.deleteFailed"),
+    );
   }
 };
 
 const handleNsDelete = (_ns: string) => {
-  toast.info(`删除命名空间功能开发中`);
+  toast.info(t("dashboard.kv.deleteNsDev"));
 };
 
 const handleNsRename = (_ns: string) => {
-  toast.info(`重命名命名空间功能开发中`);
+  toast.info(t("dashboard.kv.renameNsDev"));
 };
 
 const openAddKey = () => {
@@ -125,21 +129,27 @@ const openAddKey = () => {
 
 <template>
   <div class="h-full flex flex-col space-y-4">
-    <h1 class="text-2xl font-bold mb-2">KV 管理</h1>
+    <h1 class="text-2xl font-bold mb-2">{{ $t("dashboard.kv.title") }}</h1>
 
-    <!-- Tab 栏（仅 namespace 列表视图时显示）-->
+    <!-- Tabs (only displayed in namespace list view) -->
     <Tabs
       v-if="!selectedNamespace"
       :model-value="activeTab"
       @update:model-value="activeTab = $event as any"
     >
       <TabsList>
-        <TabsTrigger value="list">普通视图</TabsTrigger>
-        <TabsTrigger value="flat">平铺视图</TabsTrigger>
-        <TabsTrigger value="node">节点视图</TabsTrigger>
+        <TabsTrigger value="list">{{
+          $t("dashboard.kv.normalView")
+        }}</TabsTrigger>
+        <TabsTrigger value="flat">{{
+          $t("dashboard.kv.flatView")
+        }}</TabsTrigger>
+        <TabsTrigger value="node">{{
+          $t("dashboard.kv.nodeView")
+        }}</TabsTrigger>
       </TabsList>
 
-      <!-- 普通视图：namespace 列表 -->
+      <!-- Normal View: namespace list -->
       <TabsContent value="list" class="mt-4">
         <KvNamespaceTable
           :namespaces="kv.namespaces.value"
@@ -151,31 +161,35 @@ const openAddKey = () => {
         />
       </TabsContent>
 
-      <!-- 平铺视图 -->
+      <!-- Flat View -->
       <TabsContent value="flat" class="mt-4">
         <KvFlatTable :namespaces="kv.namespaces.value" />
       </TabsContent>
 
-      <!-- 节点视图 -->
+      <!-- Node View -->
       <TabsContent value="node" class="mt-4">
         <KvNodeTable />
       </TabsContent>
     </Tabs>
 
-    <!-- Namespace 详情 -->
+    <!-- Namespace Detail -->
     <template v-if="selectedNamespace">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <Button variant="outline" size="sm" @click="backToList">返回</Button>
+          <Button variant="outline" size="sm" @click="backToList">{{
+            $t("dashboard.kv.back")
+          }}</Button>
           <p class="text-sm text-muted-foreground">
-            命名空间
+            {{ $t("dashboard.kv.namespace") }}
             <span class="font-mono font-medium text-foreground">{{
               selectedNamespace
             }}</span>
-            的所有 Keys（{{ kv.entries.value.length }}）
+            {{ $t("dashboard.kv.allKeys", { count: kv.entries.value.length }) }}
           </p>
         </div>
-        <Button size="sm" @click="openAddKey"> 新增 Key </Button>
+        <Button size="sm" @click="openAddKey">
+          {{ $t("dashboard.kv.addKey") }}
+        </Button>
       </div>
 
       <KvEntryTable

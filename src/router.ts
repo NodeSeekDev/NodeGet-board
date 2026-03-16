@@ -46,17 +46,22 @@ const router = createRouter({
         {
           path: "overview",
           component: () => import("@/views/dashboard/ServersView.vue"),
-          meta: { title: "服务概览", icon: Server, order: 1, group: "监控" },
+          meta: {
+            title: "router.overview",
+            icon: Server,
+            order: 1,
+            group: "router.group.monitor",
+          },
         },
         {
           path: "agents",
           name: "agents",
           component: () => import("@/views/dashboard/WorkInProcessView.vue"),
           meta: {
-            title: "被控管理",
+            title: "router.agents",
             icon: HardDriveUpload,
             order: 2,
-            group: "节点管理",
+            group: "router.group.nodeManage",
           },
         },
         {
@@ -64,33 +69,43 @@ const router = createRouter({
           name: "servers",
           component: () => import("@/views/dashboard/WorkInProcessView.vue"),
           meta: {
-            title: "主控管理",
+            title: "router.servers",
             icon: Router,
             order: 3,
-            group: "节点管理",
+            group: "router.group.nodeManage",
           },
         },
         {
           path: "loadbalance",
           name: "loadbalance",
           component: () => import("@/views/dashboard/WorkInProcessView.vue"),
-          meta: { title: "负载调整", icon: Split, order: 4, group: "节点管理" },
+          meta: {
+            title: "router.loadbalance",
+            icon: Split,
+            order: 4,
+            group: "router.group.nodeManage",
+          },
         },
         {
           path: "map",
           name: "map",
           component: () => import("@/views/dashboard/WorkInProcessView.vue"),
-          meta: { title: "全球地图", icon: Earth, order: 5, group: "节点管理" },
+          meta: {
+            title: "router.map",
+            icon: Earth,
+            order: 5,
+            group: "router.group.nodeManage",
+          },
         },
         {
           path: "cron",
           name: "cron",
           component: () => import("@/views/dashboard/WorkInProcessView.vue"),
           meta: {
-            title: "定时任务",
+            title: "router.cron",
             icon: CalendarCheck,
             order: 6,
-            group: "工具",
+            group: "router.group.tools",
           },
         },
         {
@@ -98,10 +113,10 @@ const router = createRouter({
           name: "cost",
           component: () => import("@/views/dashboard/WorkInProcessView.vue"),
           meta: {
-            title: "成本管理",
+            title: "router.cost",
             icon: CreditCard,
             order: 7,
-            group: "工具",
+            group: "router.group.tools",
           },
         },
         {
@@ -109,41 +124,66 @@ const router = createRouter({
           name: "scripts",
           component: () => import("@/views/dashboard/WorkInProcessView.vue"),
           meta: {
-            title: "脚本片段",
+            title: "router.scripts",
             icon: FileTerminal,
             order: 8,
-            group: "工具",
+            group: "router.group.tools",
           },
         },
         {
           path: "batch-exec",
           name: "batch-exec",
           component: () => import("@/views/dashboard/WorkInProcessView.vue"),
-          meta: { title: "批量执行", icon: ListCheck, order: 9, group: "工具" },
+          meta: {
+            title: "router.batchExec",
+            icon: ListCheck,
+            order: 9,
+            group: "router.group.tools",
+          },
         },
         {
           path: "token",
           name: "token",
           component: () => import("@/views/dashboard/TokenManageView.vue"),
-          meta: { title: "Token", icon: Key, order: 9, group: "高级" },
+          meta: {
+            title: "router.token",
+            icon: Key,
+            order: 9,
+            group: "router.group.advanced",
+          },
         },
         {
           path: "kv",
           name: "kv",
           component: () => import("@/views/dashboard/KvView.vue"),
-          meta: { title: "KV 管理", icon: Database, order: 9, group: "高级" },
+          meta: {
+            title: "router.kv",
+            icon: Database,
+            order: 9,
+            group: "router.group.advanced",
+          },
         },
         {
           path: "js-runtime",
           name: "js-runtime",
           component: () => import("@/views/dashboard/WorkInProcessView.vue"),
-          meta: { title: "JS 扩展", icon: Braces, order: 10, group: "高级" },
+          meta: {
+            title: "router.jsRuntime",
+            icon: Braces,
+            order: 10,
+            group: "router.group.advanced",
+          },
         },
         {
           path: "app-panel",
           name: "app-panel",
           component: () => import("@/views/dashboard/WorkInProcessView.vue"),
-          meta: { title: "扩展管理", icon: Box, order: 11, group: "应用扩展" },
+          meta: {
+            title: "router.appPanel",
+            icon: Box,
+            order: 11,
+            group: "router.group.appExtensions",
+          },
         },
         {
           path: "app",
@@ -151,10 +191,10 @@ const router = createRouter({
           component: RouterViewLayout,
           redirect: "/dashboard/app/docker",
           meta: {
-            title: "应用入口",
+            title: "router.appEntrance",
             icon: LayoutGrid,
             order: 12,
-            group: "应用扩展",
+            group: "router.group.appExtensions",
             isClosed: true,
           },
           children: [
@@ -162,25 +202,29 @@ const router = createRouter({
               path: "files",
               component: () =>
                 import("@/views/dashboard/WorkInProcessView.vue"),
-              meta: { title: "文件管理", order: 1, icon: HardDrive },
+              meta: { title: "router.files", order: 1, icon: HardDrive },
             },
             {
               path: "docker",
               component: () =>
                 import("@/views/dashboard/WorkInProcessView.vue"),
-              meta: { title: "docker管理", order: 2, icon: Package },
+              meta: { title: "router.docker", order: 2, icon: Package },
             },
             {
               path: "firewall",
               component: () =>
                 import("@/views/dashboard/WorkInProcessView.vue"),
-              meta: { title: "防火墙管理", order: 3, icon: BrickWallFire },
+              meta: { title: "router.firewall", order: 3, icon: BrickWallFire },
             },
             {
               path: "process",
               component: () =>
                 import("@/views/dashboard/WorkInProcessView.vue"),
-              meta: { title: "进程管理", order: 4, icon: ChartNoAxesGantt },
+              meta: {
+                title: "router.process",
+                order: 4,
+                icon: ChartNoAxesGantt,
+              },
             },
           ],
         },
@@ -190,10 +234,10 @@ const router = createRouter({
           component: RouterViewLayout,
           redirect: "/dashboard/settings/site",
           meta: {
-            title: "设置",
+            title: "router.settings",
             icon: Settings,
             order: 13,
-            group: "系统",
+            group: "router.group.system",
             isClosed: true,
           },
           children: [
@@ -201,30 +245,40 @@ const router = createRouter({
               path: "site",
               component: () =>
                 import("@/views/dashboard/settings/SiteView.vue"),
-              meta: { title: "自定义", order: 1 },
+              meta: { title: "router.site", order: 1 },
             },
             {
               path: "notification",
               component: () =>
                 import("@/views/dashboard/settings/NotificationView.vue"),
-              meta: { title: "通知", order: 2 },
+              meta: { title: "router.notification", order: 2 },
             },
           ],
         },
         {
           path: "logs",
           component: () => import("@/views/dashboard/LogsView.vue"),
-          meta: { title: "日志", icon: FileText, order: 14, group: "系统" },
+          meta: {
+            title: "router.logs",
+            icon: FileText,
+            order: 14,
+            group: "router.group.system",
+          },
         },
         {
           path: "about",
           component: () => import("@/views/dashboard/AboutView.vue"),
-          meta: { title: "关于", icon: Info, order: 15, group: "系统" },
+          meta: {
+            title: "router.about",
+            icon: Info,
+            order: 15,
+            group: "router.group.system",
+          },
         },
         {
           path: "node/:uuid",
           component: () => import("@/views/dashboard/node/NodeLayout.vue"),
-          meta: { title: "节点详情", hidden: true },
+          meta: { title: "router.nodeDetail", hidden: true },
           redirect: (to) => `/dashboard/node/${to.params.uuid}/ping`,
           children: [
             {
@@ -232,75 +286,75 @@ const router = createRouter({
               name: "status",
               component: () =>
                 import("@/views/dashboard/WorkInProcessView.vue"),
-              meta: { title: "运行状态" },
+              meta: { title: "router.status" },
             },
             {
               path: "ping",
               name: "dashboard-node-ping",
               component: () => import("@/views/dashboard/node/PingView.vue"),
-              meta: { title: "Ping 检测" },
+              meta: { title: "router.ping" },
             },
             {
               path: "webshell",
               name: "dashboard-node-webshell",
               component: () =>
                 import("@/views/dashboard/node/WebShellView.vue"),
-              meta: { title: "WebShell 终端" },
+              meta: { title: "router.webshell" },
             },
             {
               path: "setting",
               name: "dashboard-node-setting",
               component: () => import("@/views/dashboard/node/SettingView.vue"),
-              meta: { title: "节点设置" },
+              meta: { title: "router.nodeSetting" },
             },
             {
               path: "latency",
               name: "latency",
               component: () =>
                 import("@/views/dashboard/WorkInProcessView.vue"),
-              meta: { title: "延迟曲线" },
+              meta: { title: "router.latency" },
             },
             {
               path: "traffic",
               name: "traffic",
               component: () =>
                 import("@/views/dashboard/WorkInProcessView.vue"),
-              meta: { title: "流量曲线" },
+              meta: { title: "router.traffic" },
             },
             {
               path: "update",
               name: "update",
               component: () =>
                 import("@/views/dashboard/WorkInProcessView.vue"),
-              meta: { title: "更新agent" },
+              meta: { title: "router.updateAgent" },
             },
             {
               path: "files",
               name: "files",
               component: () =>
                 import("@/views/dashboard/WorkInProcessView.vue"),
-              meta: { title: "文件管理", icon: HardDrive },
+              meta: { title: "router.files", icon: HardDrive },
             },
             {
               path: "docker",
               name: "docker",
               component: () =>
                 import("@/views/dashboard/WorkInProcessView.vue"),
-              meta: { title: "docker管理", icon: Package },
+              meta: { title: "router.docker", icon: Package },
             },
             {
               path: "firewall",
               name: "firewall",
               component: () =>
                 import("@/views/dashboard/WorkInProcessView.vue"),
-              meta: { title: "防火墙管理", icon: BrickWallFire },
+              meta: { title: "router.firewall", icon: BrickWallFire },
             },
             {
               path: "process",
               name: "process",
               component: () =>
                 import("@/views/dashboard/WorkInProcessView.vue"),
-              meta: { title: "进程管理", icon: ChartNoAxesGantt },
+              meta: { title: "router.process", icon: ChartNoAxesGantt },
             },
           ],
         },
