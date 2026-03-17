@@ -223,7 +223,6 @@ export function useKv() {
     namespacesLoading,
     entries,
     loading,
-    error,
     init,
     fetchNamespaces,
     fetchKeys,

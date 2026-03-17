@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, computed } from "vue";
-import { useDynamicData } from "@/composables/useDynamicData";
-import { useStaticData } from "@/composables/useStaticData";
+import { useOverviewData } from "@/composables/useOverviewData";
 import { colors } from "@/composables/color";
 import { formatLoad, formatBytes, formatUptime } from "@/utils/format";
 import {
@@ -41,53 +40,29 @@ import {
 import HeaderView from "@/components/HeaderView.vue";
 import FooterView from "@/components/FooterView.vue";
 
-const {
-  status: dynamicStatus,
-  error: dynamicError,
-  servers: dynamicServers,
-  connect: connectDynamic,
-} = useDynamicData();
+const { servers, loading, error, start, stop } = useOverviewData();
 
-const {
-  status: staticStatus,
-  servers: staticServers,
-  connect: connectStatic,
-} = useStaticData();
+const status = computed(() =>
+  loading.value ? "connecting" : error.value ? "disconnected" : "connected",
+);
 
-const mergedServers = computed(() => {
-  return dynamicServers.value.map((dServer) => {
-    const sServer = staticServers.value.find((s) => s.uuid === dServer.uuid);
-    if (!sServer) return dServer;
-
-    return {
-      ...dServer,
-      cpu: { ...sServer.cpu, ...dServer.cpu },
-      system: { ...sServer.system, ...dServer.system },
-      gpu: sServer.gpu || [],
-    };
-  });
-});
-
-onMounted(() => {
-  connectDynamic();
-  connectStatic();
-  console.log(mergedServers.value);
-});
+onMounted(() => start());
+onUnmounted(() => stop());
 </script>
 
 <template>
   <div class="flex flex-col min-h-screen">
     <div class="container mx-auto p-6 space-y-6 flex-1">
-      <HeaderView :status="dynamicStatus" />
+      <HeaderView :status="status" />
 
-      <Alert v-if="dynamicError" variant="destructive">
+      <Alert v-if="error" variant="destructive">
         <AlertCircle class="h-4 w-4" />
         <AlertTitle>{{ $t("common.error") }}</AlertTitle>
-        <AlertDescription>{{ dynamicError }}</AlertDescription>
+        <AlertDescription>{{ error }}</AlertDescription>
       </Alert>
 
       <div
-        v-if="mergedServers.length === 0 && dynamicStatus === 'connected'"
+        v-if="servers.length === 0 && !loading"
         class="text-center py-10 text-muted-foreground"
       >
         {{ $t("home.waitingData") }}
@@ -99,7 +74,7 @@ onMounted(() => {
         class="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
       >
         <router-link
-          v-for="server in mergedServers"
+          v-for="server in servers"
           :key="server.uuid"
           :to="{ name: 'server-detail', params: { uuid: server.uuid } }"
           class="block h-full"
@@ -114,16 +89,24 @@ onMounted(() => {
                     <Server class="h-4 w-4 text-primary" />
                   </div>
                   <div class="flex flex-col">
-                    <span
-                      class="truncate leading-none"
-                      :title="showHostname(server)"
-                      >{{ showHostname(server) }}</span
-                    >
+                    <span class="flex items-center gap-1">
+                      <span
+                        class="truncate leading-none"
+                        :title="server.customName || showHostname(server)"
+                        >{{ server.customName || showHostname(server) }}</span
+                      >
+                      <Badge
+                        v-if="server.hidden"
+                        variant="secondary"
+                        class="ml-1 text-xs"
+                        >隐藏</Badge
+                      >
+                    </span>
                     <span
                       class="text-[10px] text-muted-foreground font-normal mt-1 flex items-center gap-1"
                     >
                       <Clock class="h-3 w-3" />
-                      {{ formatUptime(server.system.uptime) }}
+                      {{ formatUptime((server.system?.uptime as number) ?? 0) }}
                     </span>
                   </div>
                 </CardTitle>
@@ -235,8 +218,8 @@ onMounted(() => {
                   <div class="flex items-center justify-between text-xs">
                     <span
                       class="truncate flex-1"
-                      :title="server.disk[0].name"
-                      >{{ server.disk[0].name }}</span
+                      :title="(server.disk![0] as any).name"
+                      >{{ (server.disk![0] as any).name }}</span
                     >
                     <span class="font-medium">{{
                       showDiskDisplay(server)

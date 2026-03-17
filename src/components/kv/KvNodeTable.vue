@@ -23,8 +23,11 @@ import NodeMetadataForm from "@/components/node/NodeMetadataForm.vue";
 import type { NodeItem, NodeMetadata } from "@/types/node";
 import { REGIONS } from "@/data/regions";
 import { useKv } from "@/composables/useKv";
+import { useNodeMetadata } from "@/composables/useNodeMetadata";
 
 const kv = useKv();
+const { parseMetadataFields, buildMetadataBatch, initDefaultMetadata } =
+  useNodeMetadata(kv);
 
 function getRegionLabel(code: string) {
   const r = REGIONS.find((r) => r.code === code);
@@ -38,23 +41,7 @@ function parseNode(
   ns: string,
   entries: { key: string; value: unknown }[],
 ): NodeItem | null {
-  const get = (key: string) => entries.find((e) => e.key === key)?.value;
-  const unwrap = (v: unknown) => (Array.isArray(v) ? v[0] : v);
-  const rawName = get("metadata_name");
-  const name = String(unwrap(rawName) ?? "") || ns;
-  return {
-    id: ns,
-    name,
-    tags: (Array.isArray(get("metadata_tags"))
-      ? (get("metadata_tags") as string[])
-      : []
-    ).filter(Boolean),
-    price: Number(unwrap(get("metadata_price")) ?? 0),
-    priceUnit: String(unwrap(get("metadata_price_unit")) ?? ""),
-    priceCycle: Number(unwrap(get("metadata_price_cycle")) ?? 30),
-    region: String(unwrap(get("metadata_region")) ?? ""),
-    hidden: Boolean(unwrap(get("metadata_hidden")) ?? false),
-  };
+  return { id: ns, ...parseMetadataFields(entries, ns) };
 }
 
 async function loadNodes() {
@@ -95,17 +82,7 @@ async function loadNodes() {
     const emptyUuids = uuids.filter((uuid) => !namespacesWithData.has(uuid));
 
     for (const emptyUuid of emptyUuids) {
-      kv.namespace.value = emptyUuid;
-      const defaultName = "节点" + emptyUuid.slice(-6);
-      await Promise.all([
-        kv.setValue("metadata_name", [defaultName]),
-        kv.setValue("metadata_tags", [""]),
-        kv.setValue("metadata_price", [0]),
-        kv.setValue("metadata_price_unit", ["$"]),
-        kv.setValue("metadata_price_cycle", [30]),
-        kv.setValue("metadata_region", [""]),
-        kv.setValue("metadata_hidden", [false]),
-      ]);
+      await initDefaultMetadata(emptyUuid);
     }
 
     // Step 4: re-fetch initialized namespaces and merge results
@@ -173,15 +150,7 @@ async function handleSaveEdit() {
   try {
     kv.namespace.value = editingId.value;
     const f = editForm.value;
-    const { partialFailures } = await kv.setValueBatch([
-      { key: "metadata_name", value: [f.name] },
-      { key: "metadata_tags", value: f.tags },
-      { key: "metadata_price", value: [f.price] },
-      { key: "metadata_price_unit", value: [f.priceUnit] },
-      { key: "metadata_price_cycle", value: [f.priceCycle] },
-      { key: "metadata_region", value: f.region ? [f.region] : [] },
-      { key: "metadata_hidden", value: [f.hidden] },
-    ]);
+    const { partialFailures } = await kv.setValueBatch(buildMetadataBatch(f));
     editDialogOpen.value = false;
     if (partialFailures.length > 0) {
       toast.warning(`部分字段保存失败：${partialFailures.join("、")}`);

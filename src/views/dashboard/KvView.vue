@@ -137,10 +137,6 @@ const handleNsDelete = async (ns: string) => {
   }
 };
 
-const handleNsRename = (_ns: string) => {
-  toast.info(t("dashboard.kv.renameNsDev"));
-};
-
 const openAddKey = () => {
   editKey.value = undefined;
   editValue.value = undefined;

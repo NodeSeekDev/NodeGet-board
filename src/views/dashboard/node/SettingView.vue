@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import NodeMetadataForm from "@/components/node/NodeMetadataForm.vue";
 import type { NodeMetadata } from "@/types/node";
 import { useKv } from "@/composables/useKv";
+import { useNodeMetadata } from "@/composables/useNodeMetadata";
 import { useI18n } from "vue-i18n";
 
 const route = useRoute();
@@ -14,6 +15,8 @@ const { t } = useI18n();
 const uuid = route.params.uuid as string;
 
 const kv = useKv();
+const { parseMetadataFields, buildMetadataBatch, initDefaultMetadata } =
+  useNodeMetadata(kv);
 const loading = ref(false);
 const saveLoading = ref(false);
 
@@ -42,36 +45,13 @@ onMounted(async () => {
       } catch {
         // namespace 可能已存在，忽略
       }
-      const defaultName = "节点" + uuid.slice(-6);
-      await Promise.all([
-        kv.setValue("metadata_name", [defaultName]),
-        kv.setValue("metadata_tags", [""]),
-        kv.setValue("metadata_price", [0]),
-        kv.setValue("metadata_price_unit", ["$"]),
-        kv.setValue("metadata_price_cycle", [30]),
-        kv.setValue("metadata_region", [""]),
-        kv.setValue("metadata_hidden", [false]),
-      ]);
+      await initDefaultMetadata(uuid);
       results = await kv.getMultiValue([
         { namespace: uuid, key: "metadata_*" },
       ]);
     }
 
-    const get = (key: string) => results.find((r) => r.key === key)?.value;
-    const unwrap = (v: unknown) => (Array.isArray(v) ? v[0] : v);
-
-    form.value = {
-      name: String(unwrap(get("metadata_name")) ?? "") || uuid.slice(-6),
-      tags: (Array.isArray(get("metadata_tags"))
-        ? (get("metadata_tags") as string[])
-        : []
-      ).filter(Boolean),
-      price: Number(unwrap(get("metadata_price")) ?? 0),
-      priceUnit: String(unwrap(get("metadata_price_unit")) ?? "$"),
-      priceCycle: Number(unwrap(get("metadata_price_cycle")) ?? 30),
-      region: String(unwrap(get("metadata_region")) ?? ""),
-      hidden: Boolean(unwrap(get("metadata_hidden")) ?? false),
-    };
+    form.value = parseMetadataFields(results, uuid.slice(-6));
   } catch (e: unknown) {
     toast.error(e instanceof Error ? e.message : "加载节点配置失败");
   } finally {
@@ -84,15 +64,7 @@ async function handleSave() {
   try {
     kv.namespace.value = uuid;
     const f = form.value;
-    const { partialFailures } = await kv.setValueBatch([
-      { key: "metadata_name", value: [f.name] },
-      { key: "metadata_tags", value: f.tags },
-      { key: "metadata_price", value: [f.price] },
-      { key: "metadata_price_unit", value: [f.priceUnit] },
-      { key: "metadata_price_cycle", value: [f.priceCycle] },
-      { key: "metadata_region", value: f.region ? [f.region] : [] },
-      { key: "metadata_hidden", value: [f.hidden] },
-    ]);
+    const { partialFailures } = await kv.setValueBatch(buildMetadataBatch(f));
     if (partialFailures.length > 0) {
       toast.warning(`部分字段保存失败：${partialFailures.join("、")}`);
     } else {

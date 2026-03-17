@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { onMounted, computed } from "vue";
+import { onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
-import { useDynamicData } from "@/composables/useDynamicData";
-import { useStaticData } from "@/composables/useStaticData";
+import { useOverviewData } from "@/composables/useOverviewData";
 import { colors } from "@/composables/color";
 import { formatLoad, formatBytes, formatUptime } from "@/utils/format";
 import {
@@ -44,36 +43,14 @@ import {
 
 const router = useRouter();
 
-const {
-  status: dynamicStatus,
-  error: dynamicError,
-  servers: dynamicServers,
-  connect: connectDynamic,
-} = useDynamicData();
-
-const {
-  status: staticStatus,
-  servers: staticServers,
-  connect: connectStatic,
-} = useStaticData();
-
-const mergedServers = computed(() => {
-  return dynamicServers.value.map((dServer) => {
-    const sServer = staticServers.value.find((s) => s.uuid === dServer.uuid);
-    if (!sServer) return dServer;
-
-    return {
-      ...dServer,
-      cpu: { ...sServer.cpu, ...dServer.cpu },
-      system: { ...sServer.system, ...dServer.system },
-      gpu: sServer.gpu || [],
-    };
-  });
-});
+const { servers, loading, error, start, stop } = useOverviewData();
 
 onMounted(() => {
-  connectDynamic();
-  connectStatic();
+  start();
+});
+
+onUnmounted(() => {
+  stop();
 });
 
 const goToServerDetail = (uuid: string) => {
@@ -92,20 +69,27 @@ const goToServerDetail = (uuid: string) => {
       </div>
     </div>
 
-    <Alert v-if="dynamicError" variant="destructive">
+    <Alert v-if="error" variant="destructive">
       <AlertCircle class="h-4 w-4" />
       <AlertTitle>Error</AlertTitle>
-      <AlertDescription>{{ dynamicError }}</AlertDescription>
+      <AlertDescription>{{ error }}</AlertDescription>
     </Alert>
 
     <div
-      v-if="mergedServers.length === 0 && dynamicStatus === 'connected'"
+      v-if="servers.length === 0 && loading"
       class="text-center py-10 text-muted-foreground"
     >
-      Waiting for server data...
+      Loading server data...
     </div>
 
-    <div class="border rounded-md bg-card" v-if="mergedServers.length > 0">
+    <div
+      v-if="servers.length === 0 && !loading"
+      class="text-center py-10 text-muted-foreground"
+    >
+      No servers found.
+    </div>
+
+    <div class="border rounded-md bg-card" v-if="servers.length > 0">
       <Table>
         <TableHeader>
           <TableRow>
@@ -121,7 +105,7 @@ const goToServerDetail = (uuid: string) => {
         </TableHeader>
         <TableBody>
           <TableRow
-            v-for="server in mergedServers"
+            v-for="server in servers"
             :key="server.uuid"
             class="cursor-pointer hover:bg-muted/50 transition-colors"
             @click="goToServerDetail(server.uuid)"
@@ -133,12 +117,20 @@ const goToServerDetail = (uuid: string) => {
                   <Server class="h-4 w-4 text-primary" />
                 </div>
                 <div class="flex flex-col">
-                  <span
-                    class="font-medium truncate max-w-[150px]"
-                    :title="showHostname(server)"
-                  >
-                    {{ showHostname(server) }}
-                  </span>
+                  <div class="flex items-center gap-1">
+                    <span
+                      class="font-medium truncate max-w-[150px]"
+                      :title="server.customName || showHostname(server)"
+                    >
+                      {{ server.customName || showHostname(server) }}
+                    </span>
+                    <Badge
+                      v-if="server.hidden"
+                      variant="secondary"
+                      class="ml-1 text-xs"
+                      >隐藏</Badge
+                    >
+                  </div>
                   <span class="text-[10px] text-muted-foreground font-mono">
                     {{ server.uuid.substring(0, 8) }}
                   </span>
@@ -163,7 +155,9 @@ const goToServerDetail = (uuid: string) => {
                 class="flex items-center gap-1 text-sm text-muted-foreground"
               >
                 <Clock class="h-3 w-3" />
-                <span>{{ formatUptime(server.system.uptime) }}</span>
+                <span>{{
+                  formatUptime((server.system?.uptime as number) ?? 0)
+                }}</span>
               </div>
             </TableCell>
 
