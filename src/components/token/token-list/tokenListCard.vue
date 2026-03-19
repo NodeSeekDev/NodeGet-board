@@ -1,90 +1,158 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
-import { useBackendStore } from "@/composables/useBackendStore";
-import { useTokenListHook } from "./useTokenList";
-// import CreateTokenCard from '@/components/token-manage/CreateTokenCard.vue';
-// import DeleteTokenCard from '@/components/token-manage/DeleteTokenCard.vue';
+import { computed, onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
+  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
-  TableFooter,
-} from "@/components/ui/Table";
+} from "@/components/ui/table";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Pagination,
   PaginationContent,
   PaginationEllipsis,
+  PaginationFirst,
   PaginationItem,
-  PaginationLink,
+  PaginationLast,
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/Button";
-import { useRouter } from "vue-router";
+import { useTokenListHook, type Token } from "./useTokenList";
 
 const useTokenList = useTokenListHook();
 const router = useRouter();
 
-const tokensList = ref<any[]>([]);
+const tokensList = ref<Token[]>([]);
+const fetchLoading = ref(false);
+const page = ref(1);
+const pageSize = 10;
+
+const total = computed(() => tokensList.value.length);
+const pagedTokens = computed(() => {
+  const start = (page.value - 1) * pageSize;
+  return tokensList.value.slice(start, start + pageSize);
+});
+
+const pageLabel = computed(() => {
+  if (total.value === 0) return "0 - 0";
+  const start = (page.value - 1) * pageSize + 1;
+  const end = Math.min(page.value * pageSize, total.value);
+  return `${start} - ${end}`;
+});
 
 onMounted(() => {
-  useTokenList.getTokenList().then((res) => {
-    console.log(res, "tokensList");
-    tokensList.value = res;
-  });
+  fetchLoading.value = true;
+  useTokenList
+    .getTokenList()
+    .then((res) => {
+      tokensList.value = res;
+      page.value = 1;
+    })
+    .finally(() => {
+      fetchLoading.value = false;
+    });
 });
+
 const toCreateToken = () => {
   router.push("/dashboard/tokenCeate");
 };
 </script>
 
 <template>
-  <!-- class="grid gap-6 xl:grid-cols-2" -->
   <div>
-    <!-- <CreateTokenCard />
-      <DeleteTokenCard /> -->
-    <!-- token列表 -->
-    <div class="flex justify-between">
-      <div><Input placeholder="Enter text" /></div>
+    <div class="flex justify-between gap-4">
+      <div><Input placeholder="输入token_key搜索" /></div>
       <div>
-        <Button @click="toCreateToken">Create Token</Button>
+        <Button @click="toCreateToken">创建Token</Button>
       </div>
     </div>
-    <Table class="w-full">
-      <!-- <TableCaption>A list of your recent tokens.</TableCaption> -->
-      <TableHeader>
-        <TableRow>
-          <TableHead>version</TableHead>
-          <TableHead>username</TableHead>
-          <TableHead>token_key</TableHead>
-          <TableHead>token_limit</TableHead>
-          <TableHead>Actions</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        <TableRow v-for="token in tokensList" :key="token.id">
-          <TableCell>{{ token.version }}</TableCell>
-          <TableCell>{{ token.username }}</TableCell>
-          <TableCell>{{ token.token_key }}</TableCell>
-          <TableCell>
-            <Button>查看</Button>
-          </TableCell>
-          <TableCell> </TableCell>
-        </TableRow>
-      </TableBody>
-      <TableFooter class="w-full">
-        <TableRow>
-          <TableCell colSpan="{3}">Total</TableCell>
-          <TableCell className="text-right"
-            >{{ tokensList?.length }}条</TableCell
-          >
-        </TableRow>
-      </TableFooter>
-    </Table>
+
+    <div v-if="fetchLoading" class="mt-20 flex w-full flex-col items-center">
+      <Spinner />
+      <div class="text-sm text-muted-foreground">Loading tokens...</div>
+    </div>
+
+    <div v-else class="space-y-4">
+      <Table class="w-full">
+        <TableHeader>
+          <TableRow>
+            <TableHead>Version</TableHead>
+            <TableHead>Username</TableHead>
+            <TableHead>Token Key</TableHead>
+            <TableHead>Token Limit</TableHead>
+            <TableHead>Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow v-for="token in pagedTokens" :key="token.token_key">
+            <TableCell>{{ token.version }}</TableCell>
+            <TableCell>{{ token.username }}</TableCell>
+            <TableCell class="font-mono">{{ token.token_key }}</TableCell>
+            <TableCell>{{ token.token_limit?.length ?? 0 }}</TableCell>
+            <TableCell>
+              <Button variant="outline" size="sm">View</Button>
+            </TableCell>
+          </TableRow>
+          <TableRow v-if="pagedTokens.length === 0">
+            <TableCell
+              colspan="5"
+              class="py-8 text-center text-muted-foreground"
+            >
+              No tokens found.
+            </TableCell>
+          </TableRow>
+        </TableBody>
+        <!-- <TableFooter>
+          <TableRow>
+            <TableCell colspan="5" class="py-8 text-center">
+              <div class="flex items-center justify-center gap-2">
+                <div class="text-sm text-muted-foreground">
+                  Showing {{ pageLabel }} of {{ total }} tokens
+                </div>
+              </div>
+            </TableCell>
+          </TableRow>
+        </TableFooter> -->
+      </Table>
+
+      <div class="w-full flex content-between">
+        <Pagination
+          v-slot="{ page: currentPage }"
+          v-model:page="page"
+          :items-per-page="pageSize"
+          :total="total"
+          :sibling-count="1"
+          show-edges
+          class="flex justify-between gap-4"
+        >
+          <div class="flex items-center justify-center gap-2">
+            <div class="text-sm text-muted-foreground">
+              Showing {{ pageLabel }} of {{ total }} tokens
+            </div>
+          </div>
+          <PaginationContent v-slot="{ items }">
+            <PaginationPrevious />
+            <template v-for="(item, index) in items" :key="index">
+              <PaginationItem
+                v-if="item.type === 'page'"
+                :value="item.value"
+                :is-active="item.value === currentPage"
+              >
+                {{ item.value }}
+              </PaginationItem>
+              <PaginationEllipsis v-else />
+            </template>
+
+            <PaginationNext />
+          </PaginationContent>
+        </Pagination>
+      </div>
+    </div>
   </div>
 </template>
