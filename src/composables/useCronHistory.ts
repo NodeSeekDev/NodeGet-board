@@ -9,6 +9,7 @@ export interface CrontabResult {
   run_time: number;
   success: boolean;
   message: string;
+  task_id?: number; // Agent 任务会有 task_id
 }
 
 export interface TaskQueryResult {

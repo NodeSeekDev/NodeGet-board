@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectTrigger,
@@ -116,21 +117,86 @@ const validateCronSegment = (
   return false;
 };
 
+const cronPresets = computed(() => [
+  {
+    label: t("dashboard.cron.presetEveryMinute"),
+    value: "* * * * * *",
+    description: "每分钟执行",
+  },
+  {
+    label: t("dashboard.cron.presetEveryHour"),
+    value: "0 * * * * *",
+    description: "每小时执行",
+  },
+  {
+    label: t("dashboard.cron.presetEveryDay"),
+    value: "0 0 * * * *",
+    description: "每天午夜执行",
+  },
+  {
+    label: t("dashboard.cron.presetEveryWeek"),
+    value: "0 0 * * 0",
+    description: "每周日凌晨执行",
+  },
+]);
+
+const applyPreset = (expression: string) => {
+  form.value.cronExpression = expression;
+};
+
+const getFieldValidationHint = (fieldName: string, token: string): string => {
+  if (token === "?") {
+    return t("dashboard.cron.hintQuestionMark");
+  }
+  if (/^\d+$/.test(token)) {
+    const num = Number(token);
+    if (isNaN(num)) {
+      return t("dashboard.cron.hintGeneral");
+    }
+    return t("dashboard.cron.hintNumberRange");
+  }
+  if (/^\*\/\d+$/.test(token)) {
+    const step = Number(token.slice(2));
+    if (step <= 0) {
+      return t("dashboard.cron.hintStepPositive");
+    }
+    return t("dashboard.cron.hintStep");
+  }
+  if (/^\d+-\d+$/.test(token)) {
+    return t("dashboard.cron.hintRange");
+  }
+  if (/^\d+(,\d+)+$/.test(token)) {
+    return t("dashboard.cron.hintList");
+  }
+  return t("dashboard.cron.hintGeneral");
+};
+
 const getCronValidationMessage = (value: string) => {
   const normalized = normalizeCronExpression(value);
   if (!normalized) return t("dashboard.cron.expressionRequired");
 
   const tokens = normalized.split(" ");
-  if (tokens.length !== 6) return t("dashboard.cron.expressionFieldCount");
+  if (tokens.length !== 6) {
+    return (
+      t("dashboard.cron.expressionFieldCount") +
+      " " +
+      t("dashboard.cron.expressionFormatHint")
+    );
+  }
 
   for (const [index, token] of tokens.entries()) {
     const field = cronFieldDefs[index];
     if (!field) return t("dashboard.cron.expressionFieldCount");
+
     if (!validateCronSegment(token, field.min, field.max)) {
-      return t("dashboard.cron.expressionInvalidField", {
-        field: t(field.label),
-        value: token,
-      });
+      const fieldName = t(field.label);
+      const hint = getFieldValidationHint(fieldName, token);
+      return (
+        t("dashboard.cron.expressionInvalidField", {
+          field: fieldName,
+          value: token,
+        }) + ` (${hint})`
+      );
     }
   }
 
@@ -334,6 +400,21 @@ const handleSave = () => {
         </div>
         <div class="space-y-1.5">
           <Label>{{ t("dashboard.cron.expression") }}</Label>
+
+          <!-- 预设模板 -->
+          <div class="flex flex-wrap gap-2">
+            <Badge
+              v-for="preset in cronPresets"
+              :key="preset.value"
+              variant="secondary"
+              class="cursor-pointer hover:bg-primary/20 transition-colors"
+              @click="applyPreset(preset.value)"
+            >
+              {{ preset.label }}
+            </Badge>
+          </div>
+
+          <!-- 表达式输入框 -->
           <Input
             :model-value="form.cronExpression"
             placeholder="* * * * * *"
@@ -346,22 +427,53 @@ const handleSave = () => {
               form.cronExpression = normalizeCronExpression(form.cronExpression)
             "
           />
-          <p class="text-xs text-muted-foreground">
-            {{ t("dashboard.cron.expressionHint") }}
-          </p>
-          <p class="text-xs text-muted-foreground">
-            {{ t("dashboard.cron.expressionFormatHint") }}
-          </p>
+
+          <!-- 使用说明 -->
+          <div
+            class="rounded-md border bg-muted/60 px-3 py-2 text-xs text-muted-foreground"
+          >
+            <p class="font-medium mb-1">
+              {{ t("dashboard.cron.expressionSyntaxTitle") }}
+            </p>
+            <ul class="space-y-1">
+              <li>
+                • <code class="font-mono">* * * * * *</code> -
+                {{ t("dashboard.cron.expressionFormat") }}
+              </li>
+              <li>
+                • {{ t("dashboard.cron.expressionWildcard") }}:
+                <code class="font-mono">*</code>
+              </li>
+              <li>
+                • {{ t("dashboard.cron.expressionRange") }}:
+                <code class="font-mono">1-5</code>
+              </li>
+              <li>
+                • {{ t("dashboard.cron.expressionStep") }}:
+                <code class="font-mono">*/5</code>
+              </li>
+              <li>
+                • {{ t("dashboard.cron.expressionList") }}:
+                <code class="font-mono">1,2,3</code>
+              </li>
+            </ul>
+          </div>
+
+          <!-- 语义对照 -->
+          <div
+            v-if="cronExpressionMeaning"
+            class="rounded-md border bg-muted/60 px-3 py-2 text-xs"
+          >
+            <p class="font-medium mb-1">
+              {{ t("dashboard.cron.expressionMeaningTitle") }}
+            </p>
+            <p class="text-muted-foreground">{{ cronExpressionMeaning }}</p>
+          </div>
+
+          <!-- 错误提示 -->
           <p v-if="errors.cronExpression" class="text-xs text-destructive">
             {{ errors.cronExpression }}
           </p>
-          <div
-            v-else-if="cronExpressionMeaning"
-            class="rounded-md border bg-muted/60 px-3 py-2 text-xs text-muted-foreground space-y-1"
-          >
-            <p>{{ t("dashboard.cron.expressionMeaningTitle") }}</p>
-            <p>{{ cronExpressionMeaning }}</p>
-          </div>
         </div>
         <div class="space-y-1.5">
           <Label>{{ t("dashboard.cron.type") }}</Label>

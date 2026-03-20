@@ -32,17 +32,23 @@ const { t } = useI18n();
 
 const localSelected = ref<string[]>([]);
 
-watch(
-  () => props.open,
-  (val) => {
-    if (val) localSelected.value = [...props.selectedIds];
-  },
-);
+watch([() => props.open, () => props.selectedIds], ([open, ids]) => {
+  if (open) {
+    localSelected.value = [...ids];
+  }
+});
 
-const toggle = (uuid: string) => {
-  const idx = localSelected.value.indexOf(uuid);
-  if (idx === -1) localSelected.value.push(uuid);
-  else localSelected.value.splice(idx, 1);
+const toggle = (uuid: string, checked: boolean) => {
+  if (checked) {
+    if (!localSelected.value.includes(uuid)) {
+      localSelected.value.push(uuid);
+    }
+  } else {
+    const idx = localSelected.value.indexOf(uuid);
+    if (idx !== -1) {
+      localSelected.value.splice(idx, 1);
+    }
+  }
 };
 
 const handleConfirm = () => {
@@ -67,8 +73,8 @@ const handleConfirm = () => {
           class="flex items-center gap-3 rounded-md px-2 py-1.5"
         >
           <Checkbox
-            :checked="localSelected.includes(node.uuid)"
-            @click.stop="toggle(node.uuid)"
+            :model-value="localSelected.includes(node.uuid)"
+            @update:model-value="(checked) => toggle(node.uuid, !!checked)"
           />
           <div class="flex flex-col min-w-0">
             <span class="text-sm font-medium truncate">{{

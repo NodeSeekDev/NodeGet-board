@@ -187,7 +187,7 @@ const handleToggle = async (task: CronTask) => {
   togglingNames.value = [...togglingNames.value, task.name];
 
   try {
-    const result = await cron.toggleEnable(task.name);
+    const result = await cron.setEnable(task.name, nextEnabled);
     const enabled = getToggleEnabledState(result, nextEnabled);
     task.enabled = enabled;
     toast.success(

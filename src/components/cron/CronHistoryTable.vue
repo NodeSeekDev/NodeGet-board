@@ -82,6 +82,11 @@ const formatTime = (ts: number) => {
             <TableHead class="font-medium whitespace-nowrap">{{
               t("dashboard.cron.history.recordId")
             }}</TableHead>
+            <TableHead
+              v-if="taskType === 'agent'"
+              class="font-medium whitespace-nowrap"
+              >{{ t("dashboard.cron.history.taskId") }}</TableHead
+            >
             <TableHead class="font-medium whitespace-nowrap">{{
               t("dashboard.cron.history.executionTime")
             }}</TableHead>
@@ -101,7 +106,7 @@ const formatTime = (ts: number) => {
         <TableBody>
           <TableRow v-if="loading && !records.length">
             <TableCell
-              :colspan="taskType === 'agent' ? 5 : 4"
+              :colspan="taskType === 'agent' ? 6 : 4"
               class="h-[300px] text-center"
             >
               <div class="flex flex-col items-center justify-center space-y-3">
@@ -117,7 +122,7 @@ const formatTime = (ts: number) => {
 
           <TableRow v-else-if="!records.length">
             <TableCell
-              :colspan="taskType === 'agent' ? 5 : 4"
+              :colspan="taskType === 'agent' ? 6 : 4"
               class="h-[300px] text-center"
             >
               <div
@@ -140,6 +145,14 @@ const formatTime = (ts: number) => {
           >
             <TableCell class="font-mono text-sm text-foreground/80 py-3">
               {{ record.id }}
+            </TableCell>
+
+            <TableCell
+              v-if="taskType === 'agent'"
+              class="font-mono text-sm text-foreground/80 py-3"
+            >
+              <span v-if="record.task_id">{{ record.task_id }}</span>
+              <span v-else class="text-muted-foreground/50">-</span>
             </TableCell>
 
             <TableCell class="py-3">
