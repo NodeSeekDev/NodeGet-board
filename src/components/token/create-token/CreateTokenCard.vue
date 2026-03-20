@@ -1,14 +1,29 @@
 <script setup lang="ts">
+import { ref } from "vue";
+import { type token } from "../type";
 import { KeyRound } from "lucide-vue-next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useCreateTokenForm } from "./useCreateTokenForm";
-import TemplatePresetBar from "../create-token/sections/TemplatePresetBar.vue";
-import GeneralLimitSection from "../create-token/sections/GeneralLimitSection.vue";
-import KvLimitSection from "../create-token/sections/KvLimitSection.vue";
-import TokenMetaSection from "../create-token/sections/TokenMetaSection.vue";
-import TokenCreateActions from "../create-token/sections/TokenCreateActions.vue";
+import BaseInfoFrom from "../components/baseInfoFrom.vue";
+import tokenLimitFrom from "../components/tokenLimitFrom.vue";
+import PrevireToken from "../components/previewTokenJson.vue";
 
-const form = useCreateTokenForm();
+const tokenFromData = ref<token>({
+  version: 1,
+  timestamp_from: 0,
+  timestamp_to: 0,
+  token_limit: [
+    {
+      scopes: [
+        {
+          global: null,
+        },
+      ],
+      permissions: [],
+    },
+  ],
+  username: "",
+  password: "",
+});
 </script>
 
 <template>
@@ -16,16 +31,19 @@ const form = useCreateTokenForm();
     <CardHeader>
       <CardTitle class="flex items-center gap-2">
         <KeyRound class="h-5 w-5" />
-        Create Token
+        创建token
       </CardTitle>
     </CardHeader>
 
-    <CardContent class="space-y-6">
-      <TemplatePresetBar :form="form" />
-      <GeneralLimitSection :form="form" />
-      <KvLimitSection :form="form" />
-      <TokenMetaSection :form="form" />
-      <TokenCreateActions :form="form" />
+    <CardContent class="space-y-6 grid gap-6 xl:grid-cols-2">
+      <div class="space-y-4">
+        <BaseInfoFrom v-model:token="tokenFromData" />
+        <tokenLimitFrom v-model:token="tokenFromData" />
+      </div>
+      <!-- 预览区 -->
+      <div>
+        <PrevireToken :token="tokenFromData" />
+      </div>
     </CardContent>
   </Card>
 </template>
