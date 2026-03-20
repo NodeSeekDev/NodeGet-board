@@ -120,22 +120,22 @@ const validateCronSegment = (
 const cronPresets = computed(() => [
   {
     label: t("dashboard.cron.presetEveryMinute"),
-    value: "* * * * * *",
+    value: "0 * * * * *",
     description: "每分钟执行",
   },
   {
     label: t("dashboard.cron.presetEveryHour"),
-    value: "0 * * * * *",
+    value: "0 0 * * * *",
     description: "每小时执行",
   },
   {
     label: t("dashboard.cron.presetEveryDay"),
-    value: "0 0 * * * *",
+    value: "0 0 0 * * *",
     description: "每天午夜执行",
   },
   {
     label: t("dashboard.cron.presetEveryWeek"),
-    value: "0 0 * * 0",
+    value: "0 0 0 * * 0",
     description: "每周日凌晨执行",
   },
 ]);
