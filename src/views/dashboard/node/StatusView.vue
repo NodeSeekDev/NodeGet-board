@@ -492,56 +492,15 @@ const diskReadAreaPath = computed(() => {
         v-for="tab in tabs"
         :key="tab.id"
         @click="activeTab = tab.id"
-        :style="
-          activeTab === tab.id
-            ? {
-                backgroundColor: `${getcolors(tab.id).color}20`,
-                borderColor: getcolors(tab.id).color,
-              }
-            : {}
-        "
         :class="[
           'flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all border whitespace-nowrap',
           activeTab === tab.id
-            ? 'shadow-sm font-medium'
-            : 'border-transparent hover:bg-muted/50 text-muted-foreground hover:text-foreground',
+            ? 'border-border bg-muted shadow-sm font-medium'
+            : 'border-transparent hover:bg-muted/50 text-muted-foreground',
         ]"
       >
-        <component
-          :is="tab.icon"
-          class="h-4 w-4"
-          :style="
-            activeTab === tab.id ? { color: getcolors(tab.id).color } : {}
-          "
-        />
-        <span
-          :style="
-            activeTab === tab.id ? { color: getcolors(tab.id).color } : {}
-          "
-        >
-          {{ tab.label }}
-        </span>
-        <span
-          class="text-xs font-mono"
-          :style="
-            activeTab === tab.id ? { color: getcolors(tab.id).color } : {}
-          "
-        >
-          <template v-if="server">
-            <span v-if="tab.id === 'cpu'"
-              >{{ showCpuPercent(server).toFixed(1) }}%</span
-            >
-            <span v-else-if="tab.id === 'memory'"
-              >{{ showRamPercent(server).toFixed(1) }}%</span
-            >
-            <span v-else-if="tab.id === 'disk'">{{
-              showDiskDisplay(server)
-            }}</span>
-            <span v-else-if="tab.id === 'network'">{{
-              showNetworkSpeed(server, "total")
-            }}</span>
-          </template>
-        </span>
+        <component :is="tab.icon" class="h-4 w-4" />
+        <span>{{ tab.label }}</span>
       </button>
       <div class="ml-auto shrink-0">
         <Badge v-if="server" variant="outline" class="font-mono text-xs">
