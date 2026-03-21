@@ -1,6 +1,6 @@
 ﻿<script setup lang="ts">
-import { ref, watch } from "vue";
-import type { PermissionEntry } from "../../type";
+import { computed, ref, watch } from "vue";
+import type { PermissionEntry, TokenLimitScope } from "../../type";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import StaticMonitoringPermission from "./StaticMonitoringPermission.vue";
 import DynamicMonitoringPermission from "./DynamicMonitoringPermission.vue";
@@ -11,7 +11,10 @@ import KvPermission from "./KvPermission.vue";
 import TerminalPermission from "./TerminalPermission.vue";
 import NodeGetPermission from "./NodeGetPermission.vue";
 
-const props = defineProps<{ permissions: PermissionEntry[] }>();
+const props = defineProps<{
+  permissions: PermissionEntry[];
+  scope: TokenLimitScope;
+}>();
 const emits = defineEmits<{
   (e: "update:permissions", token: PermissionEntry[]): void;
 }>();
@@ -30,6 +33,21 @@ const hydrating = ref(false);
 const isSamePermissions = (a: PermissionEntry[], b: PermissionEntry[]) => {
   return JSON.stringify(a) === JSON.stringify(b);
 };
+
+const isGlobalScope = computed(() => {
+  return (props.scope || []).some((item) => "global" in item);
+});
+
+const isKvNamespaceScope = computed(() => {
+  return (props.scope || []).some(
+    (item) => "KvNamespace" in item || "kv_namespace" in item,
+  );
+});
+
+const canShowKvPermission = computed(
+  () => isGlobalScope.value || isKvNamespaceScope.value,
+);
+const canShowCrontabResultPermission = computed(() => isGlobalScope.value);
 
 const splitPermissions = (permissions: PermissionEntry[]) => {
   staticMonitoringPermissions.value = [];
@@ -85,13 +103,16 @@ const splitPermissions = (permissions: PermissionEntry[]) => {
 
 const emitAllPermissions = () => {
   if (hydrating.value) return;
+
   const nextPermissions: PermissionEntry[] = [
     ...staticMonitoringPermissions.value,
     ...dynamicMonitoringPermissions.value,
     ...taskPermissions.value,
     ...crontabPermissions.value,
-    ...crontabResultPermissions.value,
-    ...kvPermissions.value,
+    ...(canShowCrontabResultPermission.value
+      ? crontabResultPermissions.value
+      : []),
+    ...(canShowKvPermission.value ? kvPermissions.value : []),
     ...terminalPermissions.value,
     ...nodeGetPermissions.value,
     ...unknownPermissions.value,
@@ -121,6 +142,8 @@ watch(
     kvPermissions,
     terminalPermissions,
     nodeGetPermissions,
+    canShowKvPermission,
+    canShowCrontabResultPermission,
   ],
   () => {
     emitAllPermissions();
@@ -140,8 +163,11 @@ watch(
       <DynamicMonitoringPermission v-model="dynamicMonitoringPermissions" />
       <TaskPermission v-model="taskPermissions" />
       <CrontabPermission v-model="crontabPermissions" />
-      <CrontabResultPermission v-model="crontabResultPermissions" />
-      <KvPermission v-model="kvPermissions" />
+      <CrontabResultPermission
+        v-if="canShowCrontabResultPermission"
+        v-model="crontabResultPermissions"
+      />
+      <KvPermission v-if="canShowKvPermission" v-model="kvPermissions" />
       <TerminalPermission v-model="terminalPermissions" />
       <NodeGetPermission v-model="nodeGetPermissions" />
     </CardContent>

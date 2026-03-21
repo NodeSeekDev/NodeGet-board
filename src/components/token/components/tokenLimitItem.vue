@@ -78,7 +78,10 @@ const handleDeleteLimit = () => {
         v-if="localTokenLimit"
         v-model:scope="localTokenLimit.scopes"
       />
-      <permissionsCard v-model:permissions="localTokenLimit.permissions" />
+      <permissionsCard
+        v-model:permissions="localTokenLimit.permissions"
+        :scope="localTokenLimit.scopes"
+      />
     </CollapsibleContent>
   </Collapsible>
 </template>
