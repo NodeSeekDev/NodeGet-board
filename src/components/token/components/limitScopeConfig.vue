@@ -138,7 +138,7 @@ const getAgentCheckboxId = (value: string) => `${checkboxIdPrefix}-${value}`;
       <CardTitle class="flex items-center gap-2"> 作用域 </CardTitle>
     </CardHeader>
 
-    <CardContent class="grid gap-6 space-y-6 xl:grid-cols-2">
+    <CardContent class="grid gap-6 space-y-6">
       <Tabs
         v-model="activeTab"
         class="w-full"

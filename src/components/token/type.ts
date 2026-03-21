@@ -30,3 +30,10 @@ export type PermissionEntry = Record<string, unknown>;
 export type UuidList = {
   uuids: string[];
 };
+
+// 权限Item type
+export type PermissionItemConfig = {
+  name_zn: string;
+  name: string;
+  value: Record<string, unknown>;
+};

@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/collapsible";
 import { PopConfirm } from "@/components/ui/pop-confirm";
 import limitScopeConfig from "./limitScopeConfig.vue";
+import permissionsCard from "./permissions/permissionsCard.vue";
 
 const props = defineProps<{
   tokenLimit: TokenLimitEntry;
@@ -77,6 +78,7 @@ const handleDeleteLimit = () => {
         v-if="localTokenLimit"
         v-model:scope="localTokenLimit.scopes"
       />
+      <permissionsCard v-model:permissions="localTokenLimit.permissions" />
     </CollapsibleContent>
   </Collapsible>
 </template>

@@ -18,7 +18,7 @@ const props = defineProps<{
       </CardTitle>
     </CardHeader>
 
-    <CardContent class="space-y-6 grid gap-6 xl:grid-cols-2">
+    <CardContent class="space-y-6 grid">
       <!-- <div class="text-sm font-medium">token_limit preview</div> -->
       <pre class="text-xs leading-5 overflow-x-auto">{{
         JSON.stringify(props.token, null, 2)
