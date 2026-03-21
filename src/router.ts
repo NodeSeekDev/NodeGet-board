@@ -100,12 +100,21 @@ const router = createRouter({
         {
           path: "cron",
           name: "cron",
-          component: () => import("@/views/dashboard/WorkInProcessView.vue"),
+          component: () => import("@/views/dashboard/CronView.vue"),
           meta: {
             title: "router.cron",
             icon: CalendarCheck,
             order: 6,
             group: "router.group.tools",
+          },
+        },
+        {
+          path: "cron-history/:cronName",
+          name: "cron-history",
+          component: () => import("@/views/dashboard/CronHistoryView.vue"),
+          meta: {
+            title: "router.cronHistory",
+            hidden: true,
           },
         },
         {
