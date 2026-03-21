@@ -1,23 +1,33 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
-import { type token } from "../type";
+import { computed, ref, watch } from "vue";
+import { type Token } from "../type";
 import { CircleX, KeyRound } from "lucide-vue-next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const props = defineProps<{
-  token: token;
+  token: Token;
 }>();
 const emits = defineEmits<{
-  (e: "update:token", token: token): void;
+  (e: "update:token", token: Token): void;
 }>();
 
-const localToken = ref<token>(props.token);
+const localToken = ref<Token>(props.token);
 const timestampFromInput = ref(
   formatTimestampForInput(props.token.timestamp_from),
 );
 const timestampToInput = ref(formatTimestampForInput(props.token.timestamp_to));
+
+watch(
+  () => props.token,
+  (value) => {
+    localToken.value = value;
+    timestampFromInput.value = formatTimestampForInput(value.timestamp_from);
+    timestampToInput.value = formatTimestampForInput(value.timestamp_to);
+  },
+  { immediate: true },
+);
 
 function formatTimestampForInput(timestamp: number) {
   if (!timestamp) {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useBackendStore } from "@/composables/useBackendStore";
-import CreateTokenCard from "@/components/token/create-token/CreateTokenCard.vue";
+import EditTokenCard from "@/components/token/editToken/editTokenCard.vue";
 </script>
 
 <template>
@@ -11,10 +11,8 @@ import CreateTokenCard from "@/components/token/create-token/CreateTokenCard.vue
         <p class="text-muted-foreground">Manage your API tokens securely.</p>
       </div>
     </div>
-    <!-- grid gap-6 xl:grid-cols-2 -->
     <div class="">
-      <CreateTokenCard />
-      <!-- <DeleteTokenCard /> -->
+      <EditTokenCard />
     </div>
   </div>
 </template>

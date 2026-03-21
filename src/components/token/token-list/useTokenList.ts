@@ -1,12 +1,13 @@
-import { computed, onMounted, ref, watch } from "vue";
+﻿import { computed, watch } from "vue";
 import { useBackendStore } from "@/composables/useBackendStore";
 import { wsRpcCall } from "@/composables/useWsRpc";
 import { toast } from "vue-sonner";
+import { type TokenDetail } from "../type";
 
 export type errorResponse = {
   error: {
     code: 101 | 102 | 103 | 104 | 105 | 106 | 107 | 108 | 999;
-    message: String;
+    message: string;
   };
 };
 
@@ -23,11 +24,11 @@ export type Token = {
   token_limit: TokenLimit[];
   username: string;
 };
+
 export const useTokenListHook = () => {
   const { currentBackend } = useBackendStore();
   const backendUrl = computed(() => currentBackend.value?.url ?? "");
 
-  //   获取token列表
   const getTokenList = async (): Promise<Token[]> => {
     const url = backendUrl.value.trim();
     const token = currentBackend.value?.token?.trim() || "";
@@ -52,7 +53,6 @@ export const useTokenListHook = () => {
     }
   };
 
-  //   删除Token
   const deleteToken = async (tokenItem: Token) => {
     const url = backendUrl.value.trim();
     const token = currentBackend.value?.token?.trim() || "";
@@ -74,9 +74,34 @@ export const useTokenListHook = () => {
     }
   };
 
+  const getTokenDetailApi = async (
+    searchToken: string,
+  ): Promise<TokenDetail | null> => {
+    const url = backendUrl.value.trim();
+    const token = currentBackend.value?.token?.trim() || "";
+    const target_token = searchToken?.trim() || "";
+    if (!url || !token || !target_token) return null;
+
+    try {
+      const result = await wsRpcCall<TokenDetail>(url, "token_get", {
+        supertoken: token,
+        token: target_token,
+      });
+      if (result?.token_key) {
+        return result;
+      }
+      toast.error("获取Token详情失败");
+      return null;
+    } catch (error) {
+      console.error(error);
+      toast.error("获取Token详情失败");
+      return null;
+    }
+  };
+
   watch(currentBackend, () => {
     getTokenList();
   });
 
-  return { getTokenList, deleteToken };
+  return { getTokenList, deleteToken, getTokenDetailApi };
 };

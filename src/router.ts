@@ -176,6 +176,18 @@ const router = createRouter({
           },
         },
         {
+          path: "tokenEdit",
+          name: "token-edit",
+          component: () => import("@/views/dashboard/token/TokenEditView.vue"),
+          meta: {
+            title: "router.tokenCreate",
+            // icon: Key,
+            // order: 9,
+            hidden: true,
+            group: "router.group.advanced",
+          },
+        },
+        {
           path: "kv",
           name: "kv",
           component: () => import("@/views/dashboard/KvView.vue"),

@@ -75,6 +75,14 @@ const toCreateToken = () => {
   router.push("/dashboard/tokenCeate");
 };
 
+// 编辑token
+const handleEditToken = (token: Token) => {
+  router.push({
+    path: "/dashboard/tokenEdit",
+    query: { token: `${token.token_key}` },
+  });
+};
+
 // 删除Token
 const handleDeleteToken = (deleteToken: Token) => {
   deleteLoading.value = true;
@@ -135,7 +143,7 @@ const handleDeleteToken = (deleteToken: Token) => {
                 <Eye />
               </Button>
               <!-- 编辑按钮 -->
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" @click="handleEditToken(token)">
                 <Pencil />
               </Button>
               <!-- 删除操作 -->

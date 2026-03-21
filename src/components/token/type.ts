@@ -1,4 +1,4 @@
-export type token = {
+export type Token = {
   username: string;
   password: string;
   timestamp_from: number;
@@ -6,6 +6,8 @@ export type token = {
   version: number;
   token_limit: Array<TokenLimitEntry>;
 };
+
+export type token = Token;
 
 export type TokenLimitEntry = {
   scopes: TokenLimitScope;
@@ -36,4 +38,15 @@ export type PermissionItemConfig = {
   name_zn: string;
   name: string;
   value: Record<string, unknown>;
+};
+
+// Token详情
+export type TokenDetail = {
+  username: string | null;
+  password: string | null;
+  token_key: string;
+  timestamp_from: number | null;
+  timestamp_to: number | null;
+  version: number;
+  token_limit: Array<TokenLimitEntry>;
 };

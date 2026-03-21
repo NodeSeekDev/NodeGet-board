@@ -1,19 +1,19 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import { type token } from "../type";
+import { type Token } from "../type";
 import { Plus } from "lucide-vue-next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import TokenLimitItem from "./tokenLimitItem.vue";
 
 const props = defineProps<{
-  token: token;
+  token: Token;
 }>();
 const emits = defineEmits<{
-  (e: "update:token", token: token): void;
+  (e: "update:token", token: Token): void;
 }>();
 
-const localToken = ref<token>(props.token);
+const localToken = ref<Token>(props.token);
 
 watch(
   () => props.token,
