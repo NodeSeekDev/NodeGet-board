@@ -24,6 +24,7 @@ import {
 } from "lucide-vue-next";
 import Layout from "@/layout/index.vue";
 import RouterViewLayout from "@/layout/components/RouterViewLayout.vue";
+import { applyPrefetchRoute } from "./utils/prefetchRoute";
 
 const router = createRouter({
   history: createWebHashHistory(),
@@ -361,5 +362,7 @@ const router = createRouter({
     },
   ],
 });
+
+applyPrefetchRoute(router);
 
 export default router;
