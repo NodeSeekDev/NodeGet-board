@@ -52,9 +52,31 @@ export const useTokenListHook = () => {
     }
   };
 
+  //   删除Token
+  const deleteToken = async (tokenItem: Token) => {
+    const url = backendUrl.value.trim();
+    const token = currentBackend.value?.token?.trim() || "";
+    const target_token = tokenItem.token_key ?? tokenItem.username;
+    if (!url || !token) return;
+    try {
+      const result = await wsRpcCall<{ message: string }>(url, "token_delete", {
+        token,
+        target_token,
+      });
+      if (result?.message) {
+        toast.success("删除成功");
+        getTokenList();
+      } else {
+        toast.error("删除失败");
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   watch(currentBackend, () => {
     getTokenList();
   });
 
-  return { getTokenList };
+  return { getTokenList, deleteToken };
 };

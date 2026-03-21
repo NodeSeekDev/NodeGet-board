@@ -12,6 +12,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
 import {
   Pagination,
@@ -23,6 +33,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { Eye, Pencil, Trash2 } from "lucide-vue-next";
 import { useTokenListHook, type Token } from "./useTokenList";
 
 const useTokenList = useTokenListHook();
@@ -30,6 +41,7 @@ const router = useRouter();
 
 const tokensList = ref<Token[]>([]);
 const fetchLoading = ref(false);
+const deleteLoading = ref(false);
 const page = ref(1);
 const pageSize = 10;
 
@@ -61,6 +73,28 @@ onMounted(() => {
 
 const toCreateToken = () => {
   router.push("/dashboard/tokenCeate");
+};
+
+// 删除Token
+const handleDeleteToken = (deleteToken: Token) => {
+  deleteLoading.value = true;
+  useTokenList
+    .deleteToken(deleteToken)
+    .then(() => {
+      fetchLoading.value = true;
+      useTokenList
+        .getTokenList()
+        .then((res) => {
+          tokensList.value = res;
+          page.value = 1;
+        })
+        .finally(() => {
+          fetchLoading.value = false;
+        });
+    })
+    .finally(() => {
+      deleteLoading.value = false;
+    });
 };
 </script>
 
@@ -95,8 +129,40 @@ const toCreateToken = () => {
             <TableCell>{{ token.username }}</TableCell>
             <TableCell class="font-mono">{{ token.token_key }}</TableCell>
             <TableCell>{{ token.token_limit?.length ?? 0 }}</TableCell>
-            <TableCell>
-              <Button variant="outline" size="sm">View</Button>
+            <TableCell class="flex gap-2 w-20">
+              <!-- 查看按钮 -->
+              <Button variant="ghost" size="sm">
+                <Eye />
+              </Button>
+              <!-- 编辑按钮 -->
+              <Button variant="ghost" size="sm">
+                <Pencil />
+              </Button>
+              <!-- 删除操作 -->
+              <Dialog>
+                <DialogTrigger as-child>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    class="text-red-500"
+                    :disabled="token.username == 'root'"
+                  >
+                    <Trash2 />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent class="w-400">
+                  <DialogTitle>删除Token</DialogTitle>
+                  <DialogDescription>
+                    是否确认删除，此操作不可逆！
+                  </DialogDescription>
+                  <DialogFooter>
+                    <DialogClose as-child>
+                      <Button variant="outline"> 取消 </Button>
+                    </DialogClose>
+                    <Button @click="handleDeleteToken(token)"> 确认 </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </TableCell>
           </TableRow>
           <TableRow v-if="pagedTokens.length === 0">
@@ -108,17 +174,6 @@ const toCreateToken = () => {
             </TableCell>
           </TableRow>
         </TableBody>
-        <!-- <TableFooter>
-          <TableRow>
-            <TableCell colspan="5" class="py-8 text-center">
-              <div class="flex items-center justify-center gap-2">
-                <div class="text-sm text-muted-foreground">
-                  Showing {{ pageLabel }} of {{ total }} tokens
-                </div>
-              </div>
-            </TableCell>
-          </TableRow>
-        </TableFooter> -->
       </Table>
 
       <div class="w-full flex content-between">
