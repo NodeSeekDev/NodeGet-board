@@ -5,6 +5,8 @@ import { Check, ChevronsUpDown } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import {
   Collapsible,
   CollapsibleContent,
@@ -25,6 +27,7 @@ const emits = defineEmits<{
 
 const localPermissions = ref<PermissionEntry>(props.permissionsItem);
 const isOpen = ref(false);
+const currentActiveButton = ref("");
 
 watch(
   () => props.permissionsItem,
@@ -47,12 +50,21 @@ onMounted(() => {
     "当前的permissionsItem",
     localPermissions.value,
     props.permissionsItem,
+    props.configItem,
   );
 });
 
 // 处理点击权限
 const handleToggle = (item: string) => {
-  localPermissions.value[item] = !localPermissions.value[item];
+  currentActiveButton.value = item;
+};
+
+const getChildKeys = (item: string) => {
+  const value = (props.configItem.value as Record<string, unknown>)[item];
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return [];
+  }
+  return Object.keys(value as Record<string, unknown>);
 };
 </script>
 
@@ -70,18 +82,30 @@ const handleToggle = (item: string) => {
         </div>
       </CollapsibleTrigger>
     </div>
-    <CollapsibleContent class="flex items-center gap-2">
+    <CollapsibleContent class="flex flex-col gap-2">
       <!-- <Label v-for="item in props.configItem.value" :key="item">
         <Checkbox> </Checkbox>
         {{ item }}
       </Label> -->
-      <Button
-        variant="outline"
-        v-for="(item, index) in props.configItem.value"
-        :key="`${item}-${index}`"
-        @click="handleToggle(item)"
-        >{{ item }}</Button
+      <div class="flex items-center gap-2">
+        <Button
+          v-for="(item, index) in Object.keys(props.configItem.value)"
+          :key="`${item}-${index}`"
+          :variant="currentActiveButton == item ? '' : 'outline'"
+          @click="handleToggle(item)"
+          >{{ item }}</Button
+        >
+      </div>
+      <div
+        v-for="item in Object.keys(props.configItem.value)"
+        :key="item"
+        v-show="item === currentActiveButton"
+        class="flex gap-2 flex-wrap"
       >
+        <Button variant="outline" v-for="(info, index) in getChildKeys(item)">
+          {{ info }}
+        </Button>
+      </div>
     </CollapsibleContent>
   </Collapsible>
 </template>
