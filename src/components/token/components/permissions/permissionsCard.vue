@@ -1,151 +1,138 @@
-<script setup lang="ts">
-import { onMounted, ref, useId, watch } from "vue";
-import { type PermissionEntry, type PermissionItemConfig } from "../../type";
+﻿<script setup lang="ts">
+import { ref, watch } from "vue";
+import type { PermissionEntry } from "../../type";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import permissionsItem from "./permissionsItem.vue";
-import { ListEnd } from "lucide-vue-next";
+import StaticMonitoringPermission from "./StaticMonitoringPermission.vue";
+import DynamicMonitoringPermission from "./DynamicMonitoringPermission.vue";
+import TaskPermission from "./TaskPermission.vue";
+import CrontabPermission from "./CrontabPermission.vue";
+import CrontabResultPermission from "./CrontabResultPermission.vue";
+import KvPermission from "./KvPermission.vue";
+import TerminalPermission from "./TerminalPermission.vue";
+import NodeGetPermission from "./NodeGetPermission.vue";
 
-const props = defineProps<{
-  permissions: PermissionEntry[];
-}>();
+const props = defineProps<{ permissions: PermissionEntry[] }>();
 const emits = defineEmits<{
   (e: "update:permissions", token: PermissionEntry[]): void;
 }>();
 
-const localPermissions = ref<PermissionEntry[]>(props.permissions);
-// 权限配置
-const PermissionItemConfigList = ref<PermissionItemConfig[]>([
-  {
-    name: "StaticMonitoring",
-    name_zn: "静态监控",
-    value: {
-      Read: {
-        cpu: "cpu",
-        system: "system",
-        gpu: "gpu",
-        disk: "disk",
-      },
-      Write: {
-        cpu: "cpu",
-        system: "system",
-        gpu: "gpu",
-        disk: "disk",
-      },
-    },
-  },
-  {
-    name: "DynamicMonitoring ",
-    name_zn: "动态监控",
-    value: {
-      Read: {
-        cpu: "cpu",
-        system: "system",
-        gpu: "gpu",
-        disk: "disk",
-      },
-      Write: {
-        cpu: "cpu",
-        system: "system",
-        gpu: "gpu",
-        disk: "disk",
-      },
-    },
-  },
-  {
-    name: "Task ",
-    name_zn: "任务",
-    value: {
-      Create: {
-        ping: "ping",
-        tcp_ping: "tcp_ping",
-        http_ping: "http_ping",
-        web_shell: "web_shell",
-        execute: "execute",
-        ip: "ip",
-      },
-      Read: {
-        ping: "ping",
-        tcp_ping: "tcp_ping",
-        http_ping: "http_ping",
-        web_shell: "web_shell",
-        execute: "execute",
-        ip: "ip",
-      },
-      Write: {
-        ping: "ping",
-        tcp_ping: "tcp_ping",
-        http_ping: "http_ping",
-        web_shell: "web_shell",
-        execute: "execute",
-        ip: "ip",
-      },
-      Listen: "Listen",
-    },
-  },
-  {
-    name: "Crontab",
-    name_zn: "定时任务",
-    value: { Read: "Read", Write: "Write", Delete: "Delete" },
-  },
-  {
-    name: "CrontabResult ",
-    name_zn: "定时任务结果",
-    value: { Read: "Read", Delete: "Delete" },
-  },
-  {
-    name: "Kv ",
-    name_zn: "KV存储",
-    value: {
-      ListAllKeys: "ListAllKeys",
-      Read: "Read",
-      Write: "Write",
-      Delete: "Delete",
-    },
-  },
-  {
-    name: "Terminal ",
-    name_zn: "终端",
-    value: { Connect: "Connect" },
-  },
-  {
-    name: "NodeGet ",
-    name_zn: "节点信息",
-    value: { ListAllAgentUuid: "ListAllAgentUuid" },
-  },
-]);
+const staticMonitoringPermissions = ref<PermissionEntry[]>([]);
+const dynamicMonitoringPermissions = ref<PermissionEntry[]>([]);
+const taskPermissions = ref<PermissionEntry[]>([]);
+const crontabPermissions = ref<PermissionEntry[]>([]);
+const crontabResultPermissions = ref<PermissionEntry[]>([]);
+const kvPermissions = ref<PermissionEntry[]>([]);
+const terminalPermissions = ref<PermissionEntry[]>([]);
+const nodeGetPermissions = ref<PermissionEntry[]>([]);
+const unknownPermissions = ref<PermissionEntry[]>([]);
+const hydrating = ref(false);
+
+const splitPermissions = (permissions: PermissionEntry[]) => {
+  staticMonitoringPermissions.value = [];
+  dynamicMonitoringPermissions.value = [];
+  taskPermissions.value = [];
+  crontabPermissions.value = [];
+  crontabResultPermissions.value = [];
+  kvPermissions.value = [];
+  terminalPermissions.value = [];
+  nodeGetPermissions.value = [];
+  unknownPermissions.value = [];
+
+  for (const entry of permissions || []) {
+    if ("static_monitoring" in entry) {
+      staticMonitoringPermissions.value.push(entry);
+      continue;
+    }
+    if ("dynamic_monitoring" in entry) {
+      dynamicMonitoringPermissions.value.push(entry);
+      continue;
+    }
+    if ("task" in entry) {
+      taskPermissions.value.push(entry);
+      continue;
+    }
+    if ("crontab" in entry) {
+      crontabPermissions.value.push(entry);
+      continue;
+    }
+    if ("crontab_result" in entry) {
+      crontabResultPermissions.value.push(entry);
+      continue;
+    }
+    if ("kv" in entry) {
+      kvPermissions.value.push(entry);
+      continue;
+    }
+    if ("terminal" in entry) {
+      terminalPermissions.value.push(entry);
+      continue;
+    }
+    if ("nodeget" in entry) {
+      nodeGetPermissions.value.push(entry);
+      continue;
+    }
+    unknownPermissions.value.push(entry);
+  }
+};
+
+const emitAllPermissions = () => {
+  if (hydrating.value) return;
+  emits("update:permissions", [
+    ...staticMonitoringPermissions.value,
+    ...dynamicMonitoringPermissions.value,
+    ...taskPermissions.value,
+    ...crontabPermissions.value,
+    ...crontabResultPermissions.value,
+    ...kvPermissions.value,
+    ...terminalPermissions.value,
+    ...nodeGetPermissions.value,
+    ...unknownPermissions.value,
+  ]);
+};
 
 watch(
   () => props.permissions,
   (value) => {
-    localPermissions.value = value;
+    hydrating.value = true;
+    splitPermissions(Array.isArray(value) ? value : []);
+    hydrating.value = false;
   },
-  { immediate: true },
+  { immediate: true, deep: true },
 );
 
 watch(
-  localPermissions,
-  (value) => {
-    emits("update:permissions", value);
+  [
+    staticMonitoringPermissions,
+    dynamicMonitoringPermissions,
+    taskPermissions,
+    crontabPermissions,
+    crontabResultPermissions,
+    kvPermissions,
+    terminalPermissions,
+    nodeGetPermissions,
+  ],
+  () => {
+    emitAllPermissions();
   },
   { deep: true },
 );
-
-onMounted(() => {});
 </script>
 
 <template>
   <Card class="w-full">
     <CardHeader>
-      <CardTitle class="flex items-center gap-2"> 权限 </CardTitle>
+      <CardTitle class="flex items-center gap-2">Permissions</CardTitle>
     </CardHeader>
 
     <CardContent class="grid gap-2 space-y-2">
-      <permissionsItem
-        v-for="(item, index) in PermissionItemConfigList"
-        :key="item.name"
-        v-model:permissionsItem="permissions[item.name]"
-        :configItem="item"
-      />
+      <StaticMonitoringPermission v-model="staticMonitoringPermissions" />
+      <DynamicMonitoringPermission v-model="dynamicMonitoringPermissions" />
+      <TaskPermission v-model="taskPermissions" />
+      <CrontabPermission v-model="crontabPermissions" />
+      <CrontabResultPermission v-model="crontabResultPermissions" />
+      <KvPermission v-model="kvPermissions" />
+      <TerminalPermission v-model="terminalPermissions" />
+      <NodeGetPermission v-model="nodeGetPermissions" />
     </CardContent>
   </Card>
 </template>
