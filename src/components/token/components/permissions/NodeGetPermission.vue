@@ -12,11 +12,13 @@ const listAllAgentUuid = ref(false);
 const hydrating = ref(false);
 
 const build = (): PermissionEntry[] =>
-  listAllAgentUuid.value ? [{ nodeget: "list_all_agent_uuid" }] : [];
+  listAllAgentUuid.value ? [{ node_get: "list_all_agent_uuid" }] : [];
 
 const hydrate = (entries: PermissionEntry[]) => {
   listAllAgentUuid.value = entries.some(
-    (entry) => entry?.nodeget === "list_all_agent_uuid",
+    (entry) =>
+      entry?.node_get === "list_all_agent_uuid" ||
+      entry?.nodeget === "list_all_agent_uuid",
   );
 };
 

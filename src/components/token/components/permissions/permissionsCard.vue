@@ -65,11 +65,7 @@ const splitPermissions = (permissions: PermissionEntry[]) => {
       continue;
     }
     if ("dynamic_monitoring" in entry) {
-      if (entry.dynamic_monitoring === "write") {
-        staticMonitoringPermissions.value.push(entry);
-      } else {
-        dynamicMonitoringPermissions.value.push(entry);
-      }
+      dynamicMonitoringPermissions.value.push(entry);
       continue;
     }
     if ("task" in entry) {
@@ -92,7 +88,7 @@ const splitPermissions = (permissions: PermissionEntry[]) => {
       terminalPermissions.value.push(entry);
       continue;
     }
-    if ("nodeget" in entry) {
+    if ("node_get" in entry || "nodeget" in entry) {
       nodeGetPermissions.value.push(entry);
       continue;
     }

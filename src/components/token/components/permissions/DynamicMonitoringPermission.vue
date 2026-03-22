@@ -3,7 +3,7 @@ import { ref, watch } from "vue";
 import type { PermissionEntry } from "../../type";
 import { Button } from "@/components/ui/button";
 
-const FIELDS = ["cpu", "system", "gpu", "disk"] as const;
+const FIELDS = ["cpu", "system", "gpu"] as const;
 
 const props = defineProps<{ modelValue: PermissionEntry[] }>();
 const emits = defineEmits<{
@@ -11,38 +11,43 @@ const emits = defineEmits<{
 }>();
 
 const readTargets = ref<string[]>([]);
-const writeTargets = ref<string[]>([]);
+const writeEnabled = ref(false);
 const hydrating = ref(false);
 
-const toggle = (list: string[], value: string) => {
-  const index = list.indexOf(value);
-  if (index >= 0) list.splice(index, 1);
-  else list.push(value);
+const toggleReadTarget = (target: string) => {
+  const index = readTargets.value.indexOf(target);
+  if (index >= 0) {
+    readTargets.value.splice(index, 1);
+    return;
+  }
+  readTargets.value.push(target);
+};
+
+const toggleWrite = () => {
+  writeEnabled.value = !writeEnabled.value;
 };
 
 const build = (): PermissionEntry[] => {
   const result: PermissionEntry[] = [];
   for (const field of readTargets.value)
     result.push({ dynamic_monitoring: { read: field } });
-  for (const field of writeTargets.value)
-    result.push({ dynamic_monitoring: { write: field } });
+  if (writeEnabled.value) result.push({ dynamic_monitoring: "write" });
   return result;
 };
 
 const hydrate = (entries: PermissionEntry[]) => {
   readTargets.value = [];
-  writeTargets.value = [];
+  writeEnabled.value = false;
   for (const entry of entries || []) {
     const value = entry?.dynamic_monitoring;
+    if (value === "write") {
+      writeEnabled.value = true;
+      continue;
+    }
     if (!value || typeof value !== "object" || Array.isArray(value)) continue;
     const obj = value as Record<string, unknown>;
     if (typeof obj.read === "string" && !readTargets.value.includes(obj.read))
       readTargets.value.push(obj.read);
-    if (
-      typeof obj.write === "string" &&
-      !writeTargets.value.includes(obj.write)
-    )
-      writeTargets.value.push(obj.write);
   }
 };
 
@@ -57,7 +62,7 @@ watch(
 );
 
 watch(
-  [readTargets, writeTargets],
+  [readTargets, writeEnabled],
   () => {
     if (hydrating.value) return;
     emits("update:modelValue", build());
@@ -77,21 +82,21 @@ watch(
         <Button
           v-for="field in FIELDS"
           :key="`dm-r-${field}`"
+          type="button"
           size="sm"
           :variant="readTargets.includes(field) ? 'default' : 'outline'"
-          @click="toggle(readTargets, field)"
+          @click="toggleReadTarget(field)"
           >{{ field }}</Button
         >
       </div>
       <div class="text-xs text-muted-foreground">Write</div>
       <div class="flex flex-wrap gap-2">
         <Button
-          v-for="field in FIELDS"
-          :key="`dm-w-${field}`"
+          type="button"
           size="sm"
-          :variant="writeTargets.includes(field) ? 'default' : 'outline'"
-          @click="toggle(writeTargets, field)"
-          >{{ field }}</Button
+          :variant="writeEnabled ? 'default' : 'outline'"
+          @click="toggleWrite"
+          >Write</Button
         >
       </div>
     </div>

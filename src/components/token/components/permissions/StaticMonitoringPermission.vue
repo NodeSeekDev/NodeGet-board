@@ -3,7 +3,7 @@ import { ref, watch } from "vue";
 import type { PermissionEntry } from "../../type";
 import { Button } from "@/components/ui/button";
 
-const READ_FIELDS = ["cpu", "system", "gpu", "disk"] as const;
+const READ_FIELDS = ["cpu", "system", "gpu"] as const;
 
 const props = defineProps<{ modelValue: PermissionEntry[] }>();
 const emits = defineEmits<{
@@ -25,7 +25,7 @@ const toggleReadTarget = (target: string) => {
 
 const build = (): PermissionEntry[] => {
   const result: PermissionEntry[] = [];
-  if (writeEnabled.value) result.push({ dynamic_monitoring: "write" });
+  if (writeEnabled.value) result.push({ static_monitoring: "write" });
   for (const target of readTargets.value) {
     result.push({ static_monitoring: { read: target } });
   }
@@ -37,11 +37,6 @@ const hydrate = (entries: PermissionEntry[]) => {
   readTargets.value = [];
 
   for (const entry of entries || []) {
-    if (entry?.dynamic_monitoring === "write") {
-      writeEnabled.value = true;
-      continue;
-    }
-
     const value = entry?.static_monitoring;
     if (value === "write") {
       writeEnabled.value = true;
