@@ -89,7 +89,7 @@ const router = createRouter({
         {
           path: "map",
           name: "map",
-          component: () => import("@/views/dashboard/WorkInProcessView.vue"),
+          component: () => import("@/views/dashboard/MapView.vue"),
           meta: {
             title: "router.map",
             icon: Earth,
