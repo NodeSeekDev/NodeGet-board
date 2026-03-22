@@ -67,6 +67,54 @@ export default {
     saveFailed: "保存失败",
     save: "保存",
     saving: "保存中...",
+    map: {
+      title: "全球地图",
+      description: "展示节点在全球范围内的分布位置。",
+      canvasTitle: "地图视图",
+      canvasDescription: "基于世界地图展示节点位置与链路信息。",
+      nodeCount: "当前显示 {count} 个节点分组",
+      myLocation: "我的位置",
+      showMyLocationLinks: "显示我的位置连线",
+      locationStatus: {
+        loading: "定位中",
+        success: "已定位",
+        unavailable: "暂时无法定位，请稍后重试",
+        denied: "未授予定位权限",
+      },
+      unknownRegion: "未知地区",
+      loading: "地图加载中...",
+      loadFailed: "地图资源加载失败",
+      globeLoading: "地球视图加载中...",
+      globeLoadFailed: "地球视图初始化失败",
+      lineTooltip: "{from} -> {to}",
+      tooltip: {
+        nodeCount: "节点数：{count}",
+      },
+      regionsTitle: "覆盖区域",
+      regionsDescription:
+        "地图上已经标出主要区域，方便后续叠加节点、链路或告警信息。",
+      legendTitle: "图例说明",
+      legendDescription: "用统一视觉语言区分陆地、海洋和区域锚点。",
+      futureHint:
+        "后续如果需要接入真实节点坐标，可以直接在这张底图上叠加点位、气泡或链路线。",
+      tabs: {
+        flat: "2D Map",
+        globe: "3D Map",
+      },
+      legend: {
+        land: "陆地区域",
+        ocean: "海洋底色",
+        marker: "区域锚点",
+      },
+      regions: {
+        northAmerica: "北美洲",
+        southAmerica: "南美洲",
+        europe: "欧洲",
+        africa: "非洲",
+        asia: "亚洲",
+        oceania: "大洋洲",
+      },
+    },
     token: {
       cancel: "取消",
       delete: "删除",
@@ -279,8 +327,6 @@ export default {
             },
           },
         },
-      },
-    },
     kv: {
       title: "KV 管理",
       createSuccess: '命名空间 "{ns}" 创建成功',
