@@ -1,7 +1,16 @@
 ﻿<script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { nextTick, ref, watch } from "vue";
+import { X } from "lucide-vue-next";
 import type { PermissionEntry } from "../../type";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  addKvTarget,
+  buildKvPermissions,
+  hydrateKvPermissions,
+  isSameKvPermissionState,
+  removeKvTarget,
+} from "./kvPermissionState";
 
 const props = defineProps<{ modelValue: PermissionEntry[] }>();
 const emits = defineEmits<{
@@ -10,80 +19,111 @@ const emits = defineEmits<{
 
 const listAllKeys = ref(false);
 const listAllNamespace = ref(false);
-const readTargetsText = ref("");
-const writeTargetsText = ref("");
-const deleteTargetsText = ref("");
+const readTargets = ref<string[]>([]);
+const writeTargets = ref<string[]>([]);
+const deleteTargets = ref<string[]>([]);
+const readInput = ref("");
+const writeInput = ref("");
+const deleteInput = ref("");
+const readInputEl = ref<HTMLInputElement | null>(null);
+const writeInputEl = ref<HTMLInputElement | null>(null);
+const deleteInputEl = ref<HTMLInputElement | null>(null);
 const hydrating = ref(false);
 
-const parseList = (value: string) => [
-  ...new Set(
-    value
-      .split(/[\n,]+/g)
-      .map((item) => item.trim())
-      .filter(Boolean),
-  ),
-];
-
 const build = (): PermissionEntry[] => {
-  const result: PermissionEntry[] = [];
-  if (listAllKeys.value) result.push({ kv: "list_all_keys" });
-  if (listAllNamespace.value) result.push({ kv: "list_all_namespace" });
-  for (const target of parseList(readTargetsText.value))
-    result.push({ kv: { read: target } });
-  for (const target of parseList(writeTargetsText.value))
-    result.push({ kv: { write: target } });
-  for (const target of parseList(deleteTargetsText.value))
-    result.push({ kv: { delete: target } });
-  return result;
+  return buildKvPermissions({
+    listAllKeys: listAllKeys.value,
+    listAllNamespace: listAllNamespace.value,
+    readTargets: readTargets.value,
+    writeTargets: writeTargets.value,
+    deleteTargets: deleteTargets.value,
+  });
 };
 
 const hydrate = (entries: PermissionEntry[]) => {
-  listAllKeys.value = false;
-  listAllNamespace.value = false;
-  const reads: string[] = [];
-  const writes: string[] = [];
-  const deletes: string[] = [];
+  const state = hydrateKvPermissions(Array.isArray(entries) ? entries : []);
+  listAllKeys.value = state.listAllKeys;
+  listAllNamespace.value = state.listAllNamespace;
+  readTargets.value = state.readTargets;
+  writeTargets.value = state.writeTargets;
+  deleteTargets.value = state.deleteTargets;
+  readInput.value = "";
+  writeInput.value = "";
+  deleteInput.value = "";
+};
 
-  for (const entry of entries || []) {
-    const value = entry?.kv;
-    if (value === "list_all_keys") {
-      listAllKeys.value = true;
-      continue;
-    }
-    if (value === "list_all_namespace") {
-      listAllNamespace.value = true;
-      continue;
-    }
-    if (!value || typeof value !== "object" || Array.isArray(value)) continue;
-    const obj = value as Record<string, unknown>;
-    if (typeof obj.read === "string") reads.push(obj.read);
-    if (typeof obj.write === "string") writes.push(obj.write);
-    if (typeof obj.delete === "string") deletes.push(obj.delete);
+type KvTargetKind = "read" | "write" | "delete";
+
+const getTargetsRef = (kind: KvTargetKind) => {
+  if (kind === "read") return readTargets;
+  if (kind === "write") return writeTargets;
+  return deleteTargets;
+};
+
+const getInputRef = (kind: KvTargetKind) => {
+  if (kind === "read") return readInput;
+  if (kind === "write") return writeInput;
+  return deleteInput;
+};
+
+const getInputElRef = (kind: KvTargetKind) => {
+  if (kind === "read") return readInputEl;
+  if (kind === "write") return writeInputEl;
+  return deleteInputEl;
+};
+
+const commitTag = (kind: KvTargetKind) => {
+  const targets = getTargetsRef(kind);
+  const input = getInputRef(kind);
+  const next = addKvTarget(targets.value, input.value);
+  if (next !== targets.value) {
+    targets.value = next;
   }
+  input.value = "";
+  nextTick(() => {
+    getInputElRef(kind).value?.focus();
+  });
+};
 
-  readTargetsText.value = [...new Set(reads)].join("\n");
-  writeTargetsText.value = [...new Set(writes)].join("\n");
-  deleteTargetsText.value = [...new Set(deletes)].join("\n");
+const removeTag = (kind: KvTargetKind, target: string) => {
+  const targets = getTargetsRef(kind);
+  targets.value = removeKvTarget(targets.value, target);
+  nextTick(() => {
+    getInputElRef(kind).value?.focus();
+  });
+};
+
+const handleTagKeydown = (event: KeyboardEvent, kind: KvTargetKind) => {
+  if (event.key !== "Enter") return;
+  event.preventDefault();
+  commitTag(kind);
 };
 
 watch(
   () => props.modelValue,
   (value) => {
+    const nextEntries = Array.isArray(value) ? value : [];
+    if (
+      isSameKvPermissionState(nextEntries, {
+        listAllKeys: listAllKeys.value,
+        listAllNamespace: listAllNamespace.value,
+        readTargets: readTargets.value,
+        writeTargets: writeTargets.value,
+        deleteTargets: deleteTargets.value,
+      })
+    ) {
+      return;
+    }
+
     hydrating.value = true;
-    hydrate(Array.isArray(value) ? value : []);
+    hydrate(nextEntries);
     hydrating.value = false;
   },
   { immediate: true, deep: true },
 );
 
 watch(
-  [
-    listAllKeys,
-    listAllNamespace,
-    readTargetsText,
-    writeTargetsText,
-    deleteTargetsText,
-  ],
+  [listAllKeys, listAllNamespace, readTargets, writeTargets, deleteTargets],
   () => {
     if (hydrating.value) return;
     emits("update:modelValue", build());
@@ -109,30 +149,95 @@ watch(
         >ListAllNamespace</Button
       >
 
-      <div class="grid gap-3 md:grid-cols-3">
+      <div class="space-y-3">
         <div class="space-y-1">
           <div class="text-xs text-muted-foreground">Read targets</div>
-          <textarea
-            v-model="readTargetsText"
-            class="flex min-h-[90px] w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none"
-            placeholder="metadata_*"
-          />
+          <div class="space-y-2 rounded-md border p-2 min-h-[90px]">
+            <input
+              ref="readInputEl"
+              v-model="readInput"
+              class="file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 h-9 w-full min-w-0 rounded-md border-0 bg-transparent px-0 py-1 text-base shadow-none outline-none md:text-sm"
+              placeholder="metadata_*"
+              @keydown="handleTagKeydown($event, 'read')"
+            />
+            <div class="flex flex-wrap gap-2">
+              <Badge
+                v-for="target in readTargets"
+                :key="`read-${target}`"
+                variant="secondary"
+                class="flex items-center gap-1 pr-1"
+              >
+                {{ target }}
+                <button
+                  type="button"
+                  class="ml-0.5 rounded-full p-0.5 hover:bg-muted-foreground/20"
+                  @click="removeTag('read', target)"
+                >
+                  <X class="h-3 w-3" />
+                </button>
+              </Badge>
+            </div>
+          </div>
         </div>
+
         <div class="space-y-1">
           <div class="text-xs text-muted-foreground">Write targets</div>
-          <textarea
-            v-model="writeTargetsText"
-            class="flex min-h-[90px] w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none"
-            placeholder="runtime_config"
-          />
+          <div class="space-y-2 rounded-md border p-2 min-h-[90px]">
+            <input
+              ref="writeInputEl"
+              v-model="writeInput"
+              class="file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 h-9 w-full min-w-0 rounded-md border-0 bg-transparent px-0 py-1 text-base shadow-none outline-none md:text-sm"
+              placeholder="runtime_config"
+              @keydown="handleTagKeydown($event, 'write')"
+            />
+            <div class="flex flex-wrap gap-2">
+              <Badge
+                v-for="target in writeTargets"
+                :key="`write-${target}`"
+                variant="secondary"
+                class="flex items-center gap-1 pr-1"
+              >
+                {{ target }}
+                <button
+                  type="button"
+                  class="ml-0.5 rounded-full p-0.5 hover:bg-muted-foreground/20"
+                  @click="removeTag('write', target)"
+                >
+                  <X class="h-3 w-3" />
+                </button>
+              </Badge>
+            </div>
+          </div>
         </div>
+
         <div class="space-y-1">
           <div class="text-xs text-muted-foreground">Delete targets</div>
-          <textarea
-            v-model="deleteTargetsText"
-            class="flex min-h-[90px] w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs outline-none"
-            placeholder="temp_*"
-          />
+          <div class="space-y-2 rounded-md border p-2 min-h-[90px]">
+            <input
+              ref="deleteInputEl"
+              v-model="deleteInput"
+              class="file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 h-9 w-full min-w-0 rounded-md border-0 bg-transparent px-0 py-1 text-base shadow-none outline-none md:text-sm"
+              placeholder="temp_*"
+              @keydown="handleTagKeydown($event, 'delete')"
+            />
+            <div class="flex flex-wrap gap-2">
+              <Badge
+                v-for="target in deleteTargets"
+                :key="`delete-${target}`"
+                variant="secondary"
+                class="flex items-center gap-1 pr-1"
+              >
+                {{ target }}
+                <button
+                  type="button"
+                  class="ml-0.5 rounded-full p-0.5 hover:bg-muted-foreground/20"
+                  @click="removeTag('delete', target)"
+                >
+                  <X class="h-3 w-3" />
+                </button>
+              </Badge>
+            </div>
+          </div>
         </div>
       </div>
     </div>
