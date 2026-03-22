@@ -21,10 +21,10 @@ export type TokenLimitScopeItem =
       global: null;
     }
   | {
-      AgentUuid: string[] | null;
+      agent_uuid: string;
     }
   | {
-      KvNamespace: string[] | null;
+      kv_namespace: string;
     };
 
 export type PermissionEntry = Record<string, unknown>;

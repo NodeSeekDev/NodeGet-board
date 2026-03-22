@@ -91,7 +91,7 @@ const getChildKeys = (item: string) => {
         <Button
           v-for="(item, index) in Object.keys(props.configItem.value)"
           :key="`${item}-${index}`"
-          :variant="currentActiveButton == item ? '' : 'outline'"
+          :variant="currentActiveButton == item ? 'default' : 'outline'"
           @click="handleToggle(item)"
           >{{ item }}</Button
         >

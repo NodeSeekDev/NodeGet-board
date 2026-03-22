@@ -39,9 +39,7 @@ const isGlobalScope = computed(() => {
 });
 
 const isKvNamespaceScope = computed(() => {
-  return (props.scope || []).some(
-    (item) => "KvNamespace" in item || "kv_namespace" in item,
-  );
+  return (props.scope || []).some((item) => "kv_namespace" in item);
 });
 
 const canShowKvPermission = computed(
@@ -49,6 +47,7 @@ const canShowKvPermission = computed(
 );
 const canShowCrontabResultPermission = computed(() => isGlobalScope.value);
 
+// 将传入的完整，imit拆分为单个模块的数据
 const splitPermissions = (permissions: PermissionEntry[]) => {
   staticMonitoringPermissions.value = [];
   dynamicMonitoringPermissions.value = [];

@@ -8,26 +8,11 @@ import BaseInfoFrom from "../components/baseInfoFrom.vue";
 import tokenLimitFrom from "../components/tokenLimitFrom.vue";
 import PrevireToken from "../components/previewTokenJson.vue";
 import { useCreatTokenHook } from "../create-token/useCreateToken";
+import { createDefaultToken } from "../scopeCodec";
 
 const createToken = useCreatTokenHook();
 
-const tokenFromData = ref<token>({
-  version: 1,
-  timestamp_from: 0,
-  timestamp_to: 0,
-  token_limit: [
-    {
-      scopes: [
-        {
-          global: null,
-        },
-      ],
-      permissions: [],
-    },
-  ],
-  username: "",
-  password: "",
-});
+const tokenFromData = ref<token>(createDefaultToken());
 const createLoading = ref(false);
 
 // 创建token

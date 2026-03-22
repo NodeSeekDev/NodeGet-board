@@ -5,6 +5,7 @@ import { Plus } from "lucide-vue-next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import TokenLimitItem from "./tokenLimitItem.vue";
+import { DEFAULT_SCOPE } from "../scopeCodec";
 
 const props = defineProps<{
   token: Token;
@@ -33,11 +34,7 @@ watch(
 // 添加权限操作
 const handleAddLimit = () => {
   localToken.value.token_limit.push({
-    scopes: [
-      {
-        global: null,
-      },
-    ],
+    scopes: [...DEFAULT_SCOPE],
     permissions: [],
   });
   emits("update:token", localToken.value);
