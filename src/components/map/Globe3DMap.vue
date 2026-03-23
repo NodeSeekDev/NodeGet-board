@@ -5,8 +5,10 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { useI18n } from "vue-i18n";
 import { useThemeStore } from "@/stores/theme";
 import { MAP_THEME } from "@/components/map/theme";
+import { getDisplayCountryName } from "@/components/map/countryName";
 
 type MapPoint = {
+  id: string;
   name: string;
   region: string;
   count: number;
@@ -26,35 +28,45 @@ type GeoJsonGeometry = {
 
 type GeoJsonFeature = {
   geometry: GeoJsonGeometry;
+  properties?: {
+    name?: string;
+  };
 };
 
 type GeoJson = {
   features?: GeoJsonFeature[];
 };
 
+type TooltipState = {
+  visible: boolean;
+  x: number;
+  y: number;
+  title: string;
+  count: number | null;
+  nodes: string[];
+};
+
 const props = defineProps<{
   points: MapPoint[];
   userLocation?: UserLocation | null;
+  selectedNodeId?: string | null;
+  unlockedCountries?: string[];
 }>();
-const { t } = useI18n();
+const emit = defineEmits<{
+  (e: "select-node", nodeId: string): void;
+}>();
+const { t, locale } = useI18n();
 const themeStore = useThemeStore();
 
 const rootEl = ref<HTMLDivElement | null>(null);
 const loading = ref(true);
 const loadError = ref("");
-const tooltip = ref<{
-  visible: boolean;
-  x: number;
-  y: number;
-  title: string;
-  count: number;
-  nodes: string[];
-}>({
+const tooltip = ref<TooltipState>({
   visible: false,
   x: 0,
   y: 0,
   title: "",
-  count: 0,
+  count: null,
   nodes: [],
 });
 
@@ -74,6 +86,7 @@ let glowTexture: THREE.CanvasTexture | null = null;
 let lastSignature = "";
 let atmosphereMesh: THREE.Mesh | null = null;
 let starfield: THREE.Points | null = null;
+let currentGeoJson: GeoJson | null = null;
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 let hoveredMarker: THREE.Group | null = null;
@@ -107,6 +120,8 @@ function getStateSignature(
       nodes: [...point.nodes].sort(),
     })),
     userLocation: userLocation ?? null,
+    selectedNodeId: props.selectedNodeId ?? null,
+    unlockedCountries: props.unlockedCountries ?? [],
   });
 }
 
@@ -147,6 +162,7 @@ function buildEarthTextureCanvas(geoJson: GeoJson) {
   const { width, height } = canvas;
 
   const colors = themePalette.value;
+  const unlockedCountries = new Set(props.unlockedCountries ?? []);
   const ocean = ctx.createLinearGradient(0, 0, 0, height);
   ocean.addColorStop(0, colors.oceanTop);
   ocean.addColorStop(0.4, colors.oceanMidTop);
@@ -208,6 +224,12 @@ function buildEarthTextureCanvas(geoJson: GeoJson) {
         }
       }
     }
+    const countryName = feature.properties?.name ?? "";
+    const isUnlocked = unlockedCountries.has(countryName);
+    ctx.fillStyle = isUnlocked ? colors.unlockedLandFill : colors.landFill;
+    ctx.strokeStyle = isUnlocked
+      ? colors.unlockedLandStroke
+      : colors.landStroke;
     ctx.fill();
     ctx.stroke();
   }
@@ -244,6 +266,24 @@ function buildGlowTexture() {
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, 128, 128);
   return canvas;
+}
+
+function refreshEarthTexture(geoJson: GeoJson) {
+  if (!earthMesh) return;
+
+  earthTexture?.dispose();
+  earthTexture = new THREE.CanvasTexture(buildEarthTextureCanvas(geoJson));
+  earthTexture.colorSpace = THREE.SRGBColorSpace;
+
+  if (renderer) {
+    earthTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  }
+
+  const material = earthMesh.material;
+  if (Array.isArray(material)) return;
+  const globeMaterial = material as THREE.MeshStandardMaterial;
+  globeMaterial.map = earthTexture;
+  globeMaterial.needsUpdate = true;
 }
 
 function buildStarfield() {
@@ -330,6 +370,71 @@ function hideTooltip() {
   tooltip.value.visible = false;
 }
 
+function normalizeLongitude(lon: number) {
+  if (lon > 180) return lon - 360;
+  if (lon < -180) return lon + 360;
+  return lon;
+}
+
+function lonLatFromVector3(vector: THREE.Vector3) {
+  const radius = vector.length();
+  const lat = 90 - (Math.acos(vector.y / radius) * 180) / Math.PI;
+  const theta = Math.atan2(vector.z, -vector.x);
+  const lon = normalizeLongitude((theta * 180) / Math.PI - 180);
+  return { lon, lat };
+}
+
+function isPointInRing(lon: number, lat: number, ring: [number, number][]) {
+  let inside = false;
+
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i]!;
+    const [xj, yj] = ring[j]!;
+    const intersects =
+      yi > lat !== yj > lat &&
+      lon < ((xj - xi) * (lat - yi)) / (yj - yi || Number.EPSILON) + xi;
+    if (intersects) inside = !inside;
+  }
+
+  return inside;
+}
+
+function isPointInPolygon(
+  lon: number,
+  lat: number,
+  polygon: [number, number][][],
+) {
+  const [outerRing, ...holes] = polygon;
+  if (!outerRing || !isPointInRing(lon, lat, outerRing)) return false;
+  return !holes.some((ring) => isPointInRing(lon, lat, ring));
+}
+
+function findCountryByLonLat(geoJson: GeoJson, lon: number, lat: number) {
+  for (const feature of geoJson.features ?? []) {
+    const geometry = feature.geometry;
+    if (!geometry) continue;
+
+    if (geometry.type === "Polygon") {
+      if (
+        isPointInPolygon(lon, lat, geometry.coordinates as [number, number][][])
+      ) {
+        return feature.properties?.name ?? "";
+      }
+      continue;
+    }
+
+    if (geometry.type === "MultiPolygon") {
+      for (const polygon of geometry.coordinates as [number, number][][][]) {
+        if (isPointInPolygon(lon, lat, polygon)) {
+          return feature.properties?.name ?? "";
+        }
+      }
+    }
+  }
+
+  return "";
+}
+
 function setMarkerHoverState(marker: THREE.Group | null, hovered: boolean) {
   if (!marker) return;
   const colors = themePalette.value;
@@ -337,20 +442,38 @@ function setMarkerHoverState(marker: THREE.Group | null, hovered: boolean) {
   const glow = marker.userData.glow as THREE.Sprite | undefined;
   const core = marker.userData.core as THREE.Mesh | undefined;
   const baseScale = (marker.userData.baseScale as number | undefined) ?? 1;
+  const isSelected = Boolean(marker.userData.selected);
 
-  marker.scale.setScalar(hovered ? baseScale * 1.18 : baseScale);
+  const targetScale = isSelected
+    ? baseScale * (hovered ? 1.32 : 1.2)
+    : hovered
+      ? baseScale * 1.18
+      : baseScale;
+  marker.scale.setScalar(targetScale);
 
   const glowMaterial = glow?.material;
   if (glowMaterial && !Array.isArray(glowMaterial)) {
     const material = glowMaterial as THREE.SpriteMaterial;
-    material.opacity = hovered ? 1 : 0.9;
-    material.color.set(hovered ? colors.markerGlowHover : colors.markerGlow);
+    material.opacity = hovered || isSelected ? 1 : 0.9;
+    material.color.set(
+      isSelected
+        ? colors.markerGlowSelected
+        : hovered
+          ? colors.markerGlowHover
+          : colors.markerGlow,
+    );
   }
 
   const coreMaterial = core?.material;
   if (coreMaterial && !Array.isArray(coreMaterial)) {
     const material = coreMaterial as THREE.MeshBasicMaterial;
-    material.color.set(hovered ? colors.markerCoreHover : colors.markerCore);
+    material.color.set(
+      isSelected
+        ? colors.markerCoreSelected
+        : hovered
+          ? colors.markerCoreHover
+          : colors.markerCore,
+    );
   }
 }
 
@@ -368,9 +491,11 @@ function rebuildMarkers() {
     const position = lonLatToVector3(point.value[0], point.value[1], radius);
     const marker = new THREE.Group();
     marker.userData = {
+      id: point.id,
       region: point.region || point.name,
       count: point.count,
       nodes: point.nodes,
+      selected: point.id === props.selectedNodeId,
     };
     marker.position.copy(position);
     marker.lookAt(position.clone().multiplyScalar(2));
@@ -400,6 +525,7 @@ function rebuildMarkers() {
     marker.add(glow);
     marker.add(core);
     markerGroup.add(marker);
+    setMarkerHoverState(marker, false);
   }
 }
 
@@ -499,6 +625,29 @@ function handlePointerMove(event: PointerEvent) {
       setMarkerHoverState(hoveredMarker, false);
       hoveredMarker = null;
     }
+    if (earthMesh) {
+      const earthIntersects = raycaster.intersectObject(earthMesh, false);
+      const earthHit = earthIntersects[0];
+      if (earthHit && currentGeoJson) {
+        const worldPoint = earthHit.point.clone();
+        const localPoint = earthMesh.worldToLocal(worldPoint);
+        const { lon, lat } = lonLatFromVector3(localPoint);
+        const countryName = findCountryByLonLat(currentGeoJson, lon, lat);
+
+        if (countryName) {
+          tooltip.value = {
+            visible: true,
+            x: event.clientX - rect.left + 14,
+            y: event.clientY - rect.top + 14,
+            title: getDisplayCountryName(countryName, locale.value),
+            count: null,
+            nodes: [],
+          };
+          if (rootEl.value) rootEl.value.style.cursor = "pointer";
+          return;
+        }
+      }
+    }
     hideTooltip();
     if (rootEl.value) rootEl.value.style.cursor = "grab";
     return;
@@ -529,6 +678,24 @@ function handlePointerMove(event: PointerEvent) {
     count: data.count,
     nodes: data.nodes,
   };
+}
+
+function handlePointerDown(event: PointerEvent) {
+  if (!renderer || !camera || !markerGroup) return;
+
+  const canvas = renderer.domElement;
+  const rect = canvas.getBoundingClientRect();
+  if (rect.width === 0 || rect.height === 0) return;
+
+  pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+  pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(pointer, camera);
+
+  const intersects = raycaster.intersectObjects(markerGroup.children, true);
+  const hit = intersects.find((item) => item.object.parent?.userData?.id);
+  const marker = hit?.object.parent as THREE.Group | null;
+  const nodeId = marker?.userData?.id;
+  if (nodeId) emit("select-node", nodeId);
 }
 
 function resizeRenderer() {
@@ -584,6 +751,7 @@ function destroyScene() {
 
   renderer?.domElement.removeEventListener("pointermove", handlePointerMove);
   renderer?.domElement.removeEventListener("pointerleave", hideTooltip);
+  renderer?.domElement.removeEventListener("pointerdown", handlePointerDown);
   renderer?.dispose();
 
   if (renderer?.domElement.parentNode) {
@@ -601,6 +769,7 @@ function destroyScene() {
   routeGroup = null;
   earthTexture = null;
   glowTexture = null;
+  currentGeoJson = null;
 }
 
 async function initScene() {
@@ -616,6 +785,7 @@ async function initScene() {
       }
       return response.json();
     })) as GeoJson;
+    currentGeoJson = geoJson;
 
     const colors = themePalette.value;
     scene = new THREE.Scene();
@@ -643,6 +813,7 @@ async function initScene() {
     renderer.domElement.style.cursor = "grab";
     renderer.domElement.addEventListener("pointermove", handlePointerMove);
     renderer.domElement.addEventListener("pointerleave", hideTooltip);
+    renderer.domElement.addEventListener("pointerdown", handlePointerDown);
 
     const ambient = new THREE.AmbientLight(0xffffff, colors.ambientIntensity);
     const hemisphere = new THREE.HemisphereLight(
@@ -704,13 +875,23 @@ async function initScene() {
 }
 
 watch(
-  () => [props.points, props.userLocation] as const,
+  () => [props.points, props.userLocation, props.selectedNodeId] as const,
   ([points, userLocation]) => {
     const nextSignature = getStateSignature(points, userLocation);
     if (nextSignature === lastSignature) return;
     lastSignature = nextSignature;
     rebuildMarkers();
     rebuildRoutes();
+  },
+  { deep: true },
+);
+
+watch(
+  () => props.unlockedCountries,
+  () => {
+    if (!currentGeoJson) return;
+    refreshEarthTexture(currentGeoJson);
+    lastSignature = getStateSignature(props.points, props.userLocation);
   },
   { deep: true },
 );
@@ -765,10 +946,14 @@ onUnmounted(() => {
       :style="{ left: `${tooltip.x}px`, top: `${tooltip.y}px` }"
     >
       <div class="font-semibold">{{ tooltip.title }}</div>
-      <div :class="tooltipMetaClass">
+      <div v-if="tooltip.count !== null" :class="tooltipMetaClass">
         {{ t("dashboard.map.tooltip.nodeCount", { count: tooltip.count }) }}
       </div>
-      <div class="mt-2 flex flex-col gap-1" :class="tooltipListClass">
+      <div
+        v-if="tooltip.nodes.length"
+        class="mt-2 flex flex-col gap-1"
+        :class="tooltipListClass"
+      >
         <span v-for="node in tooltip.nodes" :key="node">{{ node }}</span>
       </div>
     </div>
@@ -789,19 +974,29 @@ onUnmounted(() => {
 
 <style scoped>
 .globe-shell {
-  background: rgba(243, 249, 255, 0.98);
+  background:
+    radial-gradient(
+      circle at top,
+      rgba(255, 255, 255, 0.72),
+      rgba(255, 255, 255, 0) 30%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(244, 247, 250, 0.98) 0%,
+      rgba(231, 237, 243, 0.98) 100%
+    );
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.78),
-    inset 0 0 0 1px rgba(125, 211, 252, 0.14),
-    0 16px 36px rgba(14, 165, 233, 0.08);
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    inset 0 0 0 1px rgba(148, 163, 184, 0.12),
+    0 16px 36px rgba(15, 23, 42, 0.07);
 }
 
 .globe-grid {
   background-image:
-    linear-gradient(rgba(14, 165, 233, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(14, 165, 233, 0.05) 1px, transparent 1px);
+    linear-gradient(rgba(100, 116, 139, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(100, 116, 139, 0.045) 1px, transparent 1px);
   background-size: 40px 40px;
-  opacity: 0.24;
+  opacity: 0.2;
   mask-image: radial-gradient(
     circle at 50% 50%,
     rgba(0, 0, 0, 0.88),

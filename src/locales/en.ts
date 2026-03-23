@@ -66,9 +66,15 @@ export default {
       description: "Show where your nodes are distributed around the world.",
       canvasTitle: "Map View",
       canvasDescription: "Display node locations and routes on a global map.",
-      nodeCount: "{count} node groups shown",
+      nodeCount: "{count} nodes shown",
       myLocation: "My Location",
+      showUnlockedCountries: "Show unlocked countries",
       showMyLocationLinks: "Show links from my location",
+      nodeListTitle: "Node List",
+      nodeListDescription:
+        "Click a map marker or a list item to mark that node as selected.",
+      selectedNode: "Selected",
+      noNodes: "No visible nodes",
       locationStatus: {
         loading: "Locating",
         success: "Located",
