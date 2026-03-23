@@ -1,6 +1,6 @@
 ﻿<script setup lang="ts">
 import { onMounted, ref } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { type Token } from "../type";
 import { KeyRound } from "lucide-vue-next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +14,7 @@ import { useTokenListHook } from "../token-list/useTokenList";
 const useEditToken = useEditTokenHook();
 const useTokenList = useTokenListHook();
 const route = useRoute();
+const router = useRouter();
 
 const tokenFromData = ref<Token>(mapTokenDetailToForm(null));
 const createLoading = ref(false);
@@ -50,6 +51,7 @@ const handleUpdateToken = async () => {
   createLoading.value = true;
   try {
     await useEditToken.updateToken(tokenFromData.value, targetToken);
+    router.back();
   } finally {
     createLoading.value = false;
   }
