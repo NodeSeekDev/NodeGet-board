@@ -1,6 +1,7 @@
 ﻿<script setup lang="ts">
-import { computed } from "vue";
+import { computed, watch } from "vue";
 import type { PermissionEntry, TokenLimitScope } from "../../type";
+import { detectScopeTab, type ScopeTabValue } from "../../scopeUi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import StaticMonitoringPermission from "./StaticMonitoringPermission.vue";
 import DynamicMonitoringPermission from "./DynamicMonitoringPermission.vue";
@@ -11,7 +12,9 @@ import KvPermission from "./KvPermission.vue";
 import TerminalPermission from "./TerminalPermission.vue";
 import NodeGetPermission from "./NodeGetPermission.vue";
 import {
+  arePermissionEntriesEqual,
   createPermissionBuckets,
+  mergePermissionBuckets,
   replacePermissionBucket,
   type PermissionBucketKey,
 } from "./permissionsState";
@@ -19,18 +22,21 @@ import {
 const props = defineProps<{
   permissions: PermissionEntry[];
   scope: TokenLimitScope;
+  scopeTab?: ScopeTabValue;
 }>();
 const emits = defineEmits<{
   (e: "update:permissions", token: PermissionEntry[]): void;
 }>();
 
-const isGlobalScope = computed(() => {
-  return (props.scope || []).some((item) => "global" in item);
-});
+const currentScopeTab = computed(
+  () => props.scopeTab ?? detectScopeTab(props.scope || [], "Global"),
+);
 
-const isKvNamespaceScope = computed(() => {
-  return (props.scope || []).some((item) => "kv_namespace" in item);
-});
+const isGlobalScope = computed(() => currentScopeTab.value === "Global");
+
+const isKvNamespaceScope = computed(
+  () => currentScopeTab.value === "KvNamespace",
+);
 
 const canShowKvPermission = computed(
   () => isGlobalScope.value || isKvNamespaceScope.value,
@@ -96,6 +102,26 @@ const nodeGetPermissions = computed({
   get: () => buckets.value.nodeGetPermissions,
   set: (value: PermissionEntry[]) => updateBucket("nodeGetPermissions", value),
 });
+
+watch(
+  [
+    () => props.permissions,
+    canShowKvPermission,
+    canShowCrontabResultPermission,
+  ],
+  ([permissions, allowKvPermission, allowCrontabResultPermission]) => {
+    const normalized = mergePermissionBuckets(
+      createPermissionBuckets(permissions ?? []),
+      allowKvPermission,
+      allowCrontabResultPermission,
+    );
+
+    if (!arePermissionEntriesEqual(normalized, permissions ?? [])) {
+      emits("update:permissions", normalized);
+    }
+  },
+  { immediate: true, deep: true },
+);
 </script>
 
 <template>

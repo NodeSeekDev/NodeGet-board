@@ -20,15 +20,19 @@ import {
 
 const props = defineProps<{
   scope: TokenLimitScope;
+  scopeTab?: ScopeTabValue;
 }>();
 const emits = defineEmits<{
   (e: "update:scope", token: TokenLimitScope): void;
+  (e: "update:scopeTab", value: ScopeTabValue): void;
 }>();
 const useAgent = useAgentHook();
 const useKv = useKvHook();
 
 const localScope = ref<TokenLimitScope>(props.scope);
-const activeTab = ref<ScopeTabValue>(detectScopeTab(props.scope));
+const activeTab = ref<ScopeTabValue>(
+  props.scopeTab ?? detectScopeTab(props.scope),
+);
 const agentUuidList = ref<string[]>([]);
 const agentUuidLoading = ref(false);
 const agentUuidLoaded = ref(false);
@@ -47,12 +51,26 @@ watch(
 );
 
 watch(
+  () => props.scopeTab,
+  (value) => {
+    if (!value || value === activeTab.value) {
+      return;
+    }
+    activeTab.value = value;
+  },
+);
+
+watch(
   localScope,
   (value) => {
     emits("update:scope", value);
   },
   { deep: true },
 );
+
+watch(activeTab, (value) => {
+  emits("update:scopeTab", value);
+});
 
 // 获取agentList
 const handleGetAgentList = () => {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import { type TokenLimitEntry } from "../type";
+import { detectScopeTab, type ScopeTabValue } from "../scopeUi";
 import { ChevronsUpDown, Trash2 } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,12 +24,14 @@ const emits = defineEmits<{
 }>();
 
 const localTokenLimit = ref<TokenLimitEntry>(props.tokenLimit);
+const scopeTab = ref<ScopeTabValue>(detectScopeTab(props.tokenLimit.scopes));
 const isOpen = ref(false);
 
 watch(
   () => props.tokenLimit,
   (value) => {
     localTokenLimit.value = value;
+    scopeTab.value = detectScopeTab(value.scopes, scopeTab.value);
   },
 );
 
@@ -77,10 +80,12 @@ const handleDeleteLimit = () => {
       <limitScopeConfig
         v-if="localTokenLimit"
         v-model:scope="localTokenLimit.scopes"
+        v-model:scopeTab="scopeTab"
       />
       <permissionsCard
         v-model:permissions="localTokenLimit.permissions"
         :scope="localTokenLimit.scopes"
+        :scope-tab="scopeTab"
       />
     </CollapsibleContent>
   </Collapsible>
