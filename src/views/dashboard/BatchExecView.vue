@@ -14,7 +14,7 @@ const { run, runStatus, result } = useBatchRun();
 const code = ref("");
 const selected = ref<Node[]>([]);
 const cmd = ref("bash");
-const cmdList = ref(["bash", "shell"]);
+const cmdList = ref(["bash", "sh"]);
 
 const goRun = () => {
   result.value = [];
