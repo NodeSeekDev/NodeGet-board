@@ -4,8 +4,10 @@ import * as echarts from "echarts";
 import { useI18n } from "vue-i18n";
 import { useThemeStore } from "@/stores/theme";
 import { MAP_THEME } from "@/components/map/theme";
+import { getDisplayCountryName } from "@/components/map/countryName";
 
 type MapPoint = {
+  id: string;
   name: string;
   region: string;
   count: number;
@@ -21,8 +23,13 @@ type UserLocation = {
 const props = defineProps<{
   points: MapPoint[];
   userLocation?: UserLocation | null;
+  selectedNodeId?: string | null;
+  unlockedCountries?: string[];
 }>();
-const { t } = useI18n();
+const emit = defineEmits<{
+  (e: "select-node", nodeId: string): void;
+}>();
+const { t, locale } = useI18n();
 const themeStore = useThemeStore();
 
 const chartEl = ref<HTMLDivElement | null>(null);
@@ -74,10 +81,30 @@ function getUserLabelPlacement(userLocation?: UserLocation | null) {
     : { position: "right" as const, offset: [10, 0] as [number, number] };
 }
 
+function getScatterData(points: MapPoint[]) {
+  const colors = palette.value;
+  return points.map((point) => {
+    const isSelected = point.id === props.selectedNodeId;
+    return {
+      ...point,
+      itemStyle: {
+        color: isSelected ? colors.nodeSelectedPoint : colors.nodePoint,
+        borderColor: isSelected
+          ? colors.nodeSelectedPointBorder
+          : colors.nodePointBorder,
+        borderWidth: isSelected ? 3 : 2,
+        shadowBlur: isSelected ? 22 : 18,
+        shadowColor: isSelected ? colors.nodeSelectedShadow : colors.nodeShadow,
+      },
+    };
+  });
+}
+
 function buildOption(): echarts.EChartsOption {
   const lineData = getLineData(props.points, props.userLocation);
   const colors = palette.value;
   const userLabelPlacement = getUserLabelPlacement(props.userLocation);
+  const unlockedCountries = props.unlockedCountries ?? [];
   return {
     backgroundColor: "transparent",
     animationDuration: 650,
@@ -95,6 +122,9 @@ function buildOption(): echarts.EChartsOption {
       },
       extraCssText: `box-shadow: 0 18px 50px ${colors.tooltipShadow}; border-radius: 14px; backdrop-filter: blur(14px);`,
       formatter: (params: any) => {
+        if (params.componentType === "geo") {
+          return `<b>${getDisplayCountryName(params.name, locale.value)}</b>`;
+        }
         if (params.seriesType === "lines") {
           return t("dashboard.map.lineTooltip", {
             from: params.data.fromName,
@@ -121,10 +151,21 @@ function buildOption(): echarts.EChartsOption {
     geo: {
       map: "world",
       roam: false,
-      silent: true,
+      silent: false,
       zoom: 1.16,
       top: "10%",
       bottom: "8%",
+      regions: unlockedCountries.map((name) => ({
+        name,
+        itemStyle: {
+          areaColor: colors.unlockedMapArea,
+        },
+        emphasis: {
+          itemStyle: {
+            areaColor: colors.unlockedMapAreaHover,
+          },
+        },
+      })),
       itemStyle: {
         borderColor: colors.mapBorder,
         borderWidth: 0.9,
@@ -227,7 +268,7 @@ function buildOption(): echarts.EChartsOption {
             borderRadius: 999,
           },
         },
-        data: props.points,
+        data: getScatterData(props.points),
         animationDelay: (idx: number) => idx * 60,
       },
     ],
@@ -250,7 +291,12 @@ async function initChart() {
     echarts.registerMap("world", geoJson);
     chart = echarts.init(chartEl.value);
     chart.setOption(buildOption());
-    lastPointsSignature = `${getPointsSignature(props.points)}|${JSON.stringify(props.userLocation ?? null)}`;
+    lastPointsSignature = `${getPointsSignature(props.points)}|${JSON.stringify(props.userLocation ?? null)}|${JSON.stringify(props.unlockedCountries ?? [])}|${props.selectedNodeId ?? ""}`;
+    chart.on("click", (params) => {
+      if (params.seriesType !== "effectScatter") return;
+      const data = params.data as MapPoint | undefined;
+      if (data?.id) emit("select-node", data.id);
+    });
   } catch (error) {
     console.error("[FlatWorldMap] Failed to load world map:", error);
     loadError.value = t("dashboard.map.loadFailed");
@@ -269,19 +315,39 @@ onMounted(() => {
 });
 
 watch(
-  () => [props.points, props.userLocation] as const,
-  ([points, userLocation]) => {
+  () =>
+    [
+      props.points,
+      props.userLocation,
+      props.selectedNodeId,
+      props.unlockedCountries,
+    ] as const,
+  ([points, userLocation, selectedNodeId, unlockedCountries]) => {
     if (!chart) return;
+    const colors = palette.value;
     const nextSignature = getPointsSignature(points);
     const userSignature = JSON.stringify(userLocation ?? null);
-    const combinedSignature = `${nextSignature}|${userSignature}`;
+    const combinedSignature = `${nextSignature}|${userSignature}|${JSON.stringify(unlockedCountries ?? [])}|${selectedNodeId ?? ""}`;
     if (combinedSignature === lastPointsSignature) return;
     lastPointsSignature = combinedSignature;
     chart.setOption({
+      geo: {
+        regions: (unlockedCountries ?? []).map((name) => ({
+          name,
+          itemStyle: {
+            areaColor: colors.unlockedMapArea,
+          },
+          emphasis: {
+            itemStyle: {
+              areaColor: colors.unlockedMapAreaHover,
+            },
+          },
+        })),
+      },
       series: [
         { data: getLineData(points, userLocation) },
         { data: userLocation ? [userLocation] : [] },
-        { data: points },
+        { data: getScatterData(points) },
       ],
     });
   },
@@ -293,7 +359,7 @@ watch(
   () => {
     if (!chart) return;
     chart.setOption(buildOption(), true);
-    lastPointsSignature = `${getPointsSignature(props.points)}|${JSON.stringify(props.userLocation ?? null)}`;
+    lastPointsSignature = `${getPointsSignature(props.points)}|${JSON.stringify(props.userLocation ?? null)}|${JSON.stringify(props.unlockedCountries ?? [])}|${props.selectedNodeId ?? ""}`;
   },
 );
 
@@ -345,24 +411,34 @@ onUnmounted(() => {
 
 <style scoped>
 .map-shell {
-  background: rgba(243, 249, 255, 0.98);
+  background:
+    radial-gradient(
+      circle at top,
+      rgba(255, 255, 255, 0.7),
+      rgba(255, 255, 255, 0) 34%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(244, 247, 250, 0.98) 0%,
+      rgba(231, 237, 243, 0.98) 100%
+    );
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.8),
-    inset 0 0 0 1px rgba(125, 211, 252, 0.14),
-    0 16px 36px rgba(14, 165, 233, 0.08);
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    inset 0 0 0 1px rgba(148, 163, 184, 0.12),
+    0 16px 36px rgba(15, 23, 42, 0.07);
 }
 
 .map-grid {
   background-image:
-    linear-gradient(rgba(14, 165, 233, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(14, 165, 233, 0.06) 1px, transparent 1px);
+    linear-gradient(rgba(100, 116, 139, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(100, 116, 139, 0.05) 1px, transparent 1px);
   background-size: 40px 40px;
   mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.65), transparent 95%);
-  opacity: 0.34;
+  opacity: 0.28;
 }
 
 .map-vignette {
-  background: rgba(14, 165, 233, 0.03);
+  background: rgba(71, 85, 105, 0.035);
 }
 
 .map-shell.theme-dark {
