@@ -240,6 +240,17 @@ export default {
       warningCommand: "错误命令:",
       desc: "在目标节点上批量执行命令",
     },
+    scripts: {
+      desc: "您可以在这创建你的脚本片段",
+      create: "创建脚本片段",
+      order: "编号",
+      name: "名称",
+      lang: "语言",
+      updatedTime: "上次编辑时间",
+      actions: "操作",
+      empty: "暂无脚本片段",
+      deleteConfirm: "确定要删除脚本片段 {name} 吗？",
+    },
   },
   router: {
     overview: "服务概览",

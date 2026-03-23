@@ -131,7 +131,7 @@ const router = createRouter({
         {
           path: "scripts",
           name: "scripts",
-          component: () => import("@/views/dashboard/WorkInProcessView.vue"),
+          component: () => import("@/views/dashboard/ScriptView.vue"),
           meta: {
             title: "router.scripts",
             icon: FileTerminal,

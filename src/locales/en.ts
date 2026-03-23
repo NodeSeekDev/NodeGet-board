@@ -240,6 +240,18 @@ export default {
       waitToRun: "Waiting to run...",
       warningCommand: "Warning command:",
     },
+    scripts: {
+      desc: "You can create your script snippets here",
+      create: "Create Script Snippet",
+      order: "ID",
+      name: "Name",
+      lang: "Language",
+      updatedTime: "Last Edited",
+      actions: "Actions",
+      empty: "No script snippets available",
+      deleteConfirm:
+        "Are you sure you want to delete the script snippet {name}?",
+    },
   },
   router: {
     overview: "Overview",
