@@ -1,5 +1,5 @@
 ﻿<script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed } from "vue";
 import type { PermissionEntry, TokenLimitScope } from "../../type";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import StaticMonitoringPermission from "./StaticMonitoringPermission.vue";
@@ -10,6 +10,11 @@ import CrontabResultPermission from "./CrontabResultPermission.vue";
 import KvPermission from "./KvPermission.vue";
 import TerminalPermission from "./TerminalPermission.vue";
 import NodeGetPermission from "./NodeGetPermission.vue";
+import {
+  createPermissionBuckets,
+  replacePermissionBucket,
+  type PermissionBucketKey,
+} from "./permissionsState";
 
 const props = defineProps<{
   permissions: PermissionEntry[];
@@ -18,21 +23,6 @@ const props = defineProps<{
 const emits = defineEmits<{
   (e: "update:permissions", token: PermissionEntry[]): void;
 }>();
-
-const staticMonitoringPermissions = ref<PermissionEntry[]>([]);
-const dynamicMonitoringPermissions = ref<PermissionEntry[]>([]);
-const taskPermissions = ref<PermissionEntry[]>([]);
-const crontabPermissions = ref<PermissionEntry[]>([]);
-const crontabResultPermissions = ref<PermissionEntry[]>([]);
-const kvPermissions = ref<PermissionEntry[]>([]);
-const terminalPermissions = ref<PermissionEntry[]>([]);
-const nodeGetPermissions = ref<PermissionEntry[]>([]);
-const unknownPermissions = ref<PermissionEntry[]>([]);
-const hydrating = ref(false);
-
-const isSamePermissions = (a: PermissionEntry[], b: PermissionEntry[]) => {
-  return JSON.stringify(a) === JSON.stringify(b);
-};
 
 const isGlobalScope = computed(() => {
   return (props.scope || []).some((item) => "global" in item);
@@ -47,104 +37,65 @@ const canShowKvPermission = computed(
 );
 const canShowCrontabResultPermission = computed(() => isGlobalScope.value);
 
-// 将传入的完整，imit拆分为单个模块的数据
-const splitPermissions = (permissions: PermissionEntry[]) => {
-  staticMonitoringPermissions.value = [];
-  dynamicMonitoringPermissions.value = [];
-  taskPermissions.value = [];
-  crontabPermissions.value = [];
-  crontabResultPermissions.value = [];
-  kvPermissions.value = [];
-  terminalPermissions.value = [];
-  nodeGetPermissions.value = [];
-  unknownPermissions.value = [];
-
-  for (const entry of permissions || []) {
-    if ("static_monitoring" in entry) {
-      staticMonitoringPermissions.value.push(entry);
-      continue;
-    }
-    if ("dynamic_monitoring" in entry) {
-      dynamicMonitoringPermissions.value.push(entry);
-      continue;
-    }
-    if ("task" in entry) {
-      taskPermissions.value.push(entry);
-      continue;
-    }
-    if ("crontab" in entry) {
-      crontabPermissions.value.push(entry);
-      continue;
-    }
-    if ("crontab_result" in entry) {
-      crontabResultPermissions.value.push(entry);
-      continue;
-    }
-    if ("kv" in entry) {
-      kvPermissions.value.push(entry);
-      continue;
-    }
-    if ("terminal" in entry) {
-      terminalPermissions.value.push(entry);
-      continue;
-    }
-    if ("node_get" in entry || "nodeget" in entry) {
-      nodeGetPermissions.value.push(entry);
-      continue;
-    }
-    unknownPermissions.value.push(entry);
-  }
+const updateBucket = (key: PermissionBucketKey, value: PermissionEntry[]) => {
+  emits(
+    "update:permissions",
+    replacePermissionBucket(
+      props.permissions ?? [],
+      key,
+      value,
+      canShowKvPermission.value,
+      canShowCrontabResultPermission.value,
+    ),
+  );
 };
 
-const emitAllPermissions = () => {
-  if (hydrating.value) return;
-
-  const nextPermissions: PermissionEntry[] = [
-    ...staticMonitoringPermissions.value,
-    ...dynamicMonitoringPermissions.value,
-    ...taskPermissions.value,
-    ...crontabPermissions.value,
-    ...(canShowCrontabResultPermission.value
-      ? crontabResultPermissions.value
-      : []),
-    ...(canShowKvPermission.value ? kvPermissions.value : []),
-    ...terminalPermissions.value,
-    ...nodeGetPermissions.value,
-    ...unknownPermissions.value,
-  ];
-
-  if (isSamePermissions(nextPermissions, props.permissions ?? [])) return;
-  emits("update:permissions", nextPermissions);
-};
-
-watch(
-  () => props.permissions,
-  (value) => {
-    hydrating.value = true;
-    splitPermissions(Array.isArray(value) ? value : []);
-    hydrating.value = false;
-  },
-  { immediate: true, deep: true },
+const buckets = computed(() =>
+  createPermissionBuckets(props.permissions ?? []),
 );
 
-watch(
-  [
-    staticMonitoringPermissions,
-    dynamicMonitoringPermissions,
-    taskPermissions,
-    crontabPermissions,
-    crontabResultPermissions,
-    kvPermissions,
-    terminalPermissions,
-    nodeGetPermissions,
-    canShowKvPermission,
-    canShowCrontabResultPermission,
-  ],
-  () => {
-    emitAllPermissions();
-  },
-  { deep: true },
-);
+const staticMonitoringPermissions = computed({
+  get: () => buckets.value.staticMonitoringPermissions,
+  set: (value: PermissionEntry[]) =>
+    updateBucket("staticMonitoringPermissions", value),
+});
+
+const dynamicMonitoringPermissions = computed({
+  get: () => buckets.value.dynamicMonitoringPermissions,
+  set: (value: PermissionEntry[]) =>
+    updateBucket("dynamicMonitoringPermissions", value),
+});
+
+const taskPermissions = computed({
+  get: () => buckets.value.taskPermissions,
+  set: (value: PermissionEntry[]) => updateBucket("taskPermissions", value),
+});
+
+const crontabPermissions = computed({
+  get: () => buckets.value.crontabPermissions,
+  set: (value: PermissionEntry[]) => updateBucket("crontabPermissions", value),
+});
+
+const crontabResultPermissions = computed({
+  get: () => buckets.value.crontabResultPermissions,
+  set: (value: PermissionEntry[]) =>
+    updateBucket("crontabResultPermissions", value),
+});
+
+const kvPermissions = computed({
+  get: () => buckets.value.kvPermissions,
+  set: (value: PermissionEntry[]) => updateBucket("kvPermissions", value),
+});
+
+const terminalPermissions = computed({
+  get: () => buckets.value.terminalPermissions,
+  set: (value: PermissionEntry[]) => updateBucket("terminalPermissions", value),
+});
+
+const nodeGetPermissions = computed({
+  get: () => buckets.value.nodeGetPermissions,
+  set: (value: PermissionEntry[]) => updateBucket("nodeGetPermissions", value),
+});
 </script>
 
 <template>
