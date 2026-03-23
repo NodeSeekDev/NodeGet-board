@@ -1,15 +1,21 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, watch, computed } from "vue";
 import { Code } from "lucide-vue-next";
 import { Switch } from "@/components/ui/switch";
 import CodeCard from "@/components/batch-exec/widgets/Code.vue";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-const code = ref("");
 const codeTips = ref(false);
 
-defineProps<{ modelValue: string }>();
-defineEmits<{ "update:modelValue": (value: string) => void }>();
+const props = defineProps<{ modelValue: string }>();
+const emits = defineEmits<{
+  (e: "update:modelValue", val: string): void;
+}>();
+
+const codeProxy = computed({
+  get: () => props.modelValue ?? "",
+  set: (val: string) => emits("update:modelValue", val),
+});
 </script>
 
 <template>
@@ -26,7 +32,7 @@ defineEmits<{ "update:modelValue": (value: string) => void }>();
       </CardTitle>
     </CardHeader>
     <CardContent>
-      <CodeCard v-model="code" :codeTips="codeTips" />
+      <CodeCard v-model="codeProxy" :codeTips="codeTips" />
     </CardContent>
   </Card>
 </template>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref } from "vue";
 import { useNodes } from "@/composables/useBatchNodes";
 import { useBatchRun } from "@/composables/useBatchRun";
 
@@ -11,7 +11,7 @@ import ResultCard from "@/components/batch-exec/ResultCard.vue";
 const { nodes } = useNodes(["name", "tags"]);
 const { run, runStatus, result } = useBatchRun();
 
-const code = ref("ls /");
+const code = ref("");
 const selected = ref<Node[]>([]);
 const cmd = ref("bash");
 const cmdList = ref(["bash", "shell"]);

@@ -70,7 +70,6 @@ const rules: { name: string; check: (line: string) => RuleResult | null }[] = [
 
 const warnings = ref<{ line: number; text: RuleResult }[]>([]);
 
-// 核心分析函数：过滤掉 null，确保 w.text 永远有效
 function analyzeCode(input: string) {
   const result: { line: number; text: RuleResult }[] = [];
 
@@ -102,7 +101,7 @@ const levelStyles: Record<RuleResult["type"], string> = {
 };
 
 onMounted(async () => {
-  await nextTick(); // 确保 DOM 已渲染
+  await nextTick();
   updateWarningHeight();
 });
 </script>
