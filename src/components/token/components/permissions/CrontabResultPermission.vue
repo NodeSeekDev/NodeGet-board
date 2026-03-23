@@ -1,8 +1,14 @@
 <script setup lang="ts">
-import { nextTick, ref, watch } from "vue";
-import { X } from "lucide-vue-next";
+import { ref, watch } from "vue";
+import type { AcceptableInputValue } from "reka-ui";
 import type { PermissionEntry } from "../../type";
-import { Badge } from "@/components/ui/badge";
+import {
+  TagsInput,
+  TagsInputInput,
+  TagsInputItem,
+  TagsInputItemDelete,
+  TagsInputItemText,
+} from "@/components/ui/tags-input";
 
 const props = defineProps<{ modelValue: PermissionEntry[] }>();
 const emits = defineEmits<{
@@ -11,10 +17,6 @@ const emits = defineEmits<{
 
 const readTargets = ref<string[]>([]);
 const deleteTargets = ref<string[]>([]);
-const readInput = ref("");
-const deleteInput = ref("");
-const readInputEl = ref<HTMLInputElement | null>(null);
-const deleteInputEl = ref<HTMLInputElement | null>(null);
 const hydrating = ref(false);
 
 type CrontabResultKind = "read" | "delete";
@@ -51,8 +53,6 @@ const hydrate = (entries: PermissionEntry[]) => {
 
   readTargets.value = dedupeTargets(reads);
   deleteTargets.value = dedupeTargets(deletes);
-  readInput.value = "";
-  deleteInput.value = "";
 };
 
 const isSameState = (entries: PermissionEntry[]) => {
@@ -86,39 +86,18 @@ const getTargetsRef = (kind: CrontabResultKind) => {
   return kind === "read" ? readTargets : deleteTargets;
 };
 
-const getInputRef = (kind: CrontabResultKind) => {
-  return kind === "read" ? readInput : deleteInput;
+const normalizeTargets = (targets: AcceptableInputValue[]) => {
+  return targets.filter(
+    (target): target is string => typeof target === "string",
+  );
 };
 
-const getInputElRef = (kind: CrontabResultKind) => {
-  return kind === "read" ? readInputEl : deleteInputEl;
-};
-
-const commitTag = (kind: CrontabResultKind) => {
+const updateTargets = (
+  kind: CrontabResultKind,
+  value: AcceptableInputValue[],
+) => {
   const targets = getTargetsRef(kind);
-  const input = getInputRef(kind);
-  const value = input.value.trim();
-  if (value && !targets.value.includes(value)) {
-    targets.value = [...targets.value, value];
-  }
-  input.value = "";
-  nextTick(() => {
-    getInputElRef(kind).value?.focus();
-  });
-};
-
-const removeTag = (kind: CrontabResultKind, target: string) => {
-  const targets = getTargetsRef(kind);
-  targets.value = targets.value.filter((item) => item !== target);
-  nextTick(() => {
-    getInputElRef(kind).value?.focus();
-  });
-};
-
-const handleTagKeydown = (event: KeyboardEvent, kind: CrontabResultKind) => {
-  if (event.key !== "Enter") return;
-  event.preventDefault();
-  commitTag(kind);
+  targets.value = dedupeTargets(normalizeTargets(value));
 };
 
 watch(
@@ -152,62 +131,46 @@ watch(
     <div class="mt-3 space-y-3">
       <div class="space-y-1">
         <div class="text-xs text-muted-foreground">Read targets</div>
-        <div class="space-y-2 rounded-md border p-2 min-h-[90px]">
-          <input
-            ref="readInputEl"
-            v-model="readInput"
-            class="file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 h-9 w-full min-w-0 rounded-md border-0 bg-transparent px-0 py-1 text-base shadow-none outline-none md:text-sm"
-            placeholder="history_*"
-            @keydown="handleTagKeydown($event, 'read')"
-          />
+        <TagsInput
+          :model-value="readTargets"
+          class="flex-col items-stretch"
+          :convert-value="(value) => value.trim()"
+          @update:model-value="updateTargets('read', $event)"
+        >
           <div class="flex flex-wrap gap-2">
-            <Badge
+            <TagsInputItem
               v-for="target in readTargets"
               :key="`read-${target}`"
-              variant="secondary"
-              class="flex items-center gap-1 pr-1"
+              :value="target"
             >
-              {{ target }}
-              <button
-                type="button"
-                class="ml-0.5 rounded-full p-0.5 hover:bg-muted-foreground/20"
-                @click="removeTag('read', target)"
-              >
-                <X class="h-3 w-3" />
-              </button>
-            </Badge>
+              <TagsInputItemText />
+              <TagsInputItemDelete />
+            </TagsInputItem>
           </div>
-        </div>
+          <TagsInputInput placeholder="history_*" class="w-full px-0 pt-2" />
+        </TagsInput>
       </div>
 
       <div class="space-y-1">
         <div class="text-xs text-muted-foreground">Delete targets</div>
-        <div class="space-y-2 rounded-md border p-2 min-h-[90px]">
-          <input
-            ref="deleteInputEl"
-            v-model="deleteInput"
-            class="file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 h-9 w-full min-w-0 rounded-md border-0 bg-transparent px-0 py-1 text-base shadow-none outline-none md:text-sm"
-            placeholder="temp_*"
-            @keydown="handleTagKeydown($event, 'delete')"
-          />
+        <TagsInput
+          :model-value="deleteTargets"
+          class="flex-col items-stretch"
+          :convert-value="(value) => value.trim()"
+          @update:model-value="updateTargets('delete', $event)"
+        >
           <div class="flex flex-wrap gap-2">
-            <Badge
+            <TagsInputItem
               v-for="target in deleteTargets"
               :key="`delete-${target}`"
-              variant="secondary"
-              class="flex items-center gap-1 pr-1"
+              :value="target"
             >
-              {{ target }}
-              <button
-                type="button"
-                class="ml-0.5 rounded-full p-0.5 hover:bg-muted-foreground/20"
-                @click="removeTag('delete', target)"
-              >
-                <X class="h-3 w-3" />
-              </button>
-            </Badge>
+              <TagsInputItemText />
+              <TagsInputItemDelete />
+            </TagsInputItem>
           </div>
-        </div>
+          <TagsInputInput placeholder="temp_*" class="w-full px-0 pt-2" />
+        </TagsInput>
       </div>
     </div>
   </details>

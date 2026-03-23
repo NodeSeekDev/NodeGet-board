@@ -1,15 +1,20 @@
 ﻿<script setup lang="ts">
-import { nextTick, ref, watch } from "vue";
-import { X } from "lucide-vue-next";
+import { ref, watch } from "vue";
+import type { AcceptableInputValue } from "reka-ui";
 import type { PermissionEntry } from "../../type";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  TagsInput,
+  TagsInputInput,
+  TagsInputItem,
+  TagsInputItemDelete,
+  TagsInputItemText,
+} from "@/components/ui/tags-input";
 import {
   addKvTarget,
   buildKvPermissions,
   hydrateKvPermissions,
   isSameKvPermissionState,
-  removeKvTarget,
 } from "./kvPermissionState";
 
 const props = defineProps<{ modelValue: PermissionEntry[] }>();
@@ -22,12 +27,6 @@ const listAllNamespace = ref(false);
 const readTargets = ref<string[]>([]);
 const writeTargets = ref<string[]>([]);
 const deleteTargets = ref<string[]>([]);
-const readInput = ref("");
-const writeInput = ref("");
-const deleteInput = ref("");
-const readInputEl = ref<HTMLInputElement | null>(null);
-const writeInputEl = ref<HTMLInputElement | null>(null);
-const deleteInputEl = ref<HTMLInputElement | null>(null);
 const hydrating = ref(false);
 
 const build = (): PermissionEntry[] => {
@@ -47,9 +46,6 @@ const hydrate = (entries: PermissionEntry[]) => {
   readTargets.value = state.readTargets;
   writeTargets.value = state.writeTargets;
   deleteTargets.value = state.deleteTargets;
-  readInput.value = "";
-  writeInput.value = "";
-  deleteInput.value = "";
 };
 
 type KvTargetKind = "read" | "write" | "delete";
@@ -60,43 +56,30 @@ const getTargetsRef = (kind: KvTargetKind) => {
   return deleteTargets;
 };
 
-const getInputRef = (kind: KvTargetKind) => {
-  if (kind === "read") return readInput;
-  if (kind === "write") return writeInput;
-  return deleteInput;
+const normalizeTargets = (targets: AcceptableInputValue[]) => {
+  return targets.filter(
+    (target): target is string => typeof target === "string",
+  );
 };
 
-const getInputElRef = (kind: KvTargetKind) => {
-  if (kind === "read") return readInputEl;
-  if (kind === "write") return writeInputEl;
-  return deleteInputEl;
-};
-
-const commitTag = (kind: KvTargetKind) => {
-  const targets = getTargetsRef(kind);
-  const input = getInputRef(kind);
-  const next = addKvTarget(targets.value, input.value);
-  if (next !== targets.value) {
-    targets.value = next;
+const sanitizeTargets = (targets: string[]) => {
+  let result: string[] = [];
+  for (const target of targets) {
+    result = addKvTarget(result, target);
   }
-  input.value = "";
-  nextTick(() => {
-    getInputElRef(kind).value?.focus();
-  });
+  return result;
 };
 
-const removeTag = (kind: KvTargetKind, target: string) => {
+const updateTargets = (kind: KvTargetKind, value: AcceptableInputValue[]) => {
   const targets = getTargetsRef(kind);
-  targets.value = removeKvTarget(targets.value, target);
-  nextTick(() => {
-    getInputElRef(kind).value?.focus();
-  });
-};
-
-const handleTagKeydown = (event: KeyboardEvent, kind: KvTargetKind) => {
-  if (event.key !== "Enter") return;
-  event.preventDefault();
-  commitTag(kind);
+  const next = sanitizeTargets(normalizeTargets(value));
+  if (
+    next.length === targets.value.length &&
+    next.every((item, index) => item === targets.value[index])
+  ) {
+    return;
+  }
+  targets.value = next;
 };
 
 watch(
@@ -152,92 +135,71 @@ watch(
       <div class="space-y-3">
         <div class="space-y-1">
           <div class="text-xs text-muted-foreground">Read targets</div>
-          <div class="space-y-2 rounded-md border p-2 min-h-[90px]">
-            <input
-              ref="readInputEl"
-              v-model="readInput"
-              class="file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 h-9 w-full min-w-0 rounded-md border-0 bg-transparent px-0 py-1 text-base shadow-none outline-none md:text-sm"
-              placeholder="metadata_*"
-              @keydown="handleTagKeydown($event, 'read')"
-            />
+          <TagsInput
+            :model-value="readTargets"
+            class="flex-col items-stretch"
+            :convert-value="(value) => value.trim()"
+            @update:model-value="updateTargets('read', $event)"
+          >
             <div class="flex flex-wrap gap-2">
-              <Badge
+              <TagsInputItem
                 v-for="target in readTargets"
                 :key="`read-${target}`"
-                variant="secondary"
-                class="flex items-center gap-1 pr-1"
+                :value="target"
               >
-                {{ target }}
-                <button
-                  type="button"
-                  class="ml-0.5 rounded-full p-0.5 hover:bg-muted-foreground/20"
-                  @click="removeTag('read', target)"
-                >
-                  <X class="h-3 w-3" />
-                </button>
-              </Badge>
+                <TagsInputItemText />
+                <TagsInputItemDelete />
+              </TagsInputItem>
             </div>
-          </div>
+            <TagsInputInput placeholder="metadata_*" class="w-full px-0 pt-2" />
+          </TagsInput>
         </div>
 
         <div class="space-y-1">
           <div class="text-xs text-muted-foreground">Write targets</div>
-          <div class="space-y-2 rounded-md border p-2 min-h-[90px]">
-            <input
-              ref="writeInputEl"
-              v-model="writeInput"
-              class="file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 h-9 w-full min-w-0 rounded-md border-0 bg-transparent px-0 py-1 text-base shadow-none outline-none md:text-sm"
-              placeholder="runtime_config"
-              @keydown="handleTagKeydown($event, 'write')"
-            />
+          <TagsInput
+            :model-value="writeTargets"
+            class="flex-col items-stretch"
+            :convert-value="(value) => value.trim()"
+            @update:model-value="updateTargets('write', $event)"
+          >
             <div class="flex flex-wrap gap-2">
-              <Badge
+              <TagsInputItem
                 v-for="target in writeTargets"
                 :key="`write-${target}`"
-                variant="secondary"
-                class="flex items-center gap-1 pr-1"
+                :value="target"
               >
-                {{ target }}
-                <button
-                  type="button"
-                  class="ml-0.5 rounded-full p-0.5 hover:bg-muted-foreground/20"
-                  @click="removeTag('write', target)"
-                >
-                  <X class="h-3 w-3" />
-                </button>
-              </Badge>
+                <TagsInputItemText />
+                <TagsInputItemDelete />
+              </TagsInputItem>
             </div>
-          </div>
+            <TagsInputInput
+              placeholder="runtime_config"
+              class="w-full px-0 pt-2"
+            />
+          </TagsInput>
         </div>
 
         <div class="space-y-1">
           <div class="text-xs text-muted-foreground">Delete targets</div>
-          <div class="space-y-2 rounded-md border p-2 min-h-[90px]">
-            <input
-              ref="deleteInputEl"
-              v-model="deleteInput"
-              class="file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 h-9 w-full min-w-0 rounded-md border-0 bg-transparent px-0 py-1 text-base shadow-none outline-none md:text-sm"
-              placeholder="temp_*"
-              @keydown="handleTagKeydown($event, 'delete')"
-            />
+          <TagsInput
+            :model-value="deleteTargets"
+            class="flex-col items-stretch"
+            :convert-value="(value) => value.trim()"
+            @update:model-value="updateTargets('delete', $event)"
+          >
             <div class="flex flex-wrap gap-2">
-              <Badge
+              <TagsInputItem
                 v-for="target in deleteTargets"
                 :key="`delete-${target}`"
-                variant="secondary"
-                class="flex items-center gap-1 pr-1"
+                :value="target"
               >
-                {{ target }}
-                <button
-                  type="button"
-                  class="ml-0.5 rounded-full p-0.5 hover:bg-muted-foreground/20"
-                  @click="removeTag('delete', target)"
-                >
-                  <X class="h-3 w-3" />
-                </button>
-              </Badge>
+                <TagsInputItemText />
+                <TagsInputItemDelete />
+              </TagsInputItem>
             </div>
-          </div>
+            <TagsInputInput placeholder="temp_*" class="w-full px-0 pt-2" />
+          </TagsInput>
         </div>
       </div>
     </div>
