@@ -24,8 +24,8 @@ const handleBack = () => {
         <span class="sr-only">返回Token列表</span>
       </Button>
       <div>
-        <h2 class="text-2xl font-bold tracking-tight">Tokens</h2>
-        <p class="text-muted-foreground">Manage your API tokens securely.</p>
+        <h2 class="text-2xl font-bold tracking-tight">编辑 Token</h2>
+        <p class="text-muted-foreground">编辑更新Token</p>
       </div>
     </div>
     <div class="">

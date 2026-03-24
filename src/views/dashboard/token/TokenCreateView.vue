@@ -24,8 +24,8 @@ const handleBack = () => {
         <span class="sr-only">返回Token列表</span>
       </Button>
       <div>
-        <h2 class="text-2xl font-bold tracking-tight">Tokens</h2>
-        <p class="text-muted-foreground">Manage your API tokens securely.</p>
+        <h2 class="text-2xl font-bold tracking-tight">创建 Token</h2>
+        <p class="text-muted-foreground">新建一个Token</p>
       </div>
     </div>
     <!-- grid gap-6 xl:grid-cols-2 -->

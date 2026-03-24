@@ -104,6 +104,13 @@ const handleEditToken = (token: Token) => {
   });
 };
 
+const handleViewTokenDetail = (token: Token) => {
+  router.push({
+    path: "/dashboard/tokenDetail",
+    query: { token: `${token.token_key}` },
+  });
+};
+
 // 删除Token
 const handleDeleteToken = (deleteToken: Token) => {
   deleteLoading.value = true;
@@ -136,9 +143,13 @@ const handleConfirmResetToken = (token: Token) => {};
 
 <template>
   <div class="space-y-4">
-    <div class="flex items-center justify-between gap-4">
-      <div><Input placeholder="输入token_key搜索" /></div>
-      <div class="flex items-center gap-2">
+    <div
+      class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
+    >
+      <div class="w-full lg:max-w-sm">
+        <Input placeholder="输入token_key搜索" />
+      </div>
+      <div class="flex flex-wrap items-center gap-2 lg:justify-end">
         <Button type="button" @click="handleGetTokenList" variant="outline">
           <span class="inline-flex items-center justify-center">重置</span>
         </Button>
@@ -178,7 +189,11 @@ const handleConfirmResetToken = (token: Token) => {};
             <TableCell>{{ token.token_limit?.length ?? 0 }}</TableCell>
             <TableCell class="flex gap-2 w-20">
               <!-- 查看按钮 -->
-              <Button variant="ghost" size="sm">
+              <Button
+                variant="ghost"
+                size="sm"
+                @click="handleViewTokenDetail(token)"
+              >
                 <Eye />
               </Button>
               <!-- 编辑按钮 -->

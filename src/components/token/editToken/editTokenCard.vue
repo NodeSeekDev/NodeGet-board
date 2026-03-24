@@ -5,6 +5,7 @@ import { type Token } from "../type";
 import { KeyRound } from "lucide-vue-next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import BaseInfoFrom from "../components/baseInfoFrom.vue";
 import tokenLimitFrom from "../components/tokenLimitFrom.vue";
 import PrevireToken from "../components/previewTokenJson.vue";
@@ -67,21 +68,31 @@ const handleUpdateToken = async () => {
       </CardTitle>
     </CardHeader>
 
-    <CardContent class="space-y-6 grid gap-6 xl:grid-cols-2">
-      <div class="space-y-4">
-        <BaseInfoFrom v-model:token="tokenFromData" />
-        <tokenLimitFrom v-model:token="tokenFromData" />
-        <Button
-          @click="handleUpdateToken"
-          class="w-full"
-          :disabled="createLoading || detailLoading"
-        >
-          <div v-if="createLoading">更新中..</div>
-          <div v-else>更新token</div>
-        </Button>
+    <CardContent>
+      <div
+        v-if="detailLoading"
+        class="flex min-h-[420px] flex-col items-center justify-center gap-3"
+      >
+        <Spinner />
+        <div class="text-sm text-muted-foreground">正在加载 Token 详情...</div>
       </div>
-      <div>
-        <PrevireToken :token="tokenFromData" />
+
+      <div v-else class="grid gap-6 xl:grid-cols-2">
+        <div class="space-y-4">
+          <BaseInfoFrom v-model:token="tokenFromData" />
+          <tokenLimitFrom v-model:token="tokenFromData" />
+          <Button
+            @click="handleUpdateToken"
+            class="w-full"
+            :disabled="createLoading || detailLoading"
+          >
+            <div v-if="createLoading">更新中..</div>
+            <div v-else>更新token</div>
+          </Button>
+        </div>
+        <div>
+          <PrevireToken :token="tokenFromData" />
+        </div>
       </div>
     </CardContent>
   </Card>

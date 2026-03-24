@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { ref } from "vue";
-import { type token } from "../type";
+import type { Token } from "../type";
 import { ScanEye } from "lucide-vue-next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-const props = defineProps<{
-  token: token | {};
+defineProps<{
+  token: Token;
 }>();
 </script>
 
@@ -18,10 +17,9 @@ const props = defineProps<{
       </CardTitle>
     </CardHeader>
 
-    <CardContent class="space-y-6 grid">
-      <!-- <div class="text-sm font-medium">token_limit preview</div> -->
-      <pre class="text-xs leading-5 overflow-x-auto">{{
-        JSON.stringify(props.token, null, 2)
+    <CardContent class="grid space-y-6">
+      <pre class="overflow-x-auto text-xs leading-5">{{
+        JSON.stringify(token, null, 2)
       }}</pre>
     </CardContent>
   </Card>
