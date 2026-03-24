@@ -136,7 +136,7 @@ watch(
 
 <template>
   <div class="h-full overflow-auto">
-    <div class="flex flex-col gap-4 p-4">
+    <div class="flex flex-col gap-4">
       <!-- 顶部控制栏 -->
       <div class="flex items-center justify-between">
         <span class="text-xs text-muted-foreground">最近 24 小时</span>
