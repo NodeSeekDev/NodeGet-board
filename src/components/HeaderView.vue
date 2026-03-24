@@ -68,7 +68,7 @@ onMounted(() => {
       <h1 class="text-3xl font-bold tracking-tight animate-pulse">NodeGet</h1>
     </div>
     <div class="flex items-center gap-2 text-sm text-muted-foreground">
-      <RouterLink to="/dashboard/overview">
+      <RouterLink :to="{ name: '/dashboard/overview' }">
         <Button variant="ghost" size="icon" title="管理后台">
           <LayoutDashboard class="h-4 w-4" />
           <span class="sr-only">管理后台</span>

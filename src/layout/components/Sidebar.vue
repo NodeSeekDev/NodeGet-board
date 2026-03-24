@@ -55,6 +55,7 @@ const nodeRoutes = computed<SidebarRoute[]>(() => {
   return [
     {
       path: "/dashboard/overview",
+      name: "/dashboard/overview",
       meta: {
         title: "router.node.backToServers",
         icon: ArrowLeft,
@@ -62,6 +63,8 @@ const nodeRoutes = computed<SidebarRoute[]>(() => {
     },
     {
       path: `/dashboard/node/${nodeUuid.value}/status`,
+      name: "/dashboard/node/[uuid]/status",
+      params: { uuid: nodeUuid.value },
       meta: {
         title: "router.node.status",
         icon: Monitor,
@@ -69,6 +72,8 @@ const nodeRoutes = computed<SidebarRoute[]>(() => {
     },
     {
       path: `/dashboard/node/${nodeUuid.value}/latency`,
+      name: "/dashboard/node/[uuid]/latency",
+      params: { uuid: nodeUuid.value },
       meta: {
         title: "router.node.latency",
         icon: Antenna,
@@ -76,6 +81,8 @@ const nodeRoutes = computed<SidebarRoute[]>(() => {
     },
     {
       path: `/dashboard/node/${nodeUuid.value}/traffic`,
+      name: "/dashboard/node/[uuid]/traffic",
+      params: { uuid: nodeUuid.value },
       meta: {
         title: "router.node.traffic",
         icon: ArrowUpDown,
@@ -83,6 +90,8 @@ const nodeRoutes = computed<SidebarRoute[]>(() => {
     },
     {
       path: `/dashboard/node/${nodeUuid.value}/ping`,
+      name: "/dashboard/node/[uuid]/ping",
+      params: { uuid: nodeUuid.value },
       meta: {
         title: "router.node.ping",
         icon: Radar,
@@ -90,6 +99,8 @@ const nodeRoutes = computed<SidebarRoute[]>(() => {
     },
     {
       path: `/dashboard/node/${nodeUuid.value}/webshell`,
+      name: "/dashboard/node/[uuid]/webshell",
+      params: { uuid: nodeUuid.value },
       meta: {
         title: "router.node.webshell",
         icon: Terminal,
@@ -97,6 +108,8 @@ const nodeRoutes = computed<SidebarRoute[]>(() => {
     },
     {
       path: `/dashboard/node/${nodeUuid.value}/files`,
+      name: "/dashboard/node/[uuid]/files",
+      params: { uuid: nodeUuid.value },
       meta: {
         title: "router.node.files",
         icon: HardDrive,
@@ -104,6 +117,8 @@ const nodeRoutes = computed<SidebarRoute[]>(() => {
     },
     {
       path: `/dashboard/node/${nodeUuid.value}/docker`,
+      name: "/dashboard/node/[uuid]/docker",
+      params: { uuid: nodeUuid.value },
       meta: {
         title: "router.node.docker",
         icon: Package,
@@ -111,6 +126,8 @@ const nodeRoutes = computed<SidebarRoute[]>(() => {
     },
     {
       path: `/dashboard/node/${nodeUuid.value}/firewall`,
+      name: "/dashboard/node/[uuid]/firewall",
+      params: { uuid: nodeUuid.value },
       meta: {
         title: "router.node.firewall",
         icon: BrickWallFire,
@@ -118,6 +135,8 @@ const nodeRoutes = computed<SidebarRoute[]>(() => {
     },
     {
       path: `/dashboard/node/${nodeUuid.value}/process`,
+      name: "/dashboard/node/[uuid]/process",
+      params: { uuid: nodeUuid.value },
       meta: {
         title: "router.node.process",
         icon: ChartNoAxesGantt,
@@ -125,6 +144,8 @@ const nodeRoutes = computed<SidebarRoute[]>(() => {
     },
     {
       path: `/dashboard/node/${nodeUuid.value}/update`,
+      name: "/dashboard/node/[uuid]/update",
+      params: { uuid: nodeUuid.value },
       meta: {
         title: "router.node.update",
         icon: CloudDownload,
@@ -132,6 +153,8 @@ const nodeRoutes = computed<SidebarRoute[]>(() => {
     },
     {
       path: `/dashboard/node/${nodeUuid.value}/setting`,
+      name: "/dashboard/node/[uuid]/setting",
+      params: { uuid: nodeUuid.value },
       meta: {
         title: "router.node.setting",
         icon: Settings,
@@ -155,6 +178,7 @@ function buildMenuTree(parentPath: string): SidebarRoute[] {
     )
     .map((r) => ({
       path: r.path,
+      name: typeof r.name === "string" ? r.name : undefined,
       meta: r.meta,
       children: buildMenuTree(r.path),
     }));
