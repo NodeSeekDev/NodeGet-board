@@ -11,7 +11,13 @@ import {
 } from "@/components/ui/collapsible";
 import { PopConfirm } from "@/components/ui/pop-confirm";
 import limitScopeConfig from "./limitScopeConfig.vue";
+import tokenPermissionTemplateCard from "./tokenPermissionTemplateCard.vue";
 import permissionsCard from "./permissions/permissionsCard.vue";
+import {
+  applyTokenPermissionTemplate,
+  detectTokenPermissionTemplate,
+  type TokenPermissionTemplateValue,
+} from "../tokenPermissionTemplates";
 
 const props = defineProps<{
   tokenLimit: TokenLimitEntry;
@@ -25,26 +31,53 @@ const emits = defineEmits<{
 
 const localTokenLimit = ref<TokenLimitEntry>(props.tokenLimit);
 const scopeTab = ref<ScopeTabValue>(detectScopeTab(props.tokenLimit.scopes));
+const selectedTemplate = ref<TokenPermissionTemplateValue>("custom");
 const isOpen = ref(false);
+
+const syncSelectedTemplate = () => {
+  selectedTemplate.value = detectTokenPermissionTemplate(
+    localTokenLimit.value,
+    scopeTab.value,
+  );
+};
 
 watch(
   () => props.tokenLimit,
   (value) => {
     localTokenLimit.value = value;
     scopeTab.value = detectScopeTab(value.scopes, scopeTab.value);
+    syncSelectedTemplate();
   },
+  { immediate: true, deep: true },
 );
 
 watch(
   localTokenLimit,
   (value) => {
     emits("update:tokenLimit", value);
+    syncSelectedTemplate();
   },
   { deep: true },
 );
 
+watch(scopeTab, () => {
+  syncSelectedTemplate();
+});
+
 const handleDeleteLimit = () => {
   emits("deleteLimit", props.index);
+};
+
+const handleTemplateChange = (value: TokenPermissionTemplateValue) => {
+  selectedTemplate.value = value;
+
+  if (value === "custom") {
+    return;
+  }
+
+  const next = applyTokenPermissionTemplate(value, localTokenLimit.value);
+  scopeTab.value = next.scopeTab;
+  localTokenLimit.value = next.tokenLimit;
 };
 </script>
 
@@ -78,6 +111,10 @@ const handleDeleteLimit = () => {
     </div>
 
     <CollapsibleContent class="space-y-2">
+      <tokenPermissionTemplateCard
+        :model-value="selectedTemplate"
+        @update:model-value="handleTemplateChange"
+      />
       <limitScopeConfig
         v-if="localTokenLimit"
         v-model:scope="localTokenLimit.scopes"
