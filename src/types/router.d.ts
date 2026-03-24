@@ -5,6 +5,7 @@ declare module "vue-router" {
     hidden?: boolean;
     order?: number;
     group?: string;
+    isClosed?: boolean;
   }
 }
 

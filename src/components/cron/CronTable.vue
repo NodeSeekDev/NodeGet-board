@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { Copy, History, Loader2, Pencil, Trash2 } from "lucide-vue-next";
 import {
@@ -34,6 +35,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const router = useRouter();
 
 const nodeNameMap = computed(
   () =>
@@ -101,6 +103,14 @@ const nodeBadgeLabel = (task: CronTask) => {
 
 const handleToggleEnabled = (task: CronTask) => {
   emit("toggleEnabled", task);
+};
+
+const openHistory = (task: CronTask) => {
+  void router.push({
+    name: "/dashboard/cron-history/[cronName]",
+    params: { cronName: task.name },
+    query: { taskType: task.taskKind },
+  });
 };
 
 const isToggling = (name: string) => props.togglingNames.includes(name);
@@ -216,13 +226,7 @@ const isDeleting = (name: string) => props.deletingNames.includes(name);
                 size="icon"
                 variant="ghost"
                 class="h-7 w-7"
-                @click="
-                  $router.push({
-                    name: 'cron-history',
-                    params: { cronName: task.name },
-                    query: { taskType: task.taskKind },
-                  })
-                "
+                @click="openHistory(task)"
               >
                 <History class="h-3.5 w-3.5" />
               </Button>
