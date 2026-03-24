@@ -117,13 +117,22 @@ watch(
 // Form dialog
 const formOpen = ref(false);
 const editingTask = ref<CronTask | null>(null);
+const formMode = ref<"create" | "edit" | "duplicate">("create");
 
 const openCreate = () => {
+  formMode.value = "create";
   editingTask.value = null;
   formOpen.value = true;
 };
 
 const openEdit = (task: CronTask) => {
+  formMode.value = "edit";
+  editingTask.value = task;
+  formOpen.value = true;
+};
+
+const openDuplicate = (task: CronTask) => {
+  formMode.value = "duplicate";
   editingTask.value = task;
   formOpen.value = true;
 };
@@ -246,6 +255,7 @@ const handleUpdateNodes = async (name: string, agentIds: string[]) => {
         :toggling-names="togglingNames"
         :deleting-names="deletingNames"
         @edit="openEdit"
+        @duplicate="openDuplicate"
         @delete="handleDelete"
         @toggle-enabled="handleToggle"
         @update-nodes="handleUpdateNodes"
@@ -254,6 +264,7 @@ const handleUpdateNodes = async (name: string, agentIds: string[]) => {
 
     <CronFormDialog
       v-model:open="formOpen"
+      :mode="formMode"
       :task="editingTask"
       :nodes="nodes"
       :saving="saveLoading"

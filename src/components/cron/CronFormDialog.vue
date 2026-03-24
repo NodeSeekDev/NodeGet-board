@@ -29,6 +29,7 @@ export type { CronTask, AgentTaskKind };
 const props = defineProps<{
   open: boolean;
   task?: CronTask | null;
+  mode?: "create" | "edit" | "duplicate";
   nodes: { uuid: string; customName: string }[];
   saving?: boolean;
 }>();
@@ -39,6 +40,8 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+
+const isEditMode = computed(() => props.mode === "edit" && !!props.task);
 
 const defaultForm = () => ({
   name: "",
@@ -103,7 +106,9 @@ const validateCronSegment = (
   }
   if (/^\*\/\d+$/.test(segment)) return Number(segment.slice(2)) > 0;
   if (/^\d+\/\d+$/.test(segment)) {
-    const [start, step] = segment.split("/").map(Number);
+    const [start = Number.NaN, step = Number.NaN] = segment
+      .split("/")
+      .map(Number);
     return start >= min && start <= max && step > 0;
   }
   if (/^\d+-\d+$/.test(segment)) {
@@ -347,7 +352,7 @@ watch(
     if (val) {
       if (props.task) {
         form.value = {
-          name: props.task.name,
+          name: props.mode === "duplicate" ? "" : props.task.name,
           cronExpression: props.task.cronExpression,
           taskKind: props.task.taskKind,
           agentIds: [...props.task.agentIds],
@@ -374,11 +379,11 @@ const handleSave = () => {
   if (props.saving) return;
   if (!validateForm()) return;
   emit("save", {
-    id: props.task?.id,
+    id: isEditMode.value ? props.task?.id : undefined,
     name: form.value.name,
     cronExpression: form.value.cronExpression,
     enabled: props.task?.enabled ?? true,
-    lastRunTime: props.task?.lastRunTime ?? null,
+    lastRunTime: isEditMode.value ? (props.task?.lastRunTime ?? null) : null,
     taskKind: form.value.taskKind,
     agentIds: form.value.agentIds,
     agentTaskType: form.value.agentTaskType,
@@ -395,7 +400,9 @@ const handleSave = () => {
     <DialogContent class="flex max-h-[85vh] flex-col sm:max-w-md">
       <DialogHeader>
         <DialogTitle>
-          {{ task ? t("dashboard.cron.edit") : t("dashboard.cron.create") }}
+          {{
+            isEditMode ? t("dashboard.cron.edit") : t("dashboard.cron.create")
+          }}
         </DialogTitle>
         <DialogDescription>
           {{ t("dashboard.cron.desc") }}
@@ -407,7 +414,7 @@ const handleSave = () => {
           <Input
             v-model="form.name"
             :placeholder="t('dashboard.cron.name')"
-            :disabled="!!task || saving"
+            :disabled="isEditMode || saving"
           />
           <p v-if="errors.name" class="text-xs text-destructive">
             {{ errors.name }}
