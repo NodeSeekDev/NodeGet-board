@@ -6,6 +6,8 @@ declare module "vue-router" {
     order?: number;
     group?: string;
     isClosed?: boolean;
+    prefetch?: boolean | "high" | "normal" | "low" | "off";
+    prefetchPriority?: number;
   }
 }
 
