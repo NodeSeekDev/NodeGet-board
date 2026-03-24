@@ -102,6 +102,10 @@ const validateCronSegment = (
     return value >= min && value <= max;
   }
   if (/^\*\/\d+$/.test(segment)) return Number(segment.slice(2)) > 0;
+  if (/^\d+\/\d+$/.test(segment)) {
+    const [start, step] = segment.split("/").map(Number);
+    return start >= min && start <= max && step > 0;
+  }
   if (/^\d+-\d+$/.test(segment)) {
     const [start = Number.NaN, end = Number.NaN] = segment
       .split("-")
@@ -162,6 +166,9 @@ const getFieldValidationHint = (fieldName: string, token: string): string => {
     }
     return t("dashboard.cron.hintStep");
   }
+  if (/^\d+\/\d+$/.test(token)) {
+    return t("dashboard.cron.hintStartStep");
+  }
   if (/^\d+-\d+$/.test(token)) {
     return t("dashboard.cron.hintRange");
   }
@@ -219,6 +226,14 @@ const describeCronSegment = (segment: string, fieldLabel: string) => {
     return t("dashboard.cron.expressionStepField", {
       field: fieldLabel,
       step: segment.slice(2),
+    });
+  }
+  if (/^\d+\/\d+$/.test(segment)) {
+    const [start, step] = segment.split("/");
+    return t("dashboard.cron.expressionStartStepField", {
+      field: fieldLabel,
+      start,
+      step,
     });
   }
   if (/^\d+-\d+$/.test(segment)) {
@@ -545,7 +560,11 @@ const handleSave = () => {
             <Input
               v-else
               v-model="form.agentTaskTarget"
-              placeholder="www.example.com"
+              :placeholder="
+                form.agentTaskType === 'tcp_ping'
+                  ? 'www.example.com:80'
+                  : 'www.example.com'
+              "
               :disabled="saving"
             />
             <p

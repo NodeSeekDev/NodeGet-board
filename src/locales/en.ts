@@ -342,6 +342,7 @@ export default {
       expressionUnspecifiedField: "{field}: unspecified",
       expressionExactField: "{field}: {value}",
       expressionStepField: "{field}: every {step}",
+      expressionStartStepField: "{field}: every {step}, starting at {start}",
       expressionRangeField: "{field}: from {start} to {end}",
       expressionListField: "{field}: {values}",
       expressionCustomField: "{field}: {value}",
@@ -395,6 +396,8 @@ export default {
         "Only for day/weekday fields, meaning no specified value",
       hintNumberRange: "Please enter a valid number within the allowed range",
       hintStep: "Interval, e.g. */5 means every 5 units",
+      hintStartStep:
+        "Start/step format, e.g. 0/2 means every 2 units starting from 0",
       hintStepPositive: "Step value must be greater than 0",
       hintRange: "Format: start-end, e.g. 1-5",
       hintList: "Comma-separated, e.g. 1,3,5",

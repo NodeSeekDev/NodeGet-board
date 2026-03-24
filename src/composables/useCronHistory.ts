@@ -1,6 +1,7 @@
 import { computed } from "vue";
 import { useBackendStore } from "@/composables/useBackendStore";
 import { getWsConnection } from "@/composables/useWsConnection";
+import type { TaskEventType } from "@/types/taskEvent";
 
 export interface CrontabResult {
   id: number;
@@ -20,6 +21,22 @@ export interface TaskQueryResult {
   task_id: number;
   timestamp: number;
   uuid: string;
+  cron_source?: string;
+}
+
+export interface TaskQueryCondition {
+  task_id?: number;
+  uuid?: string;
+  timestamp_from_to?: [number, number];
+  timestamp_from?: number;
+  timestamp_to?: number;
+  is_success?: boolean;
+  is_failure?: boolean;
+  is_running?: boolean;
+  type?: TaskEventType;
+  cron_source?: string;
+  limit?: number;
+  last?: null;
 }
 
 export interface CronHistoryQuery {
@@ -41,12 +58,14 @@ export function useCronHistory() {
     );
   };
 
-  const queryTask = (taskId: number): Promise<TaskQueryResult[]> => {
+  const queryTask = (
+    conditions: TaskQueryCondition[],
+  ): Promise<TaskQueryResult[]> => {
     return getWsConnection(backendUrl.value).call<TaskQueryResult[]>(
       "task_query",
       {
         token: backendToken.value,
-        task_data_query: { condition: [{ task_id: taskId }] },
+        task_data_query: { condition: conditions },
       },
     );
   };

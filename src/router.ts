@@ -355,8 +355,7 @@ const router = createRouter({
             {
               path: "latency",
               name: "latency",
-              component: () =>
-                import("@/views/dashboard/WorkInProcessView.vue"),
+              component: () => import("@/views/dashboard/node/LatencyView.vue"),
               meta: { title: "router.node.latency" },
             },
             {
