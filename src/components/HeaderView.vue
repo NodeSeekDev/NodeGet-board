@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, inject, type Ref } from "vue";
+import { inject, type Ref } from "vue";
 import { RouterLink } from "vue-router";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,17 +19,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useI18n } from "vue-i18n";
+import { useThemeStore } from "@/stores/theme";
 
 defineProps<{
   status: "disconnected" | "connecting" | "connected";
 }>();
 
-const isDark = ref(false);
 const background = inject<Ref<"default" | "flickering">>("background");
 const setBackground =
   inject<(val: "default" | "flickering") => void>("setBackground");
 const openBackendSwitcher = inject<() => void>("openBackendSwitcher");
 const { locale } = useI18n();
+const themeStore = useThemeStore();
 
 const changeLanguage = (lang: string) => {
   locale.value = lang;
@@ -37,29 +38,8 @@ const changeLanguage = (lang: string) => {
 };
 
 const toggleTheme = () => {
-  isDark.value = !isDark.value;
-  if (isDark.value) {
-    document.documentElement.classList.add("dark");
-    document.cookie = "theme=dark; path=/; max-age=31536000"; // 1 year
-  } else {
-    document.documentElement.classList.remove("dark");
-    document.cookie = "theme=light; path=/; max-age=31536000"; // 1 year
-  }
+  themeStore.toggle();
 };
-
-onMounted(() => {
-  const themeCookie = document.cookie
-    .split("; ")
-    .find((row) => row.startsWith("theme="))
-    ?.split("=")[1];
-  if (themeCookie === "dark") {
-    isDark.value = true;
-    document.documentElement.classList.add("dark");
-  } else {
-    isDark.value = false;
-    document.documentElement.classList.remove("dark");
-  }
-});
 </script>
 
 <template>
@@ -90,7 +70,7 @@ onMounted(() => {
 
       <Button variant="ghost" size="icon" @click="toggleTheme">
         <Moon
-          v-if="!isDark"
+          v-if="!themeStore.isDark"
           class="h-[1.2rem] w-[1rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0"
         />
         <Sun
