@@ -120,7 +120,7 @@ const router = createRouter({
         {
           path: "cost",
           name: "cost",
-          component: () => import("@/views/dashboard/WorkInProcessView.vue"),
+          component: () => import("@/views/dashboard/CostView.vue"),
           meta: {
             title: "router.cost",
             icon: CreditCard,

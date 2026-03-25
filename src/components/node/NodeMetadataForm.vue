@@ -174,6 +174,20 @@ const filteredRegions = computed(() => {
       />
     </div>
 
+    <!-- expireTime -->
+    <div class="space-y-2">
+      <Label for="nm-expire-time">到期时间</Label>
+      <input
+        id="nm-expire-time"
+        type="date"
+        :value="modelValue.expireTime"
+        class="placeholder:text-muted-foreground border-input dark:bg-input/30 h-9 w-full rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[1px] md:text-sm"
+        @change="
+          update({ expireTime: ($event.target as HTMLInputElement).value })
+        "
+      />
+    </div>
+
     <!-- region -->
     <div class="space-y-2">
       <Label for="nm-region">地区</Label>
