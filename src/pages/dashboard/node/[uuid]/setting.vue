@@ -32,6 +32,7 @@ const form = ref<NodeMetadata>({
   price: 0,
   priceUnit: "$",
   priceCycle: 30,
+  expireTime: "",
   region: "",
   hidden: false,
 });
