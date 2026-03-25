@@ -7,6 +7,70 @@ import { useBackendStore } from "@/composables/useBackendStore";
 import { useCronHistory } from "@/composables/useCronHistory";
 import type { TaskQueryResult } from "@/composables/useCronHistory";
 
+const CHART_COLORS = [
+  "#3b82f6",
+  "#10b981",
+  "#f59e0b",
+  "#ef4444",
+  "#8b5cf6",
+  "#06b6d4",
+];
+
+type SeriesStats = {
+  name: string;
+  color: string;
+  avg: number | null;
+  jitter: number | null;
+  lossRate: number;
+};
+
+function computeStats(
+  data: TaskQueryResult[],
+  type: "ping" | "tcp_ping",
+): SeriesStats[] {
+  const cronNames = [...new Set(data.map((r) => r.cron_source ?? "未知"))];
+  return cronNames
+    .map((name) => {
+      const colorIndex = cronNames.indexOf(name);
+      const rows = data.filter((r) => (r.cron_source ?? "未知") === name);
+      const total = rows.length;
+      const color = CHART_COLORS[colorIndex % CHART_COLORS.length]!;
+      if (total === 0)
+        return { name, color, avg: null, jitter: null, lossRate: 0 };
+
+      const vals = rows
+        .filter(
+          (r) =>
+            r.success &&
+            r.task_event_result &&
+            typeof r.task_event_result[type] === "number",
+        )
+        .map((r) => r.task_event_result![type] as number);
+
+      const lossRate = ((total - vals.length) / total) * 100;
+      if (vals.length === 0)
+        return { name, color, avg: null, jitter: null, lossRate };
+
+      const avg = vals.reduce((s, v) => s + v, 0) / vals.length;
+      const jitter =
+        vals.length >= 2
+          ? vals.slice(1).reduce((s, v, i) => s + Math.abs(v - vals[i]!), 0) /
+            (vals.length - 1)
+          : null;
+
+      return { name, color, avg, jitter, lossRate };
+    })
+    .sort((a, b) => {
+      const avgA = a.avg ?? Infinity;
+      const avgB = b.avg ?? Infinity;
+      if (avgA !== avgB) return avgA - avgB;
+      const jitterA = a.jitter ?? Infinity;
+      const jitterB = b.jitter ?? Infinity;
+      if (jitterA !== jitterB) return jitterA - jitterB;
+      return a.lossRate - b.lossRate;
+    });
+}
+
 const route = useRoute();
 const uuid = computed(() => route.params.uuid as string);
 
@@ -18,11 +82,38 @@ const tcpPingLoading = ref(false);
 const pingData = ref<TaskQueryResult[]>([]);
 const tcpPingData = ref<TaskQueryResult[]>([]);
 
+const pingPeakCut = ref(true);
+const tcpPingPeakCut = ref(true);
+
+const pingVisible = ref<boolean[]>([]);
+const tcpPingVisible = ref<boolean[]>([]);
+
+// ── 时间窗口 ──────────────────────────────────────────────
+const WINDOWS = [
+  { label: "7天", value: 7 * 24 * 60 * 60 * 1000 },
+  { label: "1天", value: 24 * 60 * 60 * 1000 },
+  { label: "12小时", value: 12 * 60 * 60 * 1000 },
+  { label: "6小时", value: 6 * 60 * 60 * 1000 },
+  { label: "1小时", value: 60 * 60 * 1000 },
+  { label: "30分钟", value: 30 * 60 * 1000 },
+  { label: "5分钟", value: 5 * 60 * 1000 },
+] as const;
+
+const windowMs = ref(60 * 60 * 1000);
+
+// 窗口切换时清空旧数据，触发全量重新拉取
+watch(windowMs, () => {
+  pingData.value = [];
+  tcpPingData.value = [];
+  void fetchData();
+});
+// ─────────────────────────────────────────────────────────
+
 // ── 刷新间隔 ──────────────────────────────────────────────
 const INTERVALS = [
-  { label: "5s", value: 5_000 },
-  { label: "10s", value: 10_000 },
-  { label: "30s", value: 30_000 },
+  { label: "5秒", value: 5_000 },
+  { label: "10秒", value: 10_000 },
+  { label: "30秒", value: 30_000 },
 ] as const;
 
 const refreshInterval = ref(10_000);
@@ -42,16 +133,11 @@ function startRefresh() {
   }, refreshInterval.value);
 }
 
-function setInterval_(interval: number) {
-  refreshInterval.value = interval;
-  // 切换后重置计时器，等待新间隔后再请求
-  startRefresh();
-}
+// 间隔切换时重置计时器
+watch(refreshInterval, startRefresh);
 
 onUnmounted(stopRefresh);
 // ─────────────────────────────────────────────────────────
-
-const WINDOW_MS = 24 * 60 * 60 * 1000;
 
 /** 取数据集中最大的 timestamp（ms） */
 function latestTs(data: TaskQueryResult[]): number | null {
@@ -79,9 +165,9 @@ const fetchData = async () => {
   }
 
   const now = Date.now();
-  const cutoff = now - WINDOW_MS;
+  const cutoff = now - windowMs.value;
 
-  // 有已有数据时从最新时间戳开始增量拉取，否则全量查 24h
+  // 有已有数据时从最新时间戳开始增量拉取，否则全量查所选时间窗口
   const pingFrom = latestTs(pingData.value) ?? cutoff;
   const tcpFrom = latestTs(tcpPingData.value) ?? cutoff;
 
@@ -123,6 +209,27 @@ const fetchData = async () => {
   }
 };
 
+const pingStats = computed(() => computeStats(pingData.value, "ping"));
+const tcpPingStats = computed(() =>
+  computeStats(tcpPingData.value, "tcp_ping"),
+);
+
+// 系列数量变化时扩展 visible 数组，保留已有隐藏状态
+watch(
+  pingStats,
+  (stats) => {
+    pingVisible.value = stats.map((_, i) => pingVisible.value[i] ?? true);
+  },
+  { immediate: true },
+);
+watch(
+  tcpPingStats,
+  (stats) => {
+    tcpPingVisible.value = stats.map((_, i) => tcpPingVisible.value[i] ?? true);
+  },
+  { immediate: true },
+);
+
 // backend / uuid 变化时：立即拉一次数据，并重启自动刷新
 watch(
   () => [currentBackend.value?.url, currentBackend.value?.token, uuid.value],
@@ -139,29 +246,53 @@ watch(
     <div class="flex flex-col gap-4">
       <!-- 顶部控制栏 -->
       <div class="flex items-center justify-between">
-        <span class="text-xs text-muted-foreground">最近 24 小时</span>
-        <!-- 刷新间隔按钮组 -->
-        <div class="inline-flex rounded-md border overflow-hidden text-xs">
-          <button
-            v-for="item in INTERVALS"
-            :key="item.value"
-            class="px-3 py-1.5 transition-colors"
-            :class="
-              refreshInterval === item.value
-                ? 'bg-primary text-primary-foreground font-medium'
-                : 'bg-card text-muted-foreground hover:bg-muted'
-            "
-            @click="setInterval_(item.value)"
+        <span
+          class="text-xs text-muted-foreground inline-flex items-center gap-1"
+        >
+          最近
+          <select
+            v-model="windowMs"
+            class="bg-card border rounded px-1.5 py-0.5 text-xs text-foreground outline-none cursor-pointer hover:bg-muted transition-colors"
           >
-            {{ item.label }}
-          </button>
-        </div>
+            <option v-for="w in WINDOWS" :key="w.value" :value="w.value">
+              {{ w.label }}
+            </option>
+          </select>
+        </span>
+        <span
+          class="text-xs text-muted-foreground inline-flex items-center gap-1"
+        >
+          每
+          <select
+            v-model="refreshInterval"
+            class="bg-card border rounded px-1.5 py-0.5 text-xs text-foreground outline-none cursor-pointer hover:bg-muted transition-colors"
+          >
+            <option
+              v-for="item in INTERVALS"
+              :key="item.value"
+              :value="item.value"
+            >
+              {{ item.label }}
+            </option>
+          </select>
+          更新
+        </span>
       </div>
 
       <!-- TCP Ping 图表 -->
       <div class="rounded-lg border bg-card">
         <div class="px-4 py-3 border-b flex items-center justify-between">
           <span class="text-sm font-semibold">TCP Ping</span>
+          <label
+            class="inline-flex items-center gap-1.5 cursor-pointer select-none text-xs text-muted-foreground"
+          >
+            <input
+              v-model="tcpPingPeakCut"
+              type="checkbox"
+              class="accent-primary w-3.5 h-3.5 cursor-pointer"
+            />
+            削峰
+          </label>
         </div>
         <div class="relative h-[260px]">
           <!-- 首次加载（无数据）时展示 spinner -->
@@ -183,6 +314,8 @@ watch(
             v-if="tcpPingData.length > 0"
             :data="tcpPingData"
             type="tcp_ping"
+            :peak-cut="tcpPingPeakCut"
+            :visible-series="tcpPingVisible"
             class="w-full h-full"
           />
           <!-- 刷新中：轻量覆盖指示，不遮挡图表 -->
@@ -191,12 +324,72 @@ watch(
             class="absolute top-2 right-2 h-1.5 w-1.5 rounded-full bg-primary animate-pulse"
           />
         </div>
+        <!-- 统计数据 -->
+        <div v-if="tcpPingStats.length > 0" class="border-t">
+          <div
+            class="flex items-center justify-between px-4 pt-2.5 pb-1 text-xs text-muted-foreground"
+          >
+            <span>来源</span>
+            <div class="flex">
+              <span class="w-20 text-right">平均延迟</span>
+              <span class="w-16 text-right">抖动</span>
+              <span class="w-14 text-right">丢包率</span>
+            </div>
+          </div>
+          <div class="px-2 pb-2">
+            <div
+              v-for="(s, i) in tcpPingStats"
+              :key="s.name"
+              class="flex items-center justify-between px-2 py-1.5 rounded-md text-xs cursor-pointer select-none transition-all hover:bg-muted"
+              :class="
+                tcpPingVisible[i] === false ? 'opacity-35' : 'opacity-100'
+              "
+              @click="tcpPingVisible[i] = !tcpPingVisible[i]"
+            >
+              <span class="flex items-center gap-2 min-w-0 flex-1 mr-4">
+                <span
+                  class="inline-block w-5 h-0.5 rounded-full flex-shrink-0"
+                  :style="{ background: s.color }"
+                />
+                <span class="truncate text-foreground">{{ s.name }}</span>
+              </span>
+              <div class="flex flex-shrink-0">
+                <span class="w-20 text-right tabular-nums text-foreground">
+                  {{ s.avg != null ? s.avg.toFixed(1) + " ms" : "—" }}
+                </span>
+                <span class="w-16 text-right tabular-nums text-foreground">
+                  {{ s.jitter != null ? s.jitter.toFixed(1) + " ms" : "—" }}
+                </span>
+                <span
+                  class="w-14 text-right tabular-nums"
+                  :class="
+                    s.lossRate >= 5
+                      ? 'text-red-500 font-medium'
+                      : 'text-foreground'
+                  "
+                >
+                  {{ s.lossRate.toFixed(1) + "%" }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Ping 图表 -->
       <div class="rounded-lg border bg-card">
         <div class="px-4 py-3 border-b flex items-center justify-between">
           <span class="text-sm font-semibold">Ping</span>
+          <label
+            class="inline-flex items-center gap-1.5 cursor-pointer select-none text-xs text-muted-foreground"
+          >
+            <input
+              v-model="pingPeakCut"
+              type="checkbox"
+              class="accent-primary w-3.5 h-3.5 cursor-pointer"
+            />
+            削峰
+          </label>
         </div>
         <div class="relative h-[260px]">
           <div
@@ -215,12 +408,62 @@ watch(
             v-if="pingData.length > 0"
             :data="pingData"
             type="ping"
+            :peak-cut="pingPeakCut"
+            :visible-series="pingVisible"
             class="w-full h-full"
           />
           <div
             v-if="pingLoading && pingData.length > 0"
             class="absolute top-2 right-2 h-1.5 w-1.5 rounded-full bg-primary animate-pulse"
           />
+        </div>
+        <!-- 统计数据 -->
+        <div v-if="pingStats.length > 0" class="border-t">
+          <div
+            class="flex items-center justify-between px-4 pt-2.5 pb-1 text-xs text-muted-foreground"
+          >
+            <span>来源</span>
+            <div class="flex">
+              <span class="w-20 text-right">平均延迟</span>
+              <span class="w-16 text-right">抖动</span>
+              <span class="w-14 text-right">丢包率</span>
+            </div>
+          </div>
+          <div class="px-2 pb-2">
+            <div
+              v-for="(s, i) in pingStats"
+              :key="s.name"
+              class="flex items-center justify-between px-2 py-1.5 rounded-md text-xs cursor-pointer select-none transition-all hover:bg-muted"
+              :class="pingVisible[i] === false ? 'opacity-35' : 'opacity-100'"
+              @click="pingVisible[i] = !pingVisible[i]"
+            >
+              <span class="flex items-center gap-2 min-w-0 flex-1 mr-4">
+                <span
+                  class="inline-block w-5 h-0.5 rounded-full flex-shrink-0"
+                  :style="{ background: s.color }"
+                />
+                <span class="truncate text-foreground">{{ s.name }}</span>
+              </span>
+              <div class="flex flex-shrink-0">
+                <span class="w-20 text-right tabular-nums text-foreground">
+                  {{ s.avg != null ? s.avg.toFixed(1) + " ms" : "—" }}
+                </span>
+                <span class="w-16 text-right tabular-nums text-foreground">
+                  {{ s.jitter != null ? s.jitter.toFixed(1) + " ms" : "—" }}
+                </span>
+                <span
+                  class="w-14 text-right tabular-nums"
+                  :class="
+                    s.lossRate >= 5
+                      ? 'text-red-500 font-medium'
+                      : 'text-foreground'
+                  "
+                >
+                  {{ s.lossRate.toFixed(1) + "%" }}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

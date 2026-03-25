@@ -1,13 +1,18 @@
 <script setup lang="ts">
-import { shallowRef, onMounted, onUnmounted, watch } from "vue";
+import { shallowRef, onMounted, onUnmounted, watch, withDefaults } from "vue";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 import type { TaskQueryResult } from "@/composables/useCronHistory";
 
-const props = defineProps<{
-  data: TaskQueryResult[];
-  type: "ping" | "tcp_ping";
-}>();
+const props = withDefaults(
+  defineProps<{
+    data: TaskQueryResult[];
+    type: "ping" | "tcp_ping";
+    peakCut?: boolean;
+    visibleSeries?: boolean[];
+  }>(),
+  { peakCut: true },
+);
 
 const COLORS = [
   "#3b82f6",
@@ -23,33 +28,58 @@ function normalizeTs(ts: number): number {
 }
 
 /** 构建 uPlot 对齐数据 */
-function buildData(): { cronNames: string[]; aligned: uPlot.AlignedData } {
+function buildData(): {
+  cronNames: string[];
+  aligned: uPlot.AlignedData;
+  timeoutFlags: boolean[][];
+} {
   const cronNames = [
     ...new Set(props.data.map((r) => r.cron_source ?? "未知")),
   ];
 
+  // 对齐到 30s bucket，消除不同 cron 任务执行时间偏差导致的折线断裂
+  const BUCKET_S = 30;
+  const snapBucket = (tsSeconds: number) =>
+    Math.floor(tsSeconds / BUCKET_S) * BUCKET_S;
+
   const tsSet = new Set<number>();
   for (const r of props.data)
-    tsSet.add(Math.floor(normalizeTs(r.timestamp) / 1000));
+    tsSet.add(snapBucket(Math.floor(normalizeTs(r.timestamp) / 1000)));
   const xs = [...tsSet].sort((a, b) => a - b);
 
-  const ys = cronNames.map((name) => {
-    const map = new Map<number, number | null>();
+  const PEAK_CAP = 500;
+
+  const ysAndFlags = cronNames.map((name) => {
+    const valMap = new Map<number, number | null>();
+    const flagMap = new Map<number, boolean>();
     for (const r of props.data) {
       if ((r.cron_source ?? "未知") !== name) continue;
-      const t = Math.floor(normalizeTs(r.timestamp) / 1000);
-      const v =
-        r.success &&
-        r.task_event_result &&
-        typeof r.task_event_result[props.type] === "number"
-          ? (r.task_event_result[props.type] as number)
-          : null;
-      map.set(t, v);
+      const t = snapBucket(Math.floor(normalizeTs(r.timestamp) / 1000));
+      const isTimeout =
+        !r.success ||
+        !r.task_event_result ||
+        typeof r.task_event_result[props.type] !== "number";
+      flagMap.set(t, isTimeout);
+      let v: number | null;
+      if (isTimeout) {
+        v = props.peakCut ? PEAK_CAP : null;
+      } else {
+        const raw = r.task_event_result[props.type] as number;
+        v = props.peakCut ? Math.min(raw, PEAK_CAP) : raw;
+      }
+      valMap.set(t, v);
     }
-    return xs.map((t) => map.get(t) ?? null);
+    return {
+      vals: xs.map((t) => valMap.get(t) ?? null),
+      flags: xs.map((t) => flagMap.get(t) ?? false),
+    };
   });
 
-  return { cronNames, aligned: [xs, ...ys] as uPlot.AlignedData };
+  return {
+    cronNames,
+    aligned: [xs, ...ysAndFlags.map((r) => r.vals)] as uPlot.AlignedData,
+    timeoutFlags: ysAndFlags.map((r) => r.flags),
+  };
 }
 
 /** 悬浮 tooltip plugin */
@@ -98,7 +128,12 @@ function tooltipPlugin(): uPlot.Plugin {
           if (!series) continue;
           const val = (u.data[i] as (number | null)[])[idx];
           const color = COLORS[(i - 1) % COLORS.length];
-          const valStr = val == null ? "—" : `${val.toFixed(2)} ms`;
+          const isTimeout = currentTimeoutFlags[i - 1]?.[idx] ?? false;
+          const valStr = isTimeout
+            ? `<span style="color:#ef4444;font-weight:600">超时</span>`
+            : val == null
+              ? "—"
+              : `${val.toFixed(2)} ms`;
           html += `<div style="display:flex;align-items:center;gap:6px">
             <span style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0"></span>
             <span style="color:var(--foreground)">${series.label}: <b>${valStr}</b></span>
@@ -173,34 +208,34 @@ function makeOpts(
 
 const containerRef = shallowRef<HTMLDivElement | null>(null);
 const currentCronNames = shallowRef<string[]>([]);
-const seriesVisible = shallowRef<boolean[]>([]);
 let chart: uPlot | null = null;
 let resizeObserver: ResizeObserver | null = null;
+let currentTimeoutFlags: boolean[][] = [];
 
 function destroy() {
   chart?.destroy();
   chart = null;
 }
 
-function toggleSeries(i: number) {
-  if (!chart) return;
-  const next = [...seriesVisible.value];
-  next[i] = !next[i];
-  seriesVisible.value = next;
-  chart.setSeries(i + 1, { show: next[i] });
+function applyVisibility() {
+  if (!chart || !props.visibleSeries) return;
+  props.visibleSeries.forEach((show, i) => {
+    chart!.setSeries(i + 1, { show });
+  });
 }
 
 function build(width: number, height: number) {
   if (!containerRef.value || width <= 0 || height <= 0) return;
   destroy();
-  const { cronNames, aligned } = buildData();
+  const { cronNames, aligned, timeoutFlags } = buildData();
   currentCronNames.value = cronNames;
-  seriesVisible.value = cronNames.map(() => true);
+  currentTimeoutFlags = timeoutFlags;
   chart = new uPlot(
     makeOpts(width, height, cronNames),
     aligned,
     containerRef.value,
   );
+  applyVisibility();
 }
 
 onMounted(() => {
@@ -222,16 +257,24 @@ onUnmounted(() => {
 });
 
 watch(
-  () => [props.data, props.type] as const,
+  () => props.visibleSeries,
+  () => applyVisibility(),
+  { deep: true },
+);
+
+watch(
+  () => [props.data, props.type, props.peakCut] as const,
   () => {
     if (!containerRef.value) return;
-    const { cronNames, aligned } = buildData();
+    const { cronNames, aligned, timeoutFlags } = buildData();
 
     if (
       chart &&
       cronNames.length === currentCronNames.value.length &&
       cronNames.every((n, i) => n === currentCronNames.value[i])
     ) {
+      currentTimeoutFlags = timeoutFlags;
+      applyVisibility();
       const xs = aligned[0] as number[];
       const dataMin = xs.length ? (xs[0] ?? null) : null;
       const dataMax = xs.length ? (xs[xs.length - 1] ?? null) : null;
@@ -258,25 +301,5 @@ watch(
 </script>
 
 <template>
-  <div class="w-full h-full flex flex-col overflow-hidden">
-    <div ref="containerRef" class="flex-1 min-h-0 overflow-hidden" />
-    <div
-      v-if="currentCronNames.length > 0"
-      class="flex flex-wrap gap-x-4 gap-y-1 px-3 py-2"
-    >
-      <button
-        v-for="(name, i) in currentCronNames"
-        :key="name"
-        class="flex items-center gap-1.5 text-xs transition-opacity cursor-pointer select-none"
-        :class="seriesVisible[i] ? 'opacity-100' : 'opacity-35'"
-        @click="toggleSeries(i)"
-      >
-        <span
-          class="inline-block w-5 h-0.5 flex-shrink-0 rounded-full"
-          :style="{ background: COLORS[i % COLORS.length] }"
-        />
-        <span>{{ name }}</span>
-      </button>
-    </div>
-  </div>
+  <div ref="containerRef" class="w-full h-full overflow-hidden" />
 </template>
