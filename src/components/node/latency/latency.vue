@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { shallowRef, onMounted, onUnmounted, watch, withDefaults } from "vue";
+import { shallowRef, onMounted, onUnmounted, watch } from "vue";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 import type { TaskQueryResult } from "@/composables/useCronHistory";
