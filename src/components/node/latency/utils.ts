@@ -25,26 +25,57 @@ export function normalizeTs(ts: number): number {
   return ts < 1_000_000_000_000 ? ts * 1000 : ts;
 }
 
+export function normalizeCronName(name?: string | null): string {
+  return name ?? "未知";
+}
+
+export function getStableCronNames(data: TaskQueryResult[]): string[] {
+  return [...new Set(data.map((r) => normalizeCronName(r.cron_source)))].sort(
+    (a, b) => a.localeCompare(b),
+  );
+}
+
 export type SeriesStats = {
   name: string;
   color: string;
   avg: number | null;
   jitter: number | null;
   lossRate: number;
+  qualityBars: Array<number | null>;
 };
+
+const QUALITY_SAMPLE_LIMIT = 300;
 
 export function computeStats(
   data: TaskQueryResult[],
   type: "ping" | "tcp_ping",
+  colorMap: Record<string, string> = {},
 ): SeriesStats[] {
-  const cronNames = [...new Set(data.map((r) => r.cron_source ?? "未知"))];
+  const cronNames = getStableCronNames(data);
   return cronNames
-    .map((name, i) => {
-      const rows = data.filter((r) => (r.cron_source ?? "未知") === name);
+    .map((name) => {
+      const rows = data.filter(
+        (r) => normalizeCronName(r.cron_source) === name,
+      );
       const total = rows.length;
-      const color = SERIES_COLORS[i % SERIES_COLORS.length]!;
+      const color = colorMap[name] ?? SERIES_COLORS[0]!;
+      const qualityBars = rows
+        .slice()
+        .sort((a, b) => normalizeTs(a.timestamp) - normalizeTs(b.timestamp))
+        .slice(-QUALITY_SAMPLE_LIMIT)
+        .map((r) => {
+          const value = r.task_event_result?.[type];
+          return r.success && typeof value === "number" ? value : null;
+        });
       if (total === 0)
-        return { name, color, avg: null, jitter: null, lossRate: 0 };
+        return {
+          name,
+          color,
+          avg: null,
+          jitter: null,
+          lossRate: 0,
+          qualityBars,
+        };
 
       const vals = rows
         .filter(
@@ -57,7 +88,7 @@ export function computeStats(
 
       const lossRate = ((total - vals.length) / total) * 100;
       if (vals.length === 0)
-        return { name, color, avg: null, jitter: null, lossRate };
+        return { name, color, avg: null, jitter: null, lossRate, qualityBars };
 
       const avg = vals.reduce((s, v) => s + v, 0) / vals.length;
       const jitter =
@@ -66,7 +97,7 @@ export function computeStats(
             (vals.length - 1)
           : null;
 
-      return { name, color, avg, jitter, lossRate };
+      return { name, color, avg, jitter, lossRate, qualityBars };
     })
     .sort((a, b) => {
       const avgA = a.avg ?? Infinity;

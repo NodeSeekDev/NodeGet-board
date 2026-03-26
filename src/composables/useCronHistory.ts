@@ -60,6 +60,7 @@ export function useCronHistory() {
 
   const queryTask = (
     conditions: TaskQueryCondition[],
+    timeoutMs?: number,
   ): Promise<TaskQueryResult[]> => {
     return getWsConnection(backendUrl.value).call<TaskQueryResult[]>(
       "task_query",
@@ -67,6 +68,7 @@ export function useCronHistory() {
         token: backendToken.value,
         task_data_query: { condition: conditions },
       },
+      timeoutMs,
     );
   };
 

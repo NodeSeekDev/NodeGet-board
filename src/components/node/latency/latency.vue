@@ -3,7 +3,12 @@ import { shallowRef, onMounted, onUnmounted, watch } from "vue";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 import type { TaskQueryResult } from "@/composables/useCronHistory";
-import { SERIES_COLORS as COLORS, normalizeTs } from "./utils";
+import {
+  getStableCronNames,
+  normalizeCronName,
+  normalizeTs,
+  SERIES_COLORS,
+} from "./utils";
 
 const props = withDefaults(
   defineProps<{
@@ -11,9 +16,14 @@ const props = withDefaults(
     type: "ping" | "tcp_ping";
     peakCut?: boolean;
     visibleSeries?: Record<string, boolean>;
+    hoveredSeries?: string | null;
+    seriesColors?: Record<string, string>;
   }>(),
   { peakCut: true },
 );
+
+const BASE_SERIES_WIDTH = 2;
+const DIMMED_SERIES_ALPHA = 0.18;
 
 /** 构建 uPlot 对齐数据 */
 function buildData(): {
@@ -21,9 +31,7 @@ function buildData(): {
   aligned: uPlot.AlignedData;
   timeoutFlags: boolean[][];
 } {
-  const cronNames = [
-    ...new Set(props.data.map((r) => r.cron_source ?? "未知")),
-  ];
+  const cronNames = getStableCronNames(props.data);
 
   // 对齐到 30s bucket，消除不同 cron 任务执行时间偏差导致的折线断裂
   const BUCKET_S = 30;
@@ -41,7 +49,7 @@ function buildData(): {
     const valMap = new Map<number, number | null>();
     const flagMap = new Map<number, boolean>();
     for (const r of props.data) {
-      if ((r.cron_source ?? "未知") !== name) continue;
+      if (normalizeCronName(r.cron_source) !== name) continue;
       const t = snapBucket(Math.floor(normalizeTs(r.timestamp) / 1000));
       const isTimeout =
         !r.success ||
@@ -115,7 +123,10 @@ function tooltipPlugin(): uPlot.Plugin {
           const series = u.series[i];
           if (!series) continue;
           const val = (u.data[i] as (number | null)[])[idx];
-          const color = COLORS[(i - 1) % COLORS.length]!;
+          const color =
+            typeof series.label === "string"
+              ? (props.seriesColors?.[series.label] ?? SERIES_COLORS[0]!)
+              : "#9ca3af";
           const isTimeout = currentTimeoutFlags[i - 1]?.[idx] ?? false;
           const valStr = isTimeout
             ? `<span style="color:#ef4444;font-weight:600">超时</span>`
@@ -155,10 +166,10 @@ function makeOpts(
     padding: [8, 12, 0, 0],
     series: [
       {},
-      ...cronNames.map((name, i) => ({
+      ...cronNames.map((name) => ({
         label: name,
-        stroke: COLORS[i % COLORS.length]!,
-        width: 2,
+        stroke: props.seriesColors?.[name] ?? SERIES_COLORS[0]!,
+        width: BASE_SERIES_WIDTH,
         spanGaps: false,
         points: { show: false },
       })),
@@ -189,6 +200,9 @@ function makeOpts(
       x: { time: true },
       y: { auto: true },
     },
+    focus: {
+      alpha: DIMMED_SERIES_ALPHA,
+    },
     legend: { show: false },
     plugins: [tooltipPlugin()],
   };
@@ -214,6 +228,24 @@ function applyVisibility() {
   });
 }
 
+function applySeriesEmphasis() {
+  if (!chart) return;
+
+  const hovered = props.hoveredSeries;
+  const hoveredIdx =
+    hovered == null || (props.visibleSeries?.[hovered] ?? true) === false
+      ? null
+      : (chart.series as uPlot.Series[]).findIndex(
+          (series, i) => i > 0 && series.label === hovered,
+        );
+
+  if (hoveredIdx != null && hoveredIdx > 0) {
+    chart.setSeries(hoveredIdx, { focus: true }, false);
+  } else {
+    chart.setSeries(null, { focus: true }, false);
+  }
+}
+
 function build(width: number, height: number) {
   if (!containerRef.value || width <= 0 || height <= 0) return;
   destroy();
@@ -226,6 +258,7 @@ function build(width: number, height: number) {
     containerRef.value,
   );
   applyVisibility();
+  applySeriesEmphasis();
 }
 
 onMounted(() => {
@@ -248,7 +281,25 @@ onUnmounted(() => {
 
 watch(
   () => props.visibleSeries,
-  () => applyVisibility(),
+  () => {
+    applyVisibility();
+    applySeriesEmphasis();
+  },
+  { deep: true },
+);
+
+watch(
+  () => props.hoveredSeries,
+  () => applySeriesEmphasis(),
+);
+
+watch(
+  () => props.seriesColors,
+  () => {
+    if (!containerRef.value) return;
+    const { width, height } = containerRef.value.getBoundingClientRect();
+    build(width, height);
+  },
   { deep: true },
 );
 
@@ -282,6 +333,8 @@ watch(
       if (isZoomed) {
         chart.setScale("x", { min: savedMin, max: savedMax });
       }
+
+      applySeriesEmphasis();
     } else {
       const { width, height } = containerRef.value.getBoundingClientRect();
       build(width, height);
