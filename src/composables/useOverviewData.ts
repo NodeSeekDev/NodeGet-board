@@ -21,6 +21,9 @@ export interface OverviewServer {
   network?: Record<string, unknown>;
   customName: string;
   hidden: boolean;
+  region?: string;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 // --- 模块级单例状态，所有组件共享 ---
@@ -31,7 +34,16 @@ const error = ref<string | null>(null);
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 let staticPollTimer: ReturnType<typeof setInterval> | null = null;
 let uuids: string[] = [];
-let metaMap = new Map<string, { customName: string; hidden: boolean }>();
+let metaMap = new Map<
+  string,
+  {
+    customName: string;
+    hidden: boolean;
+    region: string;
+    latitude: number | null;
+    longitude: number | null;
+  }
+>();
 let staticMap = new Map<string, AgentRow>();
 let fetchDynamicInFlight = false;
 let fetchStaticInFlight = false;
@@ -64,9 +76,17 @@ function initFunctions() {
       const namespaceKeys = uuids.flatMap((uuid) => [
         { namespace: uuid, key: "metadata_name" },
         { namespace: uuid, key: "metadata_hidden" },
+        { namespace: uuid, key: "metadata_region" },
+        { namespace: uuid, key: "metadata_latitude" },
+        { namespace: uuid, key: "metadata_longitude" },
       ]);
       const results = await kv.getMultiValue(namespaceKeys);
       metaMap = new Map();
+      const parseNullableNumber = (value: unknown): number | null => {
+        if (value === null || value === undefined || value === "") return null;
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : null;
+      };
       for (const uuid of uuids) {
         const nameEntry = results.find(
           (r) => r.namespace === uuid && r.key === "metadata_name",
@@ -74,9 +94,21 @@ function initFunctions() {
         const hiddenEntry = results.find(
           (r) => r.namespace === uuid && r.key === "metadata_hidden",
         );
+        const regionEntry = results.find(
+          (r) => r.namespace === uuid && r.key === "metadata_region",
+        );
+        const latitudeEntry = results.find(
+          (r) => r.namespace === uuid && r.key === "metadata_latitude",
+        );
+        const longitudeEntry = results.find(
+          (r) => r.namespace === uuid && r.key === "metadata_longitude",
+        );
         metaMap.set(uuid, {
           customName: nameEntry ? String(nameEntry.value ?? "") : "",
           hidden: hiddenEntry ? Boolean(hiddenEntry.value) : false,
+          region: regionEntry ? String(regionEntry.value ?? "") : "",
+          latitude: parseNullableNumber(latitudeEntry?.value),
+          longitude: parseNullableNumber(longitudeEntry?.value),
         });
       }
     } catch {
@@ -119,7 +151,13 @@ function initFunctions() {
       servers.value = uuids.map((uuid) => {
         const d = dynamicMap.get(uuid) ?? { uuid };
         const s = staticMap.get(uuid) ?? { uuid };
-        const meta = metaMap.get(uuid) ?? { customName: "", hidden: false };
+        const meta = metaMap.get(uuid) ?? {
+          customName: "",
+          hidden: false,
+          region: "",
+          latitude: null,
+          longitude: null,
+        };
 
         return {
           uuid,
@@ -138,6 +176,9 @@ function initFunctions() {
           network: d.network as Record<string, unknown> | undefined,
           customName: meta.customName,
           hidden: meta.hidden,
+          region: meta.region,
+          latitude: meta.latitude,
+          longitude: meta.longitude,
         };
       });
 
@@ -188,8 +229,17 @@ function initFunctions() {
         const namespaceKeys = newUuids.flatMap((uuid) => [
           { namespace: uuid, key: "metadata_name" },
           { namespace: uuid, key: "metadata_hidden" },
+          { namespace: uuid, key: "metadata_region" },
+          { namespace: uuid, key: "metadata_latitude" },
+          { namespace: uuid, key: "metadata_longitude" },
         ]);
         const kvResults = await kv.getMultiValue(namespaceKeys);
+        const parseNullableNumber = (value: unknown): number | null => {
+          if (value === null || value === undefined || value === "")
+            return null;
+          const parsed = Number(value);
+          return Number.isFinite(parsed) ? parsed : null;
+        };
         for (const uuid of newUuids) {
           const nameEntry = kvResults.find(
             (r) => r.namespace === uuid && r.key === "metadata_name",
@@ -197,14 +247,32 @@ function initFunctions() {
           const hiddenEntry = kvResults.find(
             (r) => r.namespace === uuid && r.key === "metadata_hidden",
           );
+          const regionEntry = kvResults.find(
+            (r) => r.namespace === uuid && r.key === "metadata_region",
+          );
+          const latitudeEntry = kvResults.find(
+            (r) => r.namespace === uuid && r.key === "metadata_latitude",
+          );
+          const longitudeEntry = kvResults.find(
+            (r) => r.namespace === uuid && r.key === "metadata_longitude",
+          );
           metaMap.set(uuid, {
             customName: nameEntry ? String(nameEntry.value ?? "") : "",
             hidden: hiddenEntry ? Boolean(hiddenEntry.value) : false,
+            region: regionEntry ? String(regionEntry.value ?? "") : "",
+            latitude: parseNullableNumber(latitudeEntry?.value),
+            longitude: parseNullableNumber(longitudeEntry?.value),
           });
         }
       } catch {
         for (const uuid of newUuids) {
-          metaMap.set(uuid, { customName: "", hidden: false });
+          metaMap.set(uuid, {
+            customName: "",
+            hidden: false,
+            region: "",
+            latitude: null,
+            longitude: null,
+          });
         }
       }
 
