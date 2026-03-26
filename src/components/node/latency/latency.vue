@@ -3,6 +3,7 @@ import { shallowRef, onMounted, onUnmounted, watch } from "vue";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 import type { TaskQueryResult } from "@/composables/useCronHistory";
+import { SERIES_COLORS as COLORS, normalizeTs } from "./utils";
 
 const props = withDefaults(
   defineProps<{
@@ -13,25 +14,6 @@ const props = withDefaults(
   }>(),
   { peakCut: true },
 );
-
-const COLORS = [
-  "#3b82f6",
-  "#10b981",
-  "#f59e0b",
-  "#ef4444",
-  "#8b5cf6",
-  "#06b6d4",
-];
-
-function nameColor(name: string): string {
-  let h = 0;
-  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
-  return COLORS[h % COLORS.length]!;
-}
-
-function normalizeTs(ts: number): number {
-  return ts < 1_000_000_000_000 ? ts * 1000 : ts;
-}
 
 /** 构建 uPlot 对齐数据 */
 function buildData(): {
@@ -133,7 +115,7 @@ function tooltipPlugin(): uPlot.Plugin {
           const series = u.series[i];
           if (!series) continue;
           const val = (u.data[i] as (number | null)[])[idx];
-          const color = nameColor(series.label ?? "");
+          const color = COLORS[(i - 1) % COLORS.length]!;
           const isTimeout = currentTimeoutFlags[i - 1]?.[idx] ?? false;
           const valStr = isTimeout
             ? `<span style="color:#ef4444;font-weight:600">超时</span>`
@@ -173,9 +155,9 @@ function makeOpts(
     padding: [8, 12, 0, 0],
     series: [
       {},
-      ...cronNames.map((name) => ({
+      ...cronNames.map((name, i) => ({
         label: name,
-        stroke: nameColor(name),
+        stroke: COLORS[i % COLORS.length]!,
         width: 2,
         spanGaps: false,
         points: { show: false },
