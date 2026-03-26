@@ -9,18 +9,10 @@ import {
   formatUptime,
   formatTimestamp,
 } from "@/utils/format";
-import {
-  showCpuPercent,
-  showRamPercent,
-  showRamText,
-  showNetworkSpeed,
-  showDiskDisplay,
-} from "@/utils/show";
-
+import { showCpuPercent, showRamPercent, showRamText } from "@/utils/show";
 import { useRoute } from "vue-router";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Cpu,
@@ -32,6 +24,7 @@ import {
   Container,
   Fish,
 } from "lucide-vue-next";
+import UPlotChart from "@/components/UPlotChart.vue";
 
 const route = useRoute();
 const uuid = computed(() => route.params.uuid as string);
@@ -242,53 +235,6 @@ const displayData = computed(() => {
   return cpuHistory.value;
 });
 
-const historyPath = computed(() => {
-  const data = displayData.value;
-  if (data.length < 2) return "";
-
-  const width = 100;
-  const height = 40;
-  const maxVal = 100;
-  const pad = 2;
-
-  const points: [number, number][] = data.map((val, i) => {
-    const x = (i / (data.length - 1)) * width;
-    const y = pad + (height - 2 * pad) * (1 - val / maxVal);
-    return [x, y];
-  });
-
-  if (points.length < 2) return "";
-
-  let d = `M ${points[0]![0].toFixed(2)},${points[0]![1].toFixed(2)}`;
-
-  for (let i = 0; i < points.length - 1; i++) {
-    const p0 = points[i === 0 ? 0 : i - 1];
-    const p1 = points[i];
-    const p2 = points[i + 1];
-    const p3 = points[i + 2 < points.length ? i + 2 : points.length - 1];
-
-    if (!p0 || !p1 || !p2 || !p3) continue;
-
-    const cp1x = p1[0] + (p2[0] - p0[0]) / 6;
-    const cp1y = p1[1] + (p2[1] - p0[1]) / 6;
-
-    const cp2x = p2[0] - (p3[0] - p1[0]) / 6;
-    const cp2y = p2[1] - (p3[1] - p1[1]) / 6;
-
-    d += ` C ${cp1x.toFixed(2)},${cp1y.toFixed(2)} ${cp2x.toFixed(2)},${cp2y.toFixed(2)} ${p2[0].toFixed(2)},${p2[1].toFixed(2)}`;
-  }
-
-  return d;
-});
-
-const historyAreaPath = computed(() => {
-  const data = displayData.value;
-  if (data.length < 2) return "";
-  const path = historyPath.value;
-
-  return `${path} L 100,40 L 0,40 Z`;
-});
-
 const displayRamData = computed(() => {
   if (ramMode.value === "history") {
     return ramHistoryData.value.map((item) => {
@@ -298,53 +244,6 @@ const displayRamData = computed(() => {
     });
   }
   return ramHistory.value;
-});
-
-const ramHistoryPath = computed(() => {
-  const data = displayRamData.value;
-  if (data.length < 2) return "";
-
-  const width = 100;
-  const height = 40;
-  const maxVal = 100;
-  const pad = 2;
-
-  const points: [number, number][] = data.map((val, i) => {
-    const x = (i / (data.length - 1)) * width;
-    const y = pad + (height - 2 * pad) * (1 - val / maxVal);
-    return [x, y];
-  });
-
-  if (points.length < 2) return "";
-
-  let d = `M ${points[0]![0].toFixed(2)},${points[0]![1].toFixed(2)}`;
-
-  for (let i = 0; i < points.length - 1; i++) {
-    const p0 = points[i === 0 ? 0 : i - 1];
-    const p1 = points[i];
-    const p2 = points[i + 1];
-    const p3 = points[i + 2 < points.length ? i + 2 : points.length - 1];
-
-    if (!p0 || !p1 || !p2 || !p3) continue;
-
-    const cp1x = p1[0] + (p2[0] - p0[0]) / 6;
-    const cp1y = p1[1] + (p2[1] - p0[1]) / 6;
-
-    const cp2x = p2[0] - (p3[0] - p1[0]) / 6;
-    const cp2y = p2[1] - (p3[1] - p1[1]) / 6;
-
-    d += ` C ${cp1x.toFixed(2)},${cp1y.toFixed(2)} ${cp2x.toFixed(2)},${cp2y.toFixed(2)} ${p2[0].toFixed(2)},${p2[1].toFixed(2)}`;
-  }
-
-  return d;
-});
-
-const ramHistoryAreaPath = computed(() => {
-  const data = displayRamData.value;
-  if (data.length < 2) return "";
-  const path = ramHistoryPath.value;
-
-  return `${path} L 100,40 L 0,40 Z`;
 });
 
 const displayNetRxData = computed(() => {
@@ -372,50 +271,6 @@ const displayNetTxData = computed(() => {
 const maxNetSpeed = computed(() =>
   Math.max(...displayNetRxData.value, ...displayNetTxData.value, 1),
 );
-
-const buildNetPath = (data: number[], maxVal: number): string => {
-  if (data.length < 2) return "";
-  const width = 100;
-  const height = 40;
-  const pad = 2;
-  const points: [number, number][] = data.map((val, i) => {
-    const x = (i / (data.length - 1)) * width;
-    const y = pad + (height - 2 * pad) * (1 - val / maxVal);
-    return [x, y];
-  });
-  if (points.length < 2) return "";
-  let d = `M ${points[0]![0].toFixed(2)},${points[0]![1].toFixed(2)}`;
-  for (let i = 0; i < points.length - 1; i++) {
-    const p0 = points[i === 0 ? 0 : i - 1]!;
-    const p1 = points[i]!;
-    const p2 = points[i + 1]!;
-    const p3 = points[i + 2 < points.length ? i + 2 : points.length - 1]!;
-    const cp1x = p1[0] + (p2[0] - p0[0]) / 6;
-    const cp1y = Math.max(
-      pad,
-      Math.min(height - pad, p1[1] + (p2[1] - p0[1]) / 6),
-    );
-    const cp2x = p2[0] - (p3[0] - p1[0]) / 6;
-    const cp2y = Math.max(
-      pad,
-      Math.min(height - pad, p2[1] - (p3[1] - p1[1]) / 6),
-    );
-    d += ` C ${cp1x.toFixed(2)},${cp1y.toFixed(2)} ${cp2x.toFixed(2)},${cp2y.toFixed(2)} ${p2[0].toFixed(2)},${p2[1].toFixed(2)}`;
-  }
-  return d;
-};
-
-const netRxPath = computed(() =>
-  buildNetPath(displayNetRxData.value, maxNetSpeed.value),
-);
-const netTxPath = computed(() =>
-  buildNetPath(displayNetTxData.value, maxNetSpeed.value),
-);
-const netRxAreaPath = computed(() => {
-  const path = netRxPath.value;
-  if (!path) return "";
-  return `${path} L 100,40 L 0,40 Z`;
-});
 
 const ifacePriority = (name: string): number => {
   if (name === "lo") return -1;
@@ -469,16 +324,31 @@ const maxDiskSpeed = computed(() =>
   Math.max(...displayDiskReadData.value, ...displayDiskWriteData.value, 1),
 );
 
-const diskReadPath = computed(() =>
-  buildNetPath(displayDiskReadData.value, maxDiskSpeed.value),
-);
-const diskWritePath = computed(() =>
-  buildNetPath(displayDiskWriteData.value, maxDiskSpeed.value),
-);
-const diskReadAreaPath = computed(() => {
-  const path = diskReadPath.value;
-  if (!path) return "";
-  return `${path} L 100,40 L 0,40 Z`;
+const cpuTimestamps = computed(() => {
+  if (cpuMode.value === "history") {
+    return historyData.value.map(
+      (item) => new Date(item.timestamp).getTime() / 1000,
+    );
+  }
+  return [];
+});
+
+const ramTimestamps = computed(() => {
+  if (ramMode.value === "history") {
+    return ramHistoryData.value.map(
+      (item) => new Date(item.timestamp).getTime() / 1000,
+    );
+  }
+  return [];
+});
+
+const netTimestamps = computed(() => {
+  if (netMode.value === "history") {
+    return netHistoryData.value.map(
+      (item) => new Date(item.timestamp).getTime() / 1000,
+    );
+  }
+  return [];
 });
 </script>
 
@@ -592,81 +462,16 @@ const diskReadAreaPath = computed(() => {
               </CardHeader>
               <CardContent>
                 <div
-                  class="h-[260px] w-full bg-muted/10 rounded-md border flex items-end p-0 relative overflow-hidden group"
+                  class="h-[260px] w-full flex items-end p-0 relative overflow-hidden group"
                 >
-                  <!-- Axis Guide -->
-                  <div
-                    class="absolute inset-y-0 left-0 w-8 flex flex-col justify-between py-2 text-[10px] text-muted-foreground/60 font-mono select-none pointer-events-none pl-2 z-10"
-                  >
-                    <div>100%</div>
-                    <div>50%</div>
-                    <div>0%</div>
-                  </div>
-                  <!-- Grid Lines -->
-                  <div
-                    class="absolute inset-0 flex flex-col justify-between pointer-events-none z-0"
-                  >
-                    <div class="border-t border-border/40 opacity-50"></div>
-                    <div
-                      class="border-t border-border/40 border-dashed opacity-50"
-                    ></div>
-                    <div class="border-b border-border/40 opacity-50"></div>
-                  </div>
-                  <svg
-                    viewBox="0 0 100 40"
-                    preserveAspectRatio="none"
-                    class="w-full h-full text-primary"
-                  >
-                    <defs>
-                      <linearGradient
-                        id="cpuGradient"
-                        x1="0"
-                        x2="0"
-                        y1="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="0%"
-                          :stop-color="activeTheme.color"
-                          stop-opacity="0.5"
-                        />
-                        <stop
-                          offset="100%"
-                          :stop-color="activeTheme.color"
-                          stop-opacity="0"
-                        />
-                      </linearGradient>
-                      <filter
-                        id="glow"
-                        x="-50%"
-                        y="-50%"
-                        width="200%"
-                        height="200%"
-                      >
-                        <feGaussianBlur stdDeviation="2" result="coloredBlur" />
-                        <feMerge>
-                          <feMergeNode in="coloredBlur" />
-                          <feMergeNode in="SourceGraphic" />
-                        </feMerge>
-                      </filter>
-                    </defs>
-
-                    <path
-                      :d="historyAreaPath"
-                      fill="url(#cpuGradient)"
-                      stroke="none"
-                    />
-                    <path
-                      :d="historyPath"
-                      fill="none"
-                      :stroke="activeTheme.color"
-                      stroke-width="1.5"
-                      filter="url(#glow)"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      vector-effect="non-scaling-stroke"
-                    />
-                  </svg>
+                  <UPlotChart
+                    :data="displayData"
+                    :color="activeTheme.color"
+                    :maxValue="100"
+                    yLabel="%"
+                    :isTimeSeries="cpuMode === 'history'"
+                    :timestamps="cpuTimestamps"
+                  />
                   <div
                     class="absolute inset-0 flex items-center justify-center text-muted-foreground/20 font-bold text-6xl select-none pointer-events-none group-hover:opacity-0 transition-opacity"
                   >
@@ -758,79 +563,16 @@ const diskReadAreaPath = computed(() => {
               </CardHeader>
               <CardContent>
                 <div
-                  class="h-[260px] w-full bg-muted/10 rounded-md border flex items-end p-0 relative overflow-hidden group"
+                  class="h-[260px] w-full flex items-end relative overflow-hidden group"
                 >
-                  <div
-                    class="absolute inset-y-0 left-0 w-8 flex flex-col justify-between py-2 text-[10px] text-muted-foreground/60 font-mono select-none pointer-events-none pl-2 z-10"
-                  >
-                    <div>100%</div>
-                    <div>50%</div>
-                    <div>0%</div>
-                  </div>
-                  <div
-                    class="absolute inset-0 flex flex-col justify-between pointer-events-none z-0"
-                  >
-                    <div class="border-t border-border/40 opacity-50"></div>
-                    <div
-                      class="border-t border-border/40 border-dashed opacity-50"
-                    ></div>
-                    <div class="border-b border-border/40 opacity-50"></div>
-                  </div>
-                  <svg
-                    viewBox="0 0 100 40"
-                    preserveAspectRatio="none"
-                    class="w-full h-full text-primary"
-                  >
-                    <defs>
-                      <linearGradient
-                        id="ramGradient"
-                        x1="0"
-                        x2="0"
-                        y1="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="0%"
-                          :stop-color="activeTheme.color"
-                          stop-opacity="0.5"
-                        />
-                        <stop
-                          offset="100%"
-                          :stop-color="activeTheme.color"
-                          stop-opacity="0"
-                        />
-                      </linearGradient>
-                      <filter
-                        id="ramGlow"
-                        x="-50%"
-                        y="-50%"
-                        width="200%"
-                        height="200%"
-                      >
-                        <feGaussianBlur stdDeviation="2" result="coloredBlur" />
-                        <feMerge>
-                          <feMergeNode in="coloredBlur" />
-                          <feMergeNode in="SourceGraphic" />
-                        </feMerge>
-                      </filter>
-                    </defs>
-
-                    <path
-                      :d="ramHistoryAreaPath"
-                      fill="url(#ramGradient)"
-                      stroke="none"
-                    />
-                    <path
-                      :d="ramHistoryPath"
-                      fill="none"
-                      :stroke="activeTheme.color"
-                      stroke-width="1.5"
-                      filter="url(#ramGlow)"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      vector-effect="non-scaling-stroke"
-                    />
-                  </svg>
+                  <UPlotChart
+                    :data="displayRamData"
+                    :color="activeTheme.color"
+                    :maxValue="100"
+                    yLabel="%"
+                    :isTimeSeries="ramMode === 'history'"
+                    :timestamps="ramTimestamps"
+                  />
                   <div
                     class="absolute inset-0 flex items-center justify-center text-muted-foreground/20 font-bold text-6xl select-none pointer-events-none group-hover:opacity-0 transition-opacity"
                   >
@@ -866,14 +608,14 @@ const diskReadAreaPath = computed(() => {
                 :class="[
                   'flex flex-col items-start px-3 py-2.5 rounded-lg border text-xs whitespace-nowrap transition-all w-[300px] shrink-0',
                   selectedDisk === disk.name
-                    ? 'border-[#fb7185] bg-[#fb7185]/10'
+                    ? `border-[${activeTheme.color}] bg-[${activeTheme.color}]/10`
                     : 'border-border bg-muted/30 hover:bg-muted/50',
                 ]"
               >
                 <span
                   :class="
                     selectedDisk === disk.name
-                      ? 'text-[#fb7185] font-medium'
+                      ? `text-[${activeTheme.color}] font-medium`
                       : 'text-foreground'
                   "
                   class="truncate w-full"
@@ -895,7 +637,7 @@ const diskReadAreaPath = computed(() => {
                             (1 - disk.available_space / disk.total_space) *
                             100
                           ).toFixed(0) + '%',
-                        backgroundColor: '#fb7185',
+                        backgroundColor: activeTheme.color,
                         opacity: selectedDisk === disk.name ? '1' : '0.5',
                       }"
                     ></div>
@@ -912,10 +654,14 @@ const diskReadAreaPath = computed(() => {
                   </span>
                 </div>
                 <div class="flex gap-2 mt-1">
-                  <span class="font-mono text-[10px] text-[#4ade80]"
+                  <span
+                    class="font-mono text-[10px]"
+                    :style="{ color: activeTheme.color }"
                     >↓ {{ formatBytes(disk.read_speed) }}/s</span
                   >
-                  <span class="font-mono text-[10px] text-[#fb7185]"
+                  <span
+                    class="font-mono text-[10px]"
+                    :style="{ color: activeTheme.color, opacity: '0.7' }"
                     >↑ {{ formatBytes(disk.write_speed) }}/s</span
                   >
                 </div>
@@ -933,10 +679,11 @@ const diskReadAreaPath = computed(() => {
                       Disk I/O · {{ selectedDisk }}
                     </CardTitle>
                     <div class="flex items-center gap-3 text-xs font-mono">
-                      <span class="text-[#4ade80]"
+                      <span :style="{ color: activeTheme.color }"
                         >↓ {{ formatBytes(currentDiskRead) }}/s</span
                       >
-                      <span class="text-[#fb7185]"
+                      <span
+                        :style="{ color: activeTheme.color, opacity: '0.7' }"
                         >↑ {{ formatBytes(currentDiskWrite) }}/s</span
                       >
                     </div>
@@ -945,99 +692,16 @@ const diskReadAreaPath = computed(() => {
               </CardHeader>
               <CardContent>
                 <div
-                  class="h-[260px] w-full bg-muted/10 rounded-md border flex items-end p-0 relative overflow-hidden group"
+                  class="h-[260px] w-full flex items-end p-0 relative overflow-hidden group"
                 >
-                  <!-- Y-axis labels -->
-                  <div
-                    class="absolute inset-y-0 left-0 w-16 flex flex-col justify-between py-2 text-[10px] text-muted-foreground/60 font-mono select-none pointer-events-none pl-2 z-10"
-                  >
-                    <div>{{ formatBytes(maxDiskSpeed) }}/s</div>
-                    <div>{{ formatBytes(Math.round(maxDiskSpeed / 2)) }}/s</div>
-                    <div>0</div>
-                  </div>
-                  <!-- Grid Lines -->
-                  <div
-                    class="absolute inset-0 flex flex-col justify-between pointer-events-none z-0"
-                  >
-                    <div class="border-t border-border/40 opacity-50"></div>
-                    <div
-                      class="border-t border-border/40 border-dashed opacity-50"
-                    ></div>
-                    <div class="border-b border-border/40 opacity-50"></div>
-                  </div>
-                  <svg
-                    viewBox="0 0 100 40"
-                    preserveAspectRatio="none"
-                    class="w-full h-full"
-                    style="overflow: hidden"
-                  >
-                    <defs>
-                      <clipPath id="diskClip">
-                        <rect x="0" y="0" width="100" height="40" />
-                      </clipPath>
-                      <linearGradient
-                        id="diskReadGradient"
-                        x1="0"
-                        x2="0"
-                        y1="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="0%"
-                          stop-color="#4ade80"
-                          stop-opacity="0.3"
-                        />
-                        <stop
-                          offset="100%"
-                          stop-color="#4ade80"
-                          stop-opacity="0"
-                        />
-                      </linearGradient>
-                      <filter
-                        id="diskGlow"
-                        x="-50%"
-                        y="-50%"
-                        width="200%"
-                        height="200%"
-                      >
-                        <feGaussianBlur
-                          stdDeviation="1.5"
-                          result="coloredBlur"
-                        />
-                        <feMerge>
-                          <feMergeNode in="coloredBlur" />
-                          <feMergeNode in="SourceGraphic" />
-                        </feMerge>
-                      </filter>
-                    </defs>
-                    <g clip-path="url(#diskClip)">
-                      <path
-                        :d="diskReadAreaPath"
-                        fill="url(#diskReadGradient)"
-                        stroke="none"
-                      />
-                      <path
-                        :d="diskReadPath"
-                        fill="none"
-                        stroke="#4ade80"
-                        stroke-width="1.5"
-                        filter="url(#diskGlow)"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        vector-effect="non-scaling-stroke"
-                      />
-                      <path
-                        :d="diskWritePath"
-                        fill="none"
-                        stroke="#fb7185"
-                        stroke-width="1.5"
-                        filter="url(#diskGlow)"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        vector-effect="non-scaling-stroke"
-                      />
-                    </g>
-                  </svg>
+                  <UPlotChart
+                    :data="displayDiskReadData"
+                    :data2="displayDiskWriteData"
+                    :color="activeTheme.color"
+                    :color2="activeTheme.color"
+                    :maxValue="maxDiskSpeed"
+                    yLabel="B/s"
+                  />
                   <div
                     class="absolute inset-0 flex items-center justify-center text-muted-foreground/20 font-bold text-6xl select-none pointer-events-none group-hover:opacity-0 transition-opacity"
                   >
@@ -1047,11 +711,20 @@ const diskReadAreaPath = computed(() => {
                     class="absolute bottom-2 right-3 flex items-center gap-3 text-[10px] font-mono text-muted-foreground"
                   >
                     <span class="flex items-center gap-1">
-                      <span class="inline-block w-3 h-0.5 bg-[#4ade80]"></span>
+                      <span
+                        class="inline-block w-3 h-0.5"
+                        :style="{ backgroundColor: activeTheme.color }"
+                      ></span>
                       Read
                     </span>
                     <span class="flex items-center gap-1">
-                      <span class="inline-block w-3 h-0.5 bg-[#fb7185]"></span>
+                      <span
+                        class="inline-block w-3 h-0.5"
+                        :style="{
+                          backgroundColor: activeTheme.color,
+                          opacity: '0.7',
+                        }"
+                      ></span>
                       Write
                     </span>
                   </div>
@@ -1074,19 +747,21 @@ const diskReadAreaPath = computed(() => {
                 :class="[
                   'flex flex-col items-start px-3 py-2.5 rounded-lg border text-xs whitespace-nowrap transition-all w-[120px]',
                   selectedIface === 'all'
-                    ? 'border-[#38bdf8] bg-[#38bdf8]/10'
+                    ? `border-[${activeTheme.color}] bg-[${activeTheme.color}]/10`
                     : 'border-border bg-muted/30 hover:bg-muted/50',
                 ]"
               >
                 <span
                   :class="
                     selectedIface === 'all'
-                      ? 'text-[#38bdf8] font-medium'
+                      ? `text-[${activeTheme.color}] font-medium`
                       : 'text-foreground'
                   "
                   >All</span
                 >
-                <span class="font-mono text-[10px] text-[#4ade80] mt-1"
+                <span
+                  class="font-mono text-[10px] mt-1"
+                  :style="{ color: activeTheme.color }"
                   >↑
                   {{
                     formatBytes(
@@ -1099,7 +774,9 @@ const diskReadAreaPath = computed(() => {
                     )
                   }}/s</span
                 >
-                <span class="font-mono text-[10px] text-[#38bdf8]"
+                <span
+                  class="font-mono text-[10px]"
+                  :style="{ color: activeTheme.color, opacity: '0.7' }"
                   >↓
                   {{
                     formatBytes(
@@ -1121,22 +798,26 @@ const diskReadAreaPath = computed(() => {
                 :class="[
                   'flex flex-col items-start px-3 py-2.5 rounded-lg border text-xs whitespace-nowrap transition-all w-[120px]',
                   selectedIface === iface.interface_name
-                    ? 'border-[#38bdf8] bg-[#38bdf8]/10'
+                    ? `border-[${activeTheme.color}] bg-[${activeTheme.color}]/10`
                     : 'border-border bg-muted/30 hover:bg-muted/50',
                 ]"
               >
                 <span
                   :class="
                     selectedIface === iface.interface_name
-                      ? 'text-[#38bdf8] font-medium'
+                      ? `text-[${activeTheme.color}] font-medium`
                       : 'text-foreground'
                   "
                   >{{ iface.interface_name }}</span
                 >
-                <span class="font-mono text-[10px] text-[#4ade80] mt-1"
+                <span
+                  class="font-mono text-[10px] mt-1"
+                  :style="{ color: activeTheme.color }"
                   >↑ {{ formatBytes(iface.transmit_speed) }}/s</span
                 >
-                <span class="font-mono text-[10px] text-[#38bdf8]"
+                <span
+                  class="font-mono text-[10px]"
+                  :style="{ color: activeTheme.color, opacity: '0.7' }"
                   >↓ {{ formatBytes(iface.receive_speed) }}/s</span
                 >
               </button>
@@ -1157,10 +838,11 @@ const diskReadAreaPath = computed(() => {
                       }}
                     </CardTitle>
                     <div class="flex items-center gap-3 text-xs font-mono">
-                      <span class="text-[#38bdf8]"
+                      <span :style="{ color: activeTheme.color }"
                         >↓ {{ formatBytes(currentNetRx) }}/s</span
                       >
-                      <span class="text-[#4ade80]"
+                      <span
+                        :style="{ color: activeTheme.color, opacity: '0.7' }"
                         >↑ {{ formatBytes(currentNetTx) }}/s</span
                       >
                     </div>
@@ -1191,99 +873,18 @@ const diskReadAreaPath = computed(() => {
               </CardHeader>
               <CardContent>
                 <div
-                  class="h-[260px] w-full bg-muted/10 rounded-md border flex items-end p-0 relative overflow-hidden group"
+                  class="h-[260px] w-full flex items-end p-0 relative overflow-hidden group"
                 >
-                  <!-- Y-axis labels (dynamic scale) -->
-                  <div
-                    class="absolute inset-y-0 left-0 w-16 flex flex-col justify-between py-2 text-[10px] text-muted-foreground/60 font-mono select-none pointer-events-none pl-2 z-10"
-                  >
-                    <div>{{ formatBytes(maxNetSpeed) }}/s</div>
-                    <div>{{ formatBytes(maxNetSpeed / 2) }}/s</div>
-                    <div>0</div>
-                  </div>
-                  <!-- Grid Lines -->
-                  <div
-                    class="absolute inset-0 flex flex-col justify-between pointer-events-none z-0"
-                  >
-                    <div class="border-t border-border/40 opacity-50"></div>
-                    <div
-                      class="border-t border-border/40 border-dashed opacity-50"
-                    ></div>
-                    <div class="border-b border-border/40 opacity-50"></div>
-                  </div>
-                  <svg
-                    viewBox="0 0 100 40"
-                    preserveAspectRatio="none"
-                    class="w-full h-full"
-                    style="overflow: hidden"
-                  >
-                    <defs>
-                      <clipPath id="netClip">
-                        <rect x="0" y="0" width="100" height="40" />
-                      </clipPath>
-                      <linearGradient
-                        id="netRxGradient"
-                        x1="0"
-                        x2="0"
-                        y1="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="0%"
-                          stop-color="#38bdf8"
-                          stop-opacity="0.3"
-                        />
-                        <stop
-                          offset="100%"
-                          stop-color="#38bdf8"
-                          stop-opacity="0"
-                        />
-                      </linearGradient>
-                      <filter
-                        id="netGlow"
-                        x="-50%"
-                        y="-50%"
-                        width="200%"
-                        height="200%"
-                      >
-                        <feGaussianBlur
-                          stdDeviation="1.5"
-                          result="coloredBlur"
-                        />
-                        <feMerge>
-                          <feMergeNode in="coloredBlur" />
-                          <feMergeNode in="SourceGraphic" />
-                        </feMerge>
-                      </filter>
-                    </defs>
-                    <g clip-path="url(#netClip)">
-                      <path
-                        :d="netRxAreaPath"
-                        fill="url(#netRxGradient)"
-                        stroke="none"
-                      />
-                      <path
-                        :d="netRxPath"
-                        fill="none"
-                        stroke="#38bdf8"
-                        stroke-width="1.5"
-                        filter="url(#netGlow)"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        vector-effect="non-scaling-stroke"
-                      />
-                      <path
-                        :d="netTxPath"
-                        fill="none"
-                        stroke="#4ade80"
-                        stroke-width="1.5"
-                        filter="url(#netGlow)"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        vector-effect="non-scaling-stroke"
-                      />
-                    </g>
-                  </svg>
+                  <UPlotChart
+                    :data="displayNetRxData"
+                    :data2="displayNetTxData"
+                    :color="activeTheme.color"
+                    :color2="activeTheme.color"
+                    :maxValue="maxNetSpeed"
+                    yLabel="B/s"
+                    :isTimeSeries="netMode === 'history'"
+                    :timestamps="netTimestamps"
+                  />
                   <div
                     class="absolute inset-0 flex items-center justify-center text-muted-foreground/20 font-bold text-6xl select-none pointer-events-none group-hover:opacity-0 transition-opacity"
                   >
@@ -1311,11 +912,20 @@ const diskReadAreaPath = computed(() => {
                   class="flex items-center gap-4 mt-2 text-xs font-mono text-muted-foreground"
                 >
                   <span class="flex items-center gap-1">
-                    <span class="inline-block w-3 h-0.5 bg-[#38bdf8]"></span>
+                    <span
+                      class="inline-block w-3 h-0.5"
+                      :style="{ backgroundColor: activeTheme.color }"
+                    ></span>
                     Download (↓)
                   </span>
                   <span class="flex items-center gap-1">
-                    <span class="inline-block w-3 h-0.5 bg-[#4ade80]"></span>
+                    <span
+                      class="inline-block w-3 h-0.5"
+                      :style="{
+                        backgroundColor: activeTheme.color,
+                        opacity: '0.7',
+                      }"
+                    ></span>
                     Upload (↑)
                   </span>
                   <span
@@ -1343,7 +953,7 @@ const diskReadAreaPath = computed(() => {
                     :class="[
                       'flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all',
                       selectedIface === iface.interface_name
-                        ? 'border-[#38bdf8] bg-[#38bdf8]/5'
+                        ? `border-[${activeTheme.color}] bg-[${activeTheme.color}]/5`
                         : 'bg-muted/30 hover:bg-muted/50',
                     ]"
                   >
@@ -1376,10 +986,12 @@ const diskReadAreaPath = computed(() => {
                       </div>
                     </div>
                     <div class="text-right text-xs font-mono space-y-1">
-                      <div class="text-[#38bdf8]">
+                      <div :style="{ color: activeTheme.color }">
                         ↓ {{ formatBytes(iface.receive_speed) }}/s
                       </div>
-                      <div class="text-[#4ade80]">
+                      <div
+                        :style="{ color: activeTheme.color, opacity: '0.7' }"
+                      >
                         ↑ {{ formatBytes(iface.transmit_speed) }}/s
                       </div>
                     </div>
