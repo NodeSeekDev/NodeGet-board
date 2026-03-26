@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { RouterLink } from "vue-router";
-import { onMounted } from "vue";
 import { ArrowLeft, Menu, Moon, Sun } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { useThemeStore } from "@/stores/theme";
@@ -10,8 +9,6 @@ const emit = defineEmits<{
 }>();
 
 const themeStore = useThemeStore();
-
-onMounted(() => themeStore.init());
 </script>
 
 <template>
