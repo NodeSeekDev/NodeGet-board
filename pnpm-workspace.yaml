@@ -1,0 +1,4 @@
+onlyBuiltDependencies:
+  - esbuild
+  - json-editor-vue
+  - vue-demi

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import type { RouteMeta } from "vue-router";
+import type { RouteLocationRaw, RouteMeta } from "vue-router";
 import { RouterLink } from "vue-router";
 import { ChevronDown } from "lucide-vue-next";
 import { useI18n } from "vue-i18n";
@@ -18,6 +18,8 @@ import { cn } from "@/lib/utils";
 
 export interface SidebarRoute {
   path: string;
+  name?: string;
+  params?: Record<string, string>;
   meta?: RouteMeta;
   children?: SidebarRoute[];
 }
@@ -48,6 +50,15 @@ const visibleChildren = computed(() =>
       (a, b) =>
         ((a.meta?.order as number) ?? 99) - ((b.meta?.order as number) ?? 99),
     ),
+);
+
+const routeTo = computed<RouteLocationRaw>(() =>
+  props.route.name
+    ? ({
+        name: props.route.name,
+        params: props.route.params,
+      } as RouteLocationRaw)
+    : props.route.path,
 );
 const { t } = useI18n();
 </script>
@@ -108,7 +119,7 @@ const { t } = useI18n();
   <template v-else>
     <Tooltip v-if="collapsed && level === 0" :delay-duration="0">
       <TooltipTrigger as-child>
-        <RouterLink :to="route.path" class="block px-2 py-1">
+        <RouterLink :to="routeTo" class="block px-2 py-1">
           <span
             class="flex items-center justify-center rounded-md p-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
           >
@@ -126,7 +137,7 @@ const { t } = useI18n();
     </Tooltip>
     <RouterLink
       v-else
-      :to="route.path"
+      :to="routeTo"
       :class="
         cn(
           'flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground',

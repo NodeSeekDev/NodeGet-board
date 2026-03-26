@@ -41,3 +41,6 @@ __screenshots__/
 /NodeGet
 
 .env.*
+
+# unplugin-vue-router
+src/types/typed-router.d.ts

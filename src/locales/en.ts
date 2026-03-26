@@ -61,6 +61,61 @@ export default {
     saveFailed: "Save failed",
     save: "Save",
     saving: "Saving...",
+    map: {
+      title: "Global Map",
+      description: "Show where your nodes are distributed around the world.",
+      canvasTitle: "Map View",
+      canvasDescription: "Display node locations and routes on a global map.",
+      nodeCount: "{count} nodes shown",
+      myLocation: "My Location",
+      showUnlockedCountries: "Show unlocked countries",
+      showMyLocationLinks: "Show links from my location",
+      nodeListTitle: "Node List",
+      nodeListDescription:
+        "Click a map marker or a list item to mark that node as selected.",
+      selectedNode: "Selected",
+      noNodes: "No visible nodes",
+      locationStatus: {
+        loading: "Locating",
+        success: "Located",
+        unavailable: "Location unavailable, please try again",
+        denied: "Location permission denied",
+      },
+      unknownRegion: "Unknown region",
+      loading: "Loading map...",
+      loadFailed: "Failed to load map data",
+      globeLoading: "Loading globe view...",
+      globeLoadFailed: "Failed to initialize globe view",
+      lineTooltip: "{from} -> {to}",
+      tooltip: {
+        nodeCount: "Nodes: {count}",
+      },
+      regionsTitle: "Covered Regions",
+      regionsDescription:
+        "Major regions are marked now so nodes, links, or alerts can be layered on later.",
+      legendTitle: "Legend",
+      legendDescription:
+        "A single visual language separates land, ocean, and regional anchors.",
+      futureHint:
+        "If you later attach real node coordinates, this base map can carry markers, bubbles, or route overlays directly.",
+      tabs: {
+        flat: "2D Map",
+        globe: "3D Map",
+      },
+      legend: {
+        land: "Land Mass",
+        ocean: "Ocean Layer",
+        marker: "Region Anchor",
+      },
+      regions: {
+        northAmerica: "North America",
+        southAmerica: "South America",
+        europe: "Europe",
+        africa: "Africa",
+        asia: "Asia",
+        oceania: "Oceania",
+      },
+    },
     kv: {
       title: "KV Management",
       createSuccess: 'Namespace "{ns}" created successfully',
@@ -119,6 +174,7 @@ export default {
       expressionUnspecifiedField: "{field}: unspecified",
       expressionExactField: "{field}: {value}",
       expressionStepField: "{field}: every {step}",
+      expressionStartStepField: "{field}: every {step}, starting at {start}",
       expressionRangeField: "{field}: from {start} to {end}",
       expressionListField: "{field}: {values}",
       expressionCustomField: "{field}: {value}",
@@ -172,6 +228,8 @@ export default {
         "Only for day/weekday fields, meaning no specified value",
       hintNumberRange: "Please enter a valid number within the allowed range",
       hintStep: "Interval, e.g. */5 means every 5 units",
+      hintStartStep:
+        "Start/step format, e.g. 0/2 means every 2 units starting from 0",
       hintStepPositive: "Step value must be greater than 0",
       hintRange: "Format: start-end, e.g. 1-5",
       hintList: "Comma-separated, e.g. 1,3,5",

@@ -33,7 +33,7 @@ const themeStore = useThemeStore();
         />
         <span class="sr-only">Toggle theme</span>
       </Button>
-      <RouterLink to="/">
+      <RouterLink :to="{ name: '/' }">
         <Button variant="ghost" size="sm">
           <ArrowLeft class="h-4 w-4 mr-1" />
           返回监控

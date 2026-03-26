@@ -5,6 +5,15 @@ declare module "vue-router" {
     hidden?: boolean;
     order?: number;
     group?: string;
+    isClosed?: boolean;
+    prefetch?:
+      | boolean
+      | number
+      | import("../router/prefetchPlugin").RoutePrefetchPriority
+      | "high"
+      | "normal"
+      | "low"
+      | "off";
   }
 }
 

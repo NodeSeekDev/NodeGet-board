@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { Loader2, Pencil, Trash2, History } from "lucide-vue-next";
+import { Copy, History, Loader2, Pencil, Trash2 } from "lucide-vue-next";
 import {
   Table,
   TableHeader,
@@ -27,12 +28,14 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   edit: [task: CronTask];
+  duplicate: [task: CronTask];
   delete: [name: string];
   toggleEnabled: [task: CronTask];
   updateNodes: [name: string, agentIds: string[]];
 }>();
 
 const { t } = useI18n();
+const router = useRouter();
 
 const nodeNameMap = computed(
   () =>
@@ -100,6 +103,14 @@ const nodeBadgeLabel = (task: CronTask) => {
 
 const handleToggleEnabled = (task: CronTask) => {
   emit("toggleEnabled", task);
+};
+
+const openHistory = (task: CronTask) => {
+  void router.push({
+    name: "/dashboard/cron-history/[cronName]",
+    params: { cronName: task.name },
+    query: { taskType: task.taskKind },
+  });
 };
 
 const isToggling = (name: string) => props.togglingNames.includes(name);
@@ -215,13 +226,7 @@ const isDeleting = (name: string) => props.deletingNames.includes(name);
                 size="icon"
                 variant="ghost"
                 class="h-7 w-7"
-                @click="
-                  $router.push({
-                    name: 'cron-history',
-                    params: { cronName: task.name },
-                    query: { taskType: task.taskKind },
-                  })
-                "
+                @click="openHistory(task)"
               >
                 <History class="h-3.5 w-3.5" />
               </Button>
@@ -232,6 +237,14 @@ const isDeleting = (name: string) => props.deletingNames.includes(name);
                 @click="emit('edit', task)"
               >
                 <Pencil class="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                class="h-7 w-7"
+                @click="emit('duplicate', task)"
+              >
+                <Copy class="h-3.5 w-3.5" />
               </Button>
               <PopConfirm
                 :description="
