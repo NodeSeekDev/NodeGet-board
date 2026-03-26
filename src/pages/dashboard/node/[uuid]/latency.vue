@@ -18,7 +18,7 @@ definePage({
 });
 
 const route = useRoute();
-const uuid = computed(() => route.params.uuid as string);
+const uuid = computed(() => (route.params as { uuid: string }).uuid);
 
 const { currentBackend } = useBackendStore();
 const { queryTask } = useCronHistory();

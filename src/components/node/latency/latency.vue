@@ -208,7 +208,7 @@ function destroy() {
 function applyVisibility() {
   if (!chart || !props.visibleSeries) return;
   (chart.series as uPlot.Series[]).forEach((series, i) => {
-    if (i === 0 || series.label == null) return;
+    if (i === 0 || typeof series.label !== "string") return;
     const show = props.visibleSeries![series.label] ?? true;
     chart!.setSeries(i, { show });
   });
