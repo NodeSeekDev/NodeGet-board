@@ -773,89 +773,71 @@ const historyAreaPath = computed(() => {
                 key="network"
                 class="space-y-6"
               >
-                <div class="grid md:grid-cols-2 gap-6">
-                  <Card class="">
-                    <CardContent class="pt-2">
-                      <div
-                        class="text-sm font-medium text-muted-foreground mb-2"
-                      >
-                        {{ $t("serverDetail.network.totalDownload") }}
-                      </div>
-                      <div class="text-3xl font-bold font-mono">
-                        {{ showNetworkSpeed(server, "rx") }}
-                      </div>
-                    </CardContent>
-                  </Card>
-                  <Card class="">
-                    <CardContent class="pt-2">
-                      <div
-                        class="text-sm font-medium text-muted-foreground mb-2"
-                      >
-                        {{ $t("serverDetail.network.totalUpload") }}
-                      </div>
-                      <div class="text-3xl font-bold font-mono">
-                        {{ showNetworkSpeed(server, "tx") }}
-                      </div>
-                    </CardContent>
-                  </Card>
+                <!-- Total Speed -->
+                <div class="flex items-center gap-6 text-sm font-mono">
+                  <div class="flex items-center gap-2">
+                    <span class="text-muted-foreground">{{
+                      $t("serverDetail.network.totalDownload")
+                    }}</span>
+                    <span class="font-bold text-lg">{{
+                      showNetworkSpeed(server, "rx")
+                    }}</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-muted-foreground">{{
+                      $t("serverDetail.network.totalUpload")
+                    }}</span>
+                    <span class="font-bold text-lg">{{
+                      showNetworkSpeed(server, "tx")
+                    }}</span>
+                  </div>
                 </div>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle>{{
-                      $t("serverDetail.network.interfaces")
-                    }}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div class="space-y-4">
-                      <div
-                        v-for="(iface, index) in server.network.interfaces"
-                        :key="index"
-                        class="flex items-center justify-between p-3 bg-muted/30 rounded-lg border"
-                      >
-                        <div class="flex items-center gap-3">
-                          <div
-                            class="h-8 w-8 rounded bg-background flex items-center justify-center border"
-                          >
-                            <Fish
-                              v-if="iface.interface_name.startsWith('docker')"
-                              class="h-4 w-4 text-muted-foreground"
-                            />
-                            <Container
-                              v-else-if="
-                                iface.interface_name.startsWith('podman')
-                              "
-                              class="h-4 w-4 text-muted-foreground"
-                            />
-                            <Network
-                              v-else
-                              class="h-4 w-4 text-muted-foreground"
-                            />
-                          </div>
-                          <div>
-                            <div class="font-medium">
-                              {{ iface.interface_name }}
-                            </div>
-                            <div
-                              class="text-xs text-muted-foreground font-mono"
-                              v-if="iface.ip_address"
-                            >
-                              {{ iface.ip_address }}
-                            </div>
-                          </div>
-                        </div>
-                        <div class="text-right text-xs font-mono space-y-1">
-                          <div class="text-emerald-500">
-                            ↓ {{ formatBytes(iface.receive_speed) }}/s
-                          </div>
-                          <div class="text-blue-500">
-                            ↑ {{ formatBytes(iface.transmit_speed) }}/s
-                          </div>
-                        </div>
-                      </div>
+                <!-- Interfaces Grid -->
+                <div class="text-sm font-medium text-muted-foreground">
+                  {{ $t("serverDetail.network.interfaces") }}
+                </div>
+                <div
+                  class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3"
+                >
+                  <div
+                    v-for="(iface, index) in server.network.interfaces"
+                    :key="index"
+                    class="bg-muted/30 rounded-lg p-3 space-y-2"
+                  >
+                    <div class="flex items-center gap-1.5">
+                      <Fish
+                        v-if="iface.interface_name.startsWith('docker')"
+                        class="h-3.5 w-3.5 text-muted-foreground shrink-0"
+                      />
+                      <Container
+                        v-else-if="iface.interface_name.startsWith('podman')"
+                        class="h-3.5 w-3.5 text-muted-foreground shrink-0"
+                      />
+                      <Network
+                        v-else
+                        class="h-3.5 w-3.5 text-muted-foreground shrink-0"
+                      />
+                      <span class="font-medium text-sm truncate">{{
+                        iface.interface_name
+                      }}</span>
                     </div>
-                  </CardContent>
-                </Card>
+                    <div
+                      v-if="iface.ip_address"
+                      class="text-[10px] text-muted-foreground font-mono truncate"
+                    >
+                      {{ iface.ip_address }}
+                    </div>
+                    <div class="flex items-center gap-3 text-xs font-mono">
+                      <span class="text-emerald-500"
+                        >↓ {{ formatBytes(iface.receive_speed) }}/s</span
+                      >
+                      <span class="text-blue-500"
+                        >↑ {{ formatBytes(iface.transmit_speed) }}/s</span
+                      >
+                    </div>
+                  </div>
+                </div>
               </div>
             </Transition>
           </div>
