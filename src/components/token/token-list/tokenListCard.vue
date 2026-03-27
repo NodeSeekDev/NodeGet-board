@@ -98,6 +98,10 @@ const toCreateToken = () => {
   router.push("/dashboard/tokenCeate");
 };
 
+const toImportToken = () => {
+  router.push("/dashboard/tokenImport");
+};
+
 // 编辑token
 const handleEditToken = (token: Token) => {
   router.push({
@@ -170,6 +174,11 @@ const handleConfirmResetToken = (token: Token) => {};
         <Button type="button" @click="toCreateToken">
           <span class="inline-flex items-center justify-center">{{
             t("dashboard.token.list.createButton")
+          }}</span>
+        </Button>
+        <Button type="button" @click="toImportToken">
+          <span class="inline-flex items-center justify-center">{{
+            t("dashboard.token.list.importButton")
           }}</span>
         </Button>
       </div>

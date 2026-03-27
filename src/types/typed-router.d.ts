@@ -80,6 +80,7 @@ declare module 'vue-router/auto-routes' {
       | '/dashboard/tokenCeate'
       | '/dashboard/tokenDetail'
       | '/dashboard/tokenEdit'
+      | '/dashboard/tokenImport'
     >,
     '/dashboard/about': RouteRecordInfo<
       '/dashboard/about',
@@ -413,6 +414,13 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/dashboard/tokenImport': RouteRecordInfo<
+      '/dashboard/tokenImport',
+      '/dashboard/tokenImport',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/server-detail': RouteRecordInfo<
       '/server-detail',
       '/s/:uuid',
@@ -487,6 +495,7 @@ declare module 'vue-router/auto-routes' {
         | '/dashboard/tokenCeate'
         | '/dashboard/tokenDetail'
         | '/dashboard/tokenEdit'
+        | '/dashboard/tokenImport'
       views:
         | 'default'
     }
@@ -777,6 +786,12 @@ declare module 'vue-router/auto-routes' {
     'src/pages/dashboard/tokenEdit.vue': {
       routes:
         | '/dashboard/tokenEdit'
+      views:
+        | never
+    }
+    'src/pages/dashboard/tokenImport.vue': {
+      routes:
+        | '/dashboard/tokenImport'
       views:
         | never
     }

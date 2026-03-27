@@ -5,13 +5,10 @@ import { useI18n } from "vue-i18n";
 import { type Token } from "../type";
 import { KeyRound } from "lucide-vue-next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import BaseInfoFrom from "../components/baseInfoFrom.vue";
-import tokenLimitFrom from "../components/tokenLimitFrom.vue";
-import PrevireToken from "../components/previewTokenJson.vue";
 import { mapTokenDetailToForm, useEditTokenHook } from "./useEditToken";
 import { useTokenListHook } from "../token-list/useTokenList";
+import TokenEditorWorkspace from "../components/TokenEditorWorkspace.vue";
 
 const useEditToken = useEditTokenHook();
 const useTokenList = useTokenListHook();
@@ -22,6 +19,10 @@ const { t } = useI18n();
 const tokenFromData = ref<Token>(mapTokenDetailToForm(null));
 const createLoading = ref(false);
 const detailLoading = ref(false);
+
+const handleTokenChange = (value: Token) => {
+  tokenFromData.value = value;
+};
 
 const getTargetToken = () => {
   const queryToken = route.query.token;
@@ -81,26 +82,18 @@ const handleUpdateToken = async () => {
         </div>
       </div>
 
-      <div v-else class="grid gap-6 xl:grid-cols-2">
-        <div class="space-y-4">
-          <BaseInfoFrom v-model:token="tokenFromData" />
-          <tokenLimitFrom v-model:token="tokenFromData" />
-          <Button
-            @click="handleUpdateToken"
-            class="w-full"
-            :disabled="createLoading || detailLoading"
-          >
-            <div v-if="createLoading">
-              {{ t("dashboard.token.edit.editTokenCard.updetingButton") }}
-            </div>
-            <div v-else>
-              {{ t("dashboard.token.edit.editTokenCard.updateButton") }}
-            </div>
-          </Button>
-        </div>
-        <div>
-          <PrevireToken :token="tokenFromData" />
-        </div>
+      <div v-else>
+        <TokenEditorWorkspace
+          :token="tokenFromData"
+          :loading="createLoading"
+          :disabled="detailLoading"
+          :submit-label="t('dashboard.token.edit.editTokenCard.updateButton')"
+          :submitting-label="
+            t('dashboard.token.edit.editTokenCard.updetingButton')
+          "
+          @update:token="handleTokenChange"
+          @submit="handleUpdateToken"
+        />
       </div>
     </CardContent>
   </Card>

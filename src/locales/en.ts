@@ -135,6 +135,7 @@ export default {
         searchButton: "Search",
         searchingButton: "Loading...",
         createButton: "Create",
+        importButton: "Import",
         table: {
           loading: "Loading Tokens...",
           noToken: "No tokens found.",
@@ -195,6 +196,36 @@ export default {
           updateButton: "Update Token",
           updetingButton: "Updating...",
           detailLoading: "Loading token detail...",
+        },
+      },
+      import: {
+        title: "Import Token",
+        description:
+          "Paste an existing token JSON, then reselect scopes before importing.",
+        returnButtonDescription: "Return to token list",
+        emptyInput: "Please enter the token JSON to import",
+        parseSuccess:
+          "Token parsed successfully. Please choose the scopes again.",
+        parseFailed:
+          "Parse error. Please check whether the token JSON is correct.",
+        parseCard: {
+          title: "Import Token",
+          description: "Paste the complete token JSON content below.",
+          placeholder: "Please enter the complete token JSON",
+          parseButton: "Parse Token",
+          parsingButton: "Parsing...",
+        },
+        parseConfirm: {
+          title: "Confirm Token Parsing",
+          description:
+            "Do you want to parse this token? Please do not import untrusted tokens casually.",
+          confirmButton: "Confirm Parse",
+          confirmingButton: "Parsing...",
+        },
+        importCard: {
+          title: "Imported Result",
+          importButton: "Import Token",
+          importingButton: "Importing...",
         },
       },
       detail: {
@@ -511,6 +542,7 @@ export default {
     scripts: "Scripts",
     batchExec: "Batch Exec",
     token: "Token",
+    tokenImport: "Import Token",
     kv: "KV Mgmt",
     jsRuntime: "JS Runtime",
     appPanel: "App Panel",
