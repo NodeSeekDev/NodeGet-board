@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from "vue";
+import { useElementSize } from "@vueuse/core";
 import {
   LATENCY_SEGMENTS,
   LOSS_COLOR,
 } from "@/components/ping/pingLatencyConfig";
 
-const CANVAS_WIDTH = 200;
 const CANVAS_HEIGHT = 16;
 const HEIGHT_CAP_MS = 400;
 const SAMPLE_LIMIT = 200;
@@ -15,6 +15,7 @@ const props = defineProps<{
 }>();
 
 const canvasRef = ref<HTMLCanvasElement | null>(null);
+const { width: canvasWidth } = useElementSize(canvasRef);
 
 function draw() {
   const canvas = canvasRef.value;
@@ -23,16 +24,17 @@ function draw() {
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
 
-  canvas.width = CANVAS_WIDTH;
+  const width = canvasWidth.value || canvas.offsetWidth || 200;
+  canvas.width = width;
   canvas.height = CANVAS_HEIGHT;
-  ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  ctx.clearRect(0, 0, width, CANVAS_HEIGHT);
 
   if (props.bars.length === 0) return;
 
   const visibleBars = props.bars.slice(-SAMPLE_LIMIT);
   if (visibleBars.length === 0) return;
 
-  const colW = Math.max(1, CANVAS_WIDTH / visibleBars.length);
+  const colW = Math.max(1, width / visibleBars.length);
 
   for (let i = 0; i < visibleBars.length; i++) {
     const latency = visibleBars[i];
@@ -68,13 +70,13 @@ watch(
   () => draw(),
   { deep: true },
 );
+watch(canvasWidth, () => draw());
 </script>
 
 <template>
   <canvas
     ref="canvasRef"
-    :width="CANVAS_WIDTH"
     :height="CANVAS_HEIGHT"
-    class="block h-4 w-[200px] bg-black/4"
+    class="block h-4 w-full bg-black/4"
   />
 </template>

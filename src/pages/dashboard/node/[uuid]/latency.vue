@@ -370,7 +370,7 @@ watch(
           >
             <div class="flex items-center min-w-0 flex-1 mr-4">
               <span class="flex-1">来源</span>
-              <span class="w-[200px] shrink-0 text-left">质量</span>
+              <span class="w-1/3 shrink-0 text-left">质量</span>
             </div>
             <div class="flex">
               <span class="w-20 text-right">平均延迟</span>
@@ -402,7 +402,7 @@ watch(
                   />
                   <span class="truncate text-foreground">{{ s.name }}</span>
                 </span>
-                <span class="w-[200px] shrink-0">
+                <span class="w-1/3 shrink-0">
                   <LatencyQualityCanvas :bars="s.qualityBars" />
                 </span>
               </div>
@@ -469,7 +469,7 @@ watch(
           >
             <div class="flex items-center min-w-0 flex-1 mr-4">
               <span class="flex-1">来源</span>
-              <span class="w-[200px] shrink-0 text-left">质量</span>
+              <span class="w-1/3 shrink-0 text-left">质量</span>
             </div>
             <div class="flex">
               <span class="w-20 text-right">平均延迟</span>
@@ -500,7 +500,7 @@ watch(
                   />
                   <span class="truncate text-foreground">{{ s.name }}</span>
                 </span>
-                <span class="w-[200px] shrink-0">
+                <span class="w-1/3 shrink-0">
                   <LatencyQualityCanvas :bars="s.qualityBars" />
                 </span>
               </div>

@@ -15,7 +15,7 @@ import { toml } from "@codemirror/legacy-modes/mode/toml";
 import { oneDark } from "@codemirror/theme-one-dark";
 
 definePage({
-  meta: { hidden: true },
+  meta: { title: "router.servers", hidden: true },
 });
 
 const { t } = useI18n();
@@ -25,7 +25,9 @@ const { backends, currentBackend } = useBackendStore();
 const themeStore = useThemeStore();
 
 const backend = computed(() => {
-  const token = decodeURIComponent(route.params.backendId as string);
+  const token = decodeURIComponent(
+    (route.params as { backendId: string }).backendId,
+  );
   return backends.value.find((b) => b.token === token) ?? null;
 });
 
@@ -109,11 +111,10 @@ const handleTabChange = (tab: string) => {
 
 const activeTab = ref("info");
 
-const editorExtensions = computed(() => {
-  const ext = [StreamLanguage.define(toml)];
-  if (themeStore.isDark) ext.push(oneDark);
-  return ext;
-});
+const editorExtensions = computed(() => [
+  StreamLanguage.define(toml),
+  ...(themeStore.isDark ? [oneDark] : []),
+]);
 </script>
 
 <template>
