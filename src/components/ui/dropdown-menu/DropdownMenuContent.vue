@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 const props = defineProps<{
   class?: HTMLAttributes["class"];
   sideOffset?: number;
+  align?: "start" | "center" | "end";
 }>();
 </script>
 
@@ -13,6 +14,7 @@ const props = defineProps<{
   <DropdownMenuPortal>
     <DropdownMenuContent
       :side-offset="props.sideOffset ?? 4"
+      :align="props.align"
       :class="
         cn(
           'z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md',
