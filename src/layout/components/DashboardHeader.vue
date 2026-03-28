@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { RouterLink } from "vue-router";
-import { onMounted } from "vue";
 import { ArrowLeft, Menu, Moon, Sun } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { useThemeStore } from "@/stores/theme";
@@ -10,8 +9,6 @@ const emit = defineEmits<{
 }>();
 
 const themeStore = useThemeStore();
-
-onMounted(() => themeStore.init());
 </script>
 
 <template>
@@ -36,7 +33,7 @@ onMounted(() => themeStore.init());
         />
         <span class="sr-only">Toggle theme</span>
       </Button>
-      <RouterLink to="/">
+      <RouterLink :to="{ name: '/' }">
         <Button variant="ghost" size="sm">
           <ArrowLeft class="h-4 w-4 mr-1" />
           返回监控
