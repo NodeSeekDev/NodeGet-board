@@ -8,7 +8,6 @@ import {
 
 const CANVAS_HEIGHT = 16;
 const HEIGHT_CAP_MS = 400;
-const SAMPLE_LIMIT = 200;
 
 const props = defineProps<{
   bars: Array<number | null>;
@@ -31,16 +30,19 @@ function draw() {
 
   if (props.bars.length === 0) return;
 
-  const visibleBars = props.bars.slice(-SAMPLE_LIMIT);
-  if (visibleBars.length === 0) return;
+  // 有多少像素显示多少条，1px = 1 条，取最新数据
+  const maxBars = Math.floor(width);
+  const displayBars = props.bars.slice(-maxBars);
+  if (displayBars.length === 0) return;
 
-  const colW = Math.max(1, width / visibleBars.length);
+  const n = displayBars.length;
+  for (let i = 0; i < n; i++) {
+    // Math.round 分界点保证相邻 bar 无缝不重叠
+    const x = Math.round((i / n) * width);
+    const w = Math.round(((i + 1) / n) * width) - x;
+    if (w <= 0) continue;
 
-  for (let i = 0; i < visibleBars.length; i++) {
-    const latency = visibleBars[i];
-    const x = Math.floor(i * colW);
-    const w = Math.max(1, Math.ceil((i + 1) * colW) - x);
-
+    const latency = displayBars[i];
     let color: string;
     let height: number;
 
