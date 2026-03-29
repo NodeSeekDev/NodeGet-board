@@ -32,16 +32,19 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import HeaderView from "@/components/HeaderView.vue";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ArrowLeft,
+  ArrowDownToLine,
+  ArrowUpFromLine,
   Cpu,
   Database,
   HardDrive,
+  CircuitBoard,
   Network,
+  Wifi,
   AlertCircle,
   Menu,
   X,
@@ -424,7 +427,7 @@ const historyAreaPath = computed(() => {
               </h1>
               <Badge variant="outline" class="font-mono text-xs">
                 <Clock class="h-3 w-3 mr-1" />
-                {{ $t("common.uptime") }}:
+                System Uptime:
                 {{ formatUptime(server.system.uptime) }}
               </Badge>
             </div>
@@ -627,82 +630,228 @@ const historyAreaPath = computed(() => {
                 key="memory"
                 class="space-y-6"
               >
-                <div class="grid md:grid-cols-2 gap-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>{{
-                        $t("serverDetail.memory.usage")
-                      }}</CardTitle>
-                      <div class="text-3xl font-bold">
-                        {{ showRamPercent(server).toFixed(1) }}%
-                      </div>
-                      <CardDescription class="font-mono">{{
-                        showRamText(server)
-                      }}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Progress
-                        :model-value="showRamPercent(server)"
-                        class="h-4"
-                      />
-                      <div class="mt-4 space-y-2">
-                        <div class="flex justify-between text-sm">
-                          <span class="text-muted-foreground">{{
-                            $t("serverDetail.memory.used")
-                          }}</span>
-                          <span class="font-mono">{{
-                            formatBytes(
-                              server.ram.used_memory || server.ram.used,
-                            )
-                          }}</span>
+                <!-- Glassmorphism Cards Row -->
+                <div class="grid md:grid-cols-2 gap-8">
+                  <!-- Memory Card -->
+                  <div
+                    class="relative rounded-2xl border border-white/10 dark:border-white/[0.06] bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] px-8 py-7 overflow-hidden transition-all hover:shadow-[0_12px_40px_rgba(74,222,128,0.1)]"
+                  >
+                    <!-- Subtle glow effect -->
+                    <div
+                      class="absolute -top-20 -right-20 w-40 h-40 rounded-full opacity-[0.07]"
+                      :style="{
+                        background: `radial-gradient(circle, ${activeTheme.color}, transparent)`,
+                      }"
+                    ></div>
+                    <div class="relative flex items-center gap-8">
+                      <!-- Radial Progress Ring -->
+                      <div class="relative shrink-0">
+                        <svg
+                          width="130"
+                          height="130"
+                          viewBox="0 0 130 130"
+                          class="transform -rotate-90"
+                        >
+                          <!-- Background ring -->
+                          <circle
+                            cx="65"
+                            cy="65"
+                            r="54"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="9"
+                            class="text-muted/30"
+                          />
+                          <!-- Progress ring -->
+                          <circle
+                            cx="65"
+                            cy="65"
+                            r="54"
+                            fill="none"
+                            :stroke="activeTheme.color"
+                            stroke-width="9"
+                            stroke-linecap="round"
+                            :stroke-dasharray="339.29"
+                            :stroke-dashoffset="
+                              339.29 - (339.29 * showRamPercent(server)) / 100
+                            "
+                            class="transition-all duration-700 ease-out"
+                            :style="{
+                              filter: `drop-shadow(0 0 6px ${activeTheme.color}40)`,
+                            }"
+                          />
+                        </svg>
+                        <!-- Center text -->
+                        <div
+                          class="absolute inset-0 flex flex-col items-center justify-center"
+                        >
+                          <span
+                            class="text-2xl font-bold tracking-tight"
+                            :style="{ color: activeTheme.color }"
+                            >{{ showRamPercent(server).toFixed(1) }}%</span
+                          >
                         </div>
-                        <div class="flex justify-between text-sm">
-                          <span class="text-muted-foreground">{{
-                            $t("serverDetail.memory.available")
-                          }}</span>
-                          <span class="font-mono">{{
-                            formatBytes(
-                              (server.ram.total_memory || server.ram.total) -
-                                (server.ram.used_memory || server.ram.used),
-                            )
-                          }}</span>
+                      </div>
+                      <!-- Details -->
+                      <div class="flex-1 min-w-0 space-y-3">
+                        <div class="flex items-center gap-2">
+                          <Database class="h-4 w-4 text-muted-foreground" />
+                          <span class="text-lg font-semibold">Memory</span>
+                        </div>
+                        <div class="text-xs text-muted-foreground font-mono">
+                          {{ showRamText(server) }}
+                        </div>
+                        <div class="space-y-2">
+                          <div class="flex justify-between text-sm">
+                            <span class="text-muted-foreground">{{
+                              $t("serverDetail.memory.used")
+                            }}</span>
+                            <span class="font-mono font-medium">{{
+                              formatBytes(
+                                server.ram.used_memory || server.ram.used,
+                              )
+                            }}</span>
+                          </div>
+                          <div class="flex justify-between text-sm">
+                            <span class="text-muted-foreground">{{
+                              $t("serverDetail.memory.available")
+                            }}</span>
+                            <span class="font-mono font-medium">{{
+                              formatBytes(
+                                (server.ram.total_memory || server.ram.total) -
+                                  (server.ram.used_memory || server.ram.used),
+                              )
+                            }}</span>
+                          </div>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
 
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>{{
-                        $t("serverDetail.memory.swapUsage")
-                      }}</CardTitle>
-                      <div class="text-3xl font-bold">
-                        {{
-                          server.ram.total_swap
-                            ? (
-                                (server.ram.used_swap / server.ram.total_swap) *
-                                100
-                              ).toFixed(1)
-                            : 0
-                        }}%
+                  <!-- Swap Card -->
+                  <div
+                    class="relative rounded-2xl border border-white/10 dark:border-white/[0.06] bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] px-8 py-7 overflow-hidden transition-all hover:shadow-[0_12px_40px_rgba(0,0,0,0.12)]"
+                  >
+                    <div
+                      class="absolute -top-20 -right-20 w-40 h-40 rounded-full opacity-[0.05]"
+                      :style="{
+                        background: `radial-gradient(circle, ${activeTheme.color}, transparent)`,
+                      }"
+                    ></div>
+                    <div class="relative flex items-center gap-8">
+                      <!-- Swap Ring -->
+                      <div class="relative shrink-0">
+                        <svg
+                          width="130"
+                          height="130"
+                          viewBox="0 0 130 130"
+                          class="transform -rotate-90"
+                        >
+                          <!-- Inactive: dashed ring / Active: solid ring -->
+                          <circle
+                            v-if="!server.ram.total_swap"
+                            cx="65"
+                            cy="65"
+                            r="54"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="9"
+                            stroke-dasharray="8 8"
+                            class="text-muted/20"
+                          />
+                          <template v-else>
+                            <circle
+                              cx="65"
+                              cy="65"
+                              r="54"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="9"
+                              class="text-muted/30"
+                            />
+                            <circle
+                              cx="65"
+                              cy="65"
+                              r="54"
+                              fill="none"
+                              :stroke="activeTheme.color"
+                              stroke-width="9"
+                              stroke-linecap="round"
+                              :stroke-dasharray="339.29"
+                              :stroke-dashoffset="
+                                339.29 -
+                                (339.29 *
+                                  (server.ram.used_swap /
+                                    server.ram.total_swap) *
+                                  100) /
+                                  100
+                              "
+                              class="transition-all duration-700 ease-out"
+                              :style="{
+                                filter: `drop-shadow(0 0 6px ${activeTheme.color}40)`,
+                              }"
+                            />
+                          </template>
+                        </svg>
+                        <!-- Center text -->
+                        <div
+                          class="absolute inset-0 flex flex-col items-center justify-center"
+                        >
+                          <template v-if="!server.ram.total_swap">
+                            <span
+                              class="text-sm font-medium text-muted-foreground/60"
+                              >Inactive</span
+                            >
+                          </template>
+                          <template v-else>
+                            <span
+                              class="text-2xl font-bold tracking-tight"
+                              :style="{ color: activeTheme.color }"
+                              >{{
+                                (
+                                  (server.ram.used_swap /
+                                    server.ram.total_swap) *
+                                  100
+                                ).toFixed(1)
+                              }}%</span
+                            >
+                          </template>
+                        </div>
                       </div>
-                      <CardDescription class="font-mono">
-                        {{ formatBytes(server.ram.used_swap || 0) }} /
-                        {{ formatBytes(server.ram.total_swap || 0) }}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Progress
-                        :model-value="
-                          server.ram.total_swap
-                            ? (server.ram.used_swap / server.ram.total_swap) *
-                              100
-                            : 0
-                        "
-                        class="h-4"
-                      />
-                    </CardContent>
-                  </Card>
+                      <!-- Details -->
+                      <div class="flex-1 min-w-0 space-y-3">
+                        <div class="flex items-center gap-2">
+                          <CircuitBoard class="h-4 w-4 text-muted-foreground" />
+                          <span class="text-lg font-semibold">Swap</span>
+                        </div>
+                        <div class="text-xs text-muted-foreground font-mono">
+                          {{ formatBytes(server.ram.used_swap || 0) }} /
+                          {{ formatBytes(server.ram.total_swap || 0) }}
+                        </div>
+                        <div class="space-y-2">
+                          <div class="flex justify-between text-sm">
+                            <span class="text-muted-foreground">{{
+                              $t("serverDetail.memory.used")
+                            }}</span>
+                            <span class="font-mono font-medium">{{
+                              formatBytes(server.ram.used_swap || 0)
+                            }}</span>
+                          </div>
+                          <div class="flex justify-between text-sm">
+                            <span class="text-muted-foreground">{{
+                              $t("serverDetail.memory.available")
+                            }}</span>
+                            <span class="font-mono font-medium">{{
+                              formatBytes(
+                                (server.ram.total_swap || 0) -
+                                  (server.ram.used_swap || 0),
+                              )
+                            }}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -712,58 +861,109 @@ const historyAreaPath = computed(() => {
                 key="disk"
                 class="space-y-6"
               >
-                <div class="grid gap-4">
-                  <Card v-for="(disk, index) in server.disk" :key="index">
-                    <CardHeader class="pb-2">
-                      <div class="flex items-center justify-between">
-                        <CardTitle
-                          class="text-base font-medium flex items-center gap-2"
+                <div class="grid md:grid-cols-2 gap-8">
+                  <div
+                    v-for="(disk, index) in server.disk"
+                    :key="index"
+                    class="relative rounded-2xl border border-white/10 dark:border-white/[0.06] bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] px-8 py-7 overflow-hidden transition-all hover:shadow-[0_12px_40px_rgba(251,146,60,0.1)]"
+                  >
+                    <div
+                      class="absolute -top-20 -right-20 w-40 h-40 rounded-full opacity-[0.07]"
+                      :style="{
+                        background: `radial-gradient(circle, ${activeTheme.color}, transparent)`,
+                      }"
+                    ></div>
+                    <div class="relative flex items-center gap-8">
+                      <!-- Radial Progress Ring -->
+                      <div class="relative shrink-0">
+                        <svg
+                          width="130"
+                          height="130"
+                          viewBox="0 0 130 130"
+                          class="transform -rotate-90"
                         >
-                          <HardDrive class="h-4 w-4" />
-                          <span>{{
-                            disk.device_name || $t("common.disk") + " " + index
-                          }}</span>
-                          <Badge
-                            variant="secondary"
-                            class="ml-2 font-mono bg-primary/10 text-primary"
+                          <circle
+                            cx="65"
+                            cy="65"
+                            r="54"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="9"
+                            class="text-muted/30"
+                          />
+                          <circle
+                            cx="65"
+                            cy="65"
+                            r="54"
+                            fill="none"
+                            :stroke="activeTheme.color"
+                            stroke-width="9"
+                            stroke-linecap="round"
+                            :stroke-dasharray="339.29"
+                            :stroke-dashoffset="
+                              339.29 -
+                              339.29 *
+                                (1 - disk.available_space / disk.total_space)
+                            "
+                            class="transition-all duration-700 ease-out"
+                            :style="{
+                              filter: `drop-shadow(0 0 6px ${activeTheme.color}40)`,
+                            }"
+                          />
+                        </svg>
+                        <div
+                          class="absolute inset-0 flex flex-col items-center justify-center"
+                        >
+                          <span
+                            class="text-2xl font-bold tracking-tight"
+                            :style="{ color: activeTheme.color }"
                             >{{
-                              disk.mount_point.length < 16
-                                ? disk.mount_point
-                                : disk.mount_point.substring(0, 16) + "..."
-                            }}</Badge
+                              (
+                                (1 - disk.available_space / disk.total_space) *
+                                100
+                              ).toFixed(0)
+                            }}%</span
                           >
-                        </CardTitle>
-                        <span class="text-sm text-muted-foreground font-mono">{{
-                          disk.kind
-                        }}</span>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div class="flex items-end justify-between mb-2">
-                        <div class="text-2xl font-bold">
-                          {{
-                            (
-                              (1 - disk.available_space / disk.total_space) *
-                              100
-                            ).toFixed(0)
-                          }}%
                         </div>
-                        <div class="text-sm text-muted-foreground font-mono">
+                      </div>
+                      <!-- Details -->
+                      <div class="flex-1 min-w-0 space-y-3">
+                        <div class="flex items-center gap-2">
+                          <HardDrive
+                            class="h-4 w-4"
+                            :style="{ color: activeTheme.color }"
+                          />
+                          <span class="text-lg font-semibold truncate">{{
+                            disk.mount_point
+                          }}</span>
+                        </div>
+                        <div
+                          class="text-xs text-muted-foreground font-mono truncate"
+                        >
                           {{
-                            formatBytes(disk.total_space - disk.available_space)
+                            disk.device_name || $t("common.disk") + " " + index
                           }}
-                          {{ $t("serverDetail.disk.usedOf") }}
-                          {{ formatBytes(disk.total_space) }}
+                          · {{ disk.kind }}
+                        </div>
+                        <div class="space-y-2">
+                          <div class="flex justify-between text-sm">
+                            <span class="text-muted-foreground">Used</span>
+                            <span class="font-mono font-medium">{{
+                              formatBytes(
+                                disk.total_space - disk.available_space,
+                              )
+                            }}</span>
+                          </div>
+                          <div class="flex justify-between text-sm">
+                            <span class="text-muted-foreground">Total</span>
+                            <span class="font-mono font-medium">{{
+                              formatBytes(disk.total_space)
+                            }}</span>
+                          </div>
                         </div>
                       </div>
-                      <Progress
-                        :model-value="
-                          (1 - disk.available_space / disk.total_space) * 100
-                        "
-                        class="h-3"
-                      />
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -773,23 +973,75 @@ const historyAreaPath = computed(() => {
                 key="network"
                 class="space-y-6"
               >
-                <!-- Total Speed -->
-                <div class="flex items-center gap-6 text-sm font-mono">
-                  <div class="flex items-center gap-2">
-                    <span class="text-muted-foreground">{{
-                      $t("serverDetail.network.totalDownload")
-                    }}</span>
-                    <span class="font-bold text-lg">{{
-                      showNetworkSpeed(server, "rx")
-                    }}</span>
+                <!-- Total Speed Summary -->
+                <div class="grid grid-cols-2 gap-8">
+                  <div
+                    class="relative rounded-2xl border border-white/10 dark:border-white/[0.06] bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] px-8 py-6 overflow-hidden"
+                  >
+                    <div
+                      class="absolute -top-20 -right-20 w-40 h-40 rounded-full opacity-[0.07]"
+                      :style="{
+                        background: `radial-gradient(circle, ${activeTheme.color}, transparent)`,
+                      }"
+                    ></div>
+                    <div class="relative flex items-center gap-4">
+                      <div
+                        class="h-10 w-10 rounded-xl flex items-center justify-center"
+                        :style="{ backgroundColor: `${activeTheme.color}15` }"
+                      >
+                        <ArrowDownToLine
+                          class="h-5 w-5"
+                          :style="{ color: activeTheme.color }"
+                        />
+                      </div>
+                      <div>
+                        <div
+                          class="text-xs text-muted-foreground font-medium tracking-wide uppercase"
+                        >
+                          Download
+                        </div>
+                        <div
+                          class="text-2xl font-bold font-mono tracking-tight"
+                          :style="{ color: activeTheme.color }"
+                        >
+                          {{ showNetworkSpeed(server, "rx") }}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div class="flex items-center gap-2">
-                    <span class="text-muted-foreground">{{
-                      $t("serverDetail.network.totalUpload")
-                    }}</span>
-                    <span class="font-bold text-lg">{{
-                      showNetworkSpeed(server, "tx")
-                    }}</span>
+                  <div
+                    class="relative rounded-2xl border border-white/10 dark:border-white/[0.06] bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] px-8 py-6 overflow-hidden"
+                  >
+                    <div
+                      class="absolute -top-20 -right-20 w-40 h-40 rounded-full opacity-[0.05]"
+                      :style="{
+                        background: `radial-gradient(circle, ${activeTheme.color}, transparent)`,
+                      }"
+                    ></div>
+                    <div class="relative flex items-center gap-4">
+                      <div
+                        class="h-10 w-10 rounded-xl flex items-center justify-center"
+                        :style="{ backgroundColor: `${activeTheme.color}15` }"
+                      >
+                        <ArrowUpFromLine
+                          class="h-5 w-5"
+                          :style="{ color: activeTheme.color, opacity: 0.7 }"
+                        />
+                      </div>
+                      <div>
+                        <div
+                          class="text-xs text-muted-foreground font-medium tracking-wide uppercase"
+                        >
+                          Upload
+                        </div>
+                        <div
+                          class="text-2xl font-bold font-mono tracking-tight"
+                          :style="{ color: activeTheme.color, opacity: 0.8 }"
+                        >
+                          {{ showNetworkSpeed(server, "tx") }}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -798,43 +1050,61 @@ const historyAreaPath = computed(() => {
                   {{ $t("serverDetail.network.interfaces") }}
                 </div>
                 <div
-                  class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3"
+                  class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
                 >
                   <div
                     v-for="(iface, index) in server.network.interfaces"
                     :key="index"
-                    class="bg-muted/30 rounded-lg p-3 space-y-2"
+                    class="relative rounded-xl border border-white/10 dark:border-white/[0.06] bg-gradient-to-br from-card/60 to-card/30 backdrop-blur-lg p-4 space-y-3 transition-all hover:shadow-[0_4px_20px_rgba(0,0,0,0.06)]"
                   >
-                    <div class="flex items-center gap-1.5">
-                      <Fish
-                        v-if="iface.interface_name.startsWith('docker')"
-                        class="h-3.5 w-3.5 text-muted-foreground shrink-0"
-                      />
-                      <Container
-                        v-else-if="iface.interface_name.startsWith('podman')"
-                        class="h-3.5 w-3.5 text-muted-foreground shrink-0"
-                      />
-                      <Network
-                        v-else
-                        class="h-3.5 w-3.5 text-muted-foreground shrink-0"
-                      />
-                      <span class="font-medium text-sm truncate">{{
-                        iface.interface_name
-                      }}</span>
-                    </div>
-                    <div
-                      v-if="iface.ip_address"
-                      class="text-[10px] text-muted-foreground font-mono truncate"
-                    >
-                      {{ iface.ip_address }}
-                    </div>
-                    <div class="flex items-center gap-3 text-xs font-mono">
-                      <span class="text-emerald-500"
-                        >↓ {{ formatBytes(iface.receive_speed) }}/s</span
+                    <div class="flex items-center gap-2.5">
+                      <div
+                        class="h-7 w-7 rounded-lg flex items-center justify-center bg-muted/40"
                       >
-                      <span class="text-blue-500"
-                        >↑ {{ formatBytes(iface.transmit_speed) }}/s</span
+                        <Fish
+                          v-if="iface.interface_name.startsWith('docker')"
+                          class="h-3.5 w-3.5 text-muted-foreground"
+                        />
+                        <Container
+                          v-else-if="iface.interface_name.startsWith('podman')"
+                          class="h-3.5 w-3.5 text-muted-foreground"
+                        />
+                        <Wifi
+                          v-else-if="iface.interface_name.startsWith('wl')"
+                          class="h-3.5 w-3.5 text-muted-foreground"
+                        />
+                        <Network
+                          v-else
+                          class="h-3.5 w-3.5 text-muted-foreground"
+                        />
+                      </div>
+                      <div class="min-w-0">
+                        <div class="font-semibold text-sm truncate">
+                          {{ iface.interface_name }}
+                        </div>
+                        <div
+                          v-if="iface.ip_address"
+                          class="text-[10px] text-muted-foreground font-mono truncate"
+                        >
+                          {{ iface.ip_address }}
+                        </div>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-4 text-xs font-mono">
+                      <span
+                        class="flex items-center gap-1"
+                        :style="{ color: activeTheme.color }"
                       >
+                        <ArrowDownToLine class="h-3 w-3" />
+                        {{ formatBytes(iface.receive_speed) }}/s
+                      </span>
+                      <span
+                        class="flex items-center gap-1"
+                        :style="{ color: activeTheme.color, opacity: 0.7 }"
+                      >
+                        <ArrowUpFromLine class="h-3 w-3" />
+                        {{ formatBytes(iface.transmit_speed) }}/s
+                      </span>
                     </div>
                   </div>
                 </div>
