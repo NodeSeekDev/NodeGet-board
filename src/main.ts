@@ -4,7 +4,6 @@ import { createPersistedState } from "pinia-plugin-persistedstate";
 import { createI18n } from "vue-i18n";
 import App from "./App.vue";
 import router from "./router";
-import { useThemeStore } from "./stores/theme";
 import routePrefetchPlugin from "./router/prefetchPlugin";
 import "./style/app.css";
 import en from "./locales/en";
@@ -32,7 +31,6 @@ const i18n = createI18n({
 });
 
 pinia.use(createPersistedState());
-useThemeStore(pinia).init();
 
 app.use(pinia);
 app.use(routePrefetchPlugin(router));
