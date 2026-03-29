@@ -13,6 +13,7 @@ import {
   SERIES_COLORS,
   computeStats,
   getStableCronNames,
+  normalizeTs,
 } from "@/components/node/latency/utils";
 
 definePage({
@@ -41,6 +42,8 @@ const pingHovered = ref<string | null>(null);
 const tcpPingHovered = ref<string | null>(null);
 const pingSeriesColors = ref<Record<string, string>>({});
 const tcpPingSeriesColors = ref<Record<string, string>>({});
+const pingXRange = ref<{ min: number; max: number } | null>(null);
+const tcpPingXRange = ref<{ min: number; max: number } | null>(null);
 
 // ── 时间窗口 ──────────────────────────────────────────────
 const WINDOWS = [
@@ -59,9 +62,10 @@ const windowMs = ref(6 * 60 * 60 * 1000);
 watch(windowMs, () => {
   pingData.value = [];
   tcpPingData.value = [];
+  pingXRange.value = null;
+  tcpPingXRange.value = null;
   void fetchData();
 });
-// ─────────────────────────────────────────────────────────
 
 // ── 刷新间隔 ──────────────────────────────────────────────
 const INTERVALS = [
@@ -95,7 +99,6 @@ function startRefresh() {
 watch(refreshInterval, startRefresh);
 
 onUnmounted(stopRefresh);
-// ─────────────────────────────────────────────────────────
 
 /** 取数据集中最大的 timestamp（ms） */
 function latestTs(data: TaskQueryResult[]): number | null {
@@ -187,6 +190,8 @@ async function handleRefresh() {
   if (isRefreshing.value) return;
   pingData.value = [];
   tcpPingData.value = [];
+  pingXRange.value = null;
+  tcpPingXRange.value = null;
   await fetchData();
 }
 
@@ -233,28 +238,49 @@ watch(
   { immediate: true },
 );
 
+// x 轴缩放时只统计可见范围内的数据
+const pingStatsData = computed(() => {
+  const range = pingXRange.value;
+  if (range == null) return pingData.value;
+  return pingData.value.filter((r) => {
+    const tsS = normalizeTs(r.timestamp) / 1000;
+    return tsS >= range.min && tsS <= range.max;
+  });
+});
+const tcpPingStatsData = computed(() => {
+  const range = tcpPingXRange.value;
+  if (range == null) return tcpPingData.value;
+  return tcpPingData.value.filter((r) => {
+    const tsS = normalizeTs(r.timestamp) / 1000;
+    return tsS >= range.min && tsS <= range.max;
+  });
+});
+
 const pingStats = computed(() =>
-  computeStats(pingData.value, "ping", pingSeriesColors.value),
+  computeStats(pingStatsData.value, "ping", pingSeriesColors.value),
 );
 const tcpPingStats = computed(() =>
-  computeStats(tcpPingData.value, "tcp_ping", tcpPingSeriesColors.value),
+  computeStats(tcpPingStatsData.value, "tcp_ping", tcpPingSeriesColors.value),
 );
 
 // 系列数量变化时扩展 visible 字典，保留已有隐藏状态
+// 监听原始数据而非 pingStats，避免缩放时丢失已隐藏系列的状态
 watch(
-  pingStats,
-  (stats) => {
+  pingData,
+  (data) => {
+    const names = getStableCronNames(data);
     const next: Record<string, boolean> = {};
-    for (const s of stats) next[s.name] = pingVisible.value[s.name] ?? true;
+    for (const name of names) next[name] = pingVisible.value[name] ?? true;
     pingVisible.value = next;
   },
   { immediate: true },
 );
 watch(
-  tcpPingStats,
-  (stats) => {
+  tcpPingData,
+  (data) => {
+    const names = getStableCronNames(data);
     const next: Record<string, boolean> = {};
-    for (const s of stats) next[s.name] = tcpPingVisible.value[s.name] ?? true;
+    for (const name of names) next[name] = tcpPingVisible.value[name] ?? true;
     tcpPingVisible.value = next;
   },
   { immediate: true },
@@ -356,6 +382,7 @@ watch(
             :hovered-series="tcpPingHovered"
             :series-colors="tcpPingSeriesColors"
             class="w-full h-full"
+            @x-range-change="tcpPingXRange = $event"
           />
           <!-- 刷新中：轻量覆盖指示，不遮挡图表 -->
           <div
@@ -456,6 +483,7 @@ watch(
             :hovered-series="pingHovered"
             :series-colors="pingSeriesColors"
             class="w-full h-full"
+            @x-range-change="pingXRange = $event"
           />
           <div
             v-if="pingLoading && pingData.length > 0"
