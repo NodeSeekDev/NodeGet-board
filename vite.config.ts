@@ -1,6 +1,7 @@
 import { fileURLToPath, URL } from "node:url";
 
 import { defineConfig } from "vite";
+import unpluginVueRouter from "unplugin-vue-router/vite";
 import vue from "@vitejs/plugin-vue";
 import vueJsx from "@vitejs/plugin-vue-jsx";
 import vueDevTools from "vite-plugin-vue-devtools";
@@ -12,7 +13,21 @@ export default defineConfig({
     port: 5173,
     host: "0.0.0.0",
   },
-  plugins: [vue(), vueJsx(), vueDevTools(), tailwindcss()],
+  plugins: [
+    unpluginVueRouter({
+      routesFolder: [
+        {
+          src: "./src/pages",
+          exclude: ["**/__*.vue"],
+        },
+      ],
+      dts: "./src/types/typed-router.d.ts",
+    }),
+    vue(),
+    vueJsx(),
+    vueDevTools(),
+    tailwindcss(),
+  ],
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),

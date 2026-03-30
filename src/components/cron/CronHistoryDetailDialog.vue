@@ -102,7 +102,7 @@ const loadTaskDetail = async (message: string) => {
 
   loadingTask.value = true;
   try {
-    const result = await queryTask(taskId);
+    const result = await queryTask([{ task_id: taskId }]);
     taskResults.value = result;
   } catch (error) {
     console.error("[CronHistory] task_query failed:", error);
