@@ -1,5 +1,5 @@
 type ThemeApi = {
-  readThemeCookie: () => boolean;
+  isDarkTheme: () => boolean;
   syncThemeDom: (dark: boolean) => void;
   initTheme: () => boolean;
   applyTheme: (dark: boolean) => void;
@@ -21,7 +21,7 @@ const getThemeApi = () => {
   return api;
 };
 
-export const readThemeCookie = () => getThemeApi().readThemeCookie();
+export const isDarkTheme = () => getThemeApi().isDarkTheme();
 
 export const syncThemeDom = (dark: boolean) => getThemeApi().syncThemeDom(dark);
 

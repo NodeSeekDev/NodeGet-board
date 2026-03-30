@@ -19,7 +19,7 @@
     document.head.appendChild(style);
   }
 
-  function readThemeCookie() {
+  function isDarkTheme() {
     var themeCookie = document.cookie
       .split("; ")
       .find(function (row) {
@@ -39,7 +39,7 @@
   }
 
   function initTheme() {
-    var dark = readThemeCookie();
+    var dark = isDarkTheme();
     syncThemeDom(dark);
     return dark;
   }
@@ -55,7 +55,7 @@
   }
 
   window.__NODEGET_THEME__ = {
-    readThemeCookie: readThemeCookie,
+    isDarkTheme: isDarkTheme,
     syncThemeDom: syncThemeDom,
     initTheme: initTheme,
     applyTheme: applyTheme,
