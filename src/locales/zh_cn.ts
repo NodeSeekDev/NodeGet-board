@@ -294,6 +294,16 @@ export default {
       waitToRun: "等待运行...",
       warningCommand: "错误命令:",
       desc: "在目标节点上批量执行命令",
+      scriptsSelect: "选择脚本片段",
+      scripts: {
+        desc: "这里可以选择你的脚本片段",
+        search: "搜索脚本片段",
+        searchPlaceholder: "请输入脚本片段名称进行搜索",
+        name: "脚本名称",
+        contentSummary: "脚本摘要",
+        cancel: "取消",
+        select: "选择",
+      },
     },
     scripts: {
       desc: "您可以在这创建你的脚本片段",

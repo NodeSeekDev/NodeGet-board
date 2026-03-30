@@ -14,7 +14,10 @@ const emits = defineEmits<{
   (e: "update:modelValue", val: string): void;
 }>();
 
-const code = ref(props.modelValue);
+const code = computed({
+  get: () => props.modelValue,
+  set: (val) => emits("update:modelValue", val),
+});
 
 const textareaRef = ref<InstanceType<typeof Textarea> | null>(null);
 
@@ -86,7 +89,6 @@ function analyzeCode(input: string) {
 }
 
 watch(code, async (val) => {
-  emits("update:modelValue", val);
   analyzeCode(val);
   await nextTick();
   updateWarningHeight();

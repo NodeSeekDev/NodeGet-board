@@ -100,9 +100,9 @@ watch(
         </div>
       </div>
 
-      <div
+      <pre
         v-show="expandedMap[node.uuid]"
-        class="bg-black text-green-400 font-mono p-4 rounded overflow-auto shadow-lg whitespace-pre-line max-h-[300px]"
+        class="bg-black text-green-400 font-mono p-4 rounded overflow-auto shadow-lg max-h-[300px]"
         :key="`${node.uuid}-${node.status}`"
       >
         {{
@@ -112,7 +112,7 @@ watch(
               ? node.result
               : node.error
         }}
-      </div>
+      </pre>
     </div>
   </div>
 </template>
