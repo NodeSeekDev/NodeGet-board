@@ -74,9 +74,9 @@ function getCycleProgress(expireTime: string, priceCycle: number): number {
   const remaining = getRemainingDays(expireTime);
   if (remaining === null) return 0;
   const total = priceCycle || 30;
-  if (remaining <= 0) return 100;
-  if (remaining >= total) return 0;
-  return Math.round(((total - remaining) / total) * 100);
+  if (remaining <= 0) return 0;
+  if (remaining >= total) return 100;
+  return Math.round((remaining / total) * 100);
 }
 
 // 根据剩余天数返回进度条颜色
