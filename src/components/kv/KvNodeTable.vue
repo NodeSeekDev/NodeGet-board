@@ -125,6 +125,7 @@ const editForm = ref<NodeMetadata>({
   price: 0,
   priceUnit: "",
   priceCycle: 30,
+  expireTime: "",
   region: "",
   hidden: false,
 });
@@ -138,6 +139,7 @@ function handleEdit(node: NodeItem) {
     price: node.price,
     priceUnit: node.priceUnit,
     priceCycle: node.priceCycle,
+    expireTime: node.expireTime,
     region: node.region,
     hidden: node.hidden,
   };
@@ -188,6 +190,7 @@ async function handleSaveEdit() {
         <TableHead>标签</TableHead>
         <TableHead class="text-right">价格</TableHead>
         <TableHead>计费周期（天）</TableHead>
+        <TableHead>到期时间</TableHead>
         <TableHead>地区</TableHead>
         <TableHead>可见性</TableHead>
         <TableHead class="text-right">操作</TableHead>
@@ -213,6 +216,9 @@ async function handleSaveEdit() {
           >{{ node.priceUnit }}{{ node.price }}</TableCell
         >
         <TableCell>{{ node.priceCycle }}</TableCell>
+        <TableCell class="font-mono text-sm">{{
+          node.expireTime || "—"
+        }}</TableCell>
         <TableCell>{{ getRegionLabel(node.region) }}</TableCell>
         <TableCell>
           <Badge

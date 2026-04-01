@@ -16,6 +16,7 @@ export function useNodeMetadata(kv: ReturnType<typeof useKv>) {
       price: Number(get("metadata_price") ?? 0),
       priceUnit: String(get("metadata_price_unit") ?? "$"),
       priceCycle: Number(get("metadata_price_cycle") ?? 30),
+      expireTime: String(get("metadata_expire_time") ?? ""),
       region: String(get("metadata_region") ?? ""),
       hidden: Boolean(get("metadata_hidden") ?? false),
     };
@@ -28,6 +29,7 @@ export function useNodeMetadata(kv: ReturnType<typeof useKv>) {
       { key: "metadata_price", value: f.price },
       { key: "metadata_price_unit", value: f.priceUnit },
       { key: "metadata_price_cycle", value: f.priceCycle },
+      { key: "metadata_expire_time", value: f.expireTime },
       { key: "metadata_region", value: f.region },
       { key: "metadata_hidden", value: f.hidden },
     ];
@@ -42,6 +44,7 @@ export function useNodeMetadata(kv: ReturnType<typeof useKv>) {
       kv.setValue("metadata_price", 0),
       kv.setValue("metadata_price_unit", "$"),
       kv.setValue("metadata_price_cycle", 30),
+      kv.setValue("metadata_expire_time", ""),
       kv.setValue("metadata_region", ""),
       kv.setValue("metadata_hidden", false),
     ]);
