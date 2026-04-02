@@ -4,6 +4,7 @@
 
 ### 🚀 新增功能 (New Features)
 
+- **Mock 模式代码级开关**: 移除了 UI 上的 Mock Mode 开关，改为在 `useJsRuntime.ts` 内部通过 `MOCK_ENABLED` 常量控制，方便开发者在代码中随时切换。
 - **Mock 数据支持**: 新增了 `src/mocks/jsRuntimeData.ts`，并在 `useJsRuntime` 中实现了 Mock 模式，支持在无后端环境下验证页面交互功能。
 - **JS Runtime 管理页面**: 实现了完整的 Worker 列表展示、添加、编辑和删除功能。
 - **Worker 详情页**: 采用标签页结构，包含概览、代码编辑、执行测试和高级设置。
