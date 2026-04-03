@@ -222,7 +222,7 @@ const jsonExtensions = computed(() => [
 const getWorkerFun = async () => {
   loading.value = true;
   try {
-    const data = await runtime.getWorker(workerId.value);
+    const data = await runtime.getWorker(workerId.value as string);
     if (data) {
       worker.value = data;
       content.value = data.content;
