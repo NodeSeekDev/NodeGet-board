@@ -3,6 +3,7 @@ import { RouterLink } from "vue-router";
 import { ArrowLeft, Menu, Moon, Sun } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { useThemeStore } from "@/stores/theme";
+import SettingsDialog from "@/components/SettingsDialog.vue";
 
 const emit = defineEmits<{
   openMobileSidebar: [];
@@ -22,17 +23,7 @@ const themeStore = useThemeStore();
       <Menu class="h-5 w-5" />
     </Button>
     <div class="ml-auto">
-      <Button variant="ghost" size="icon" @click="themeStore.toggle()">
-        <Moon
-          v-if="!themeStore.isDark"
-          class="h-[1.2rem] w-[1rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0"
-        />
-        <Sun
-          v-else
-          class="h-[1.2rem] w-[1rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100"
-        />
-        <span class="sr-only">Toggle theme</span>
-      </Button>
+      <SettingsDialog />
       <RouterLink :to="{ name: '/' }">
         <Button variant="ghost" size="sm">
           <ArrowLeft class="h-4 w-4 mr-1" />
