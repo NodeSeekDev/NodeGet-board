@@ -1,16 +1,7 @@
 <script setup lang="ts">
-import { inject, type Ref, computed } from "vue";
+import { inject, type Ref, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import {
-  Settings,
-  Moon,
-  Sun,
-  Server as ServerIcon,
-  Sparkles,
-  Circle,
-  LayoutDashboard,
-  Languages,
-} from "lucide-vue-next";
+import { Settings, Moon, Sun, Sparkles, Circle } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -19,7 +10,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useThemeStore } from "@/stores/theme";
@@ -30,12 +20,31 @@ const setBackground =
 const { locale, t } = useI18n();
 const themeStore = useThemeStore();
 
+const animatingTheme = ref(false);
+const animatingBackground = ref(false);
+
 const changeLanguage = (lang: string) => {
   locale.value = lang;
   localStorage.setItem("locale", lang);
 };
 const toggleTheme = () => {
   themeStore.toggle();
+};
+
+const handleThemeToggle = () => {
+  animatingTheme.value = true;
+  toggleTheme();
+  setTimeout(() => {
+    animatingTheme.value = false;
+  }, 400);
+};
+
+const handleBackgroundToggle = () => {
+  animatingBackground.value = true;
+  setBackground?.(background?.value === "default" ? "flickering" : "default");
+  setTimeout(() => {
+    animatingBackground.value = false;
+  }, 400);
 };
 </script>
 
@@ -53,29 +62,53 @@ const toggleTheme = () => {
       </DialogHeader>
 
       <div class="space-y-6 pt-4">
-        <Button
-          variant="ghost"
-          size="icon"
-          @click="
-            setBackground?.(background === 'default' ? 'flickering' : 'default')
-          "
-        >
-          <Circle v-if="background === 'default'" class="h-4 w-4" />
-          <Sparkles v-else class="h-4 w-4" />
-          <span class="sr-only">{{ t("settings.background") }}</span>
-        </Button>
+        <!-- Background Toggle -->
+        <div class="space-y-2">
+          <Label>{{ t("settings.background") }}</Label>
+          <Button
+            variant="outline"
+            class="w-full justify-start gap-3 h-12 transition-all duration-300"
+            :class="[animatingBackground && 'scale-[1.02]']"
+            @click="handleBackgroundToggle"
+          >
+            <Circle
+              v-if="background === 'default'"
+              class="h-5 w-5"
+              :class="{ 'animate-pop-once': animatingBackground }"
+            />
+            <Sparkles
+              v-else
+              class="h-5 w-5 text-amber-500"
+              :class="{ 'animate-pop-once': animatingBackground }"
+            />
+            <span class="font-medium">{{ background }}</span>
+          </Button>
+        </div>
 
-        <Button variant="ghost" size="icon" @click="toggleTheme">
-          <Moon
-            v-if="!themeStore.isDark"
-            class="h-[1.2rem] w-[1rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0"
-          />
-          <Sun
-            v-else
-            class="h-[1.2rem] w-[1rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100"
-          />
-          <span class="sr-only">{{ t("settings.theme") }}</span>
-        </Button>
+        <!-- Theme Toggle -->
+        <div class="space-y-2">
+          <Label>{{ t("settings.theme") }}</Label>
+          <Button
+            variant="outline"
+            class="w-full justify-start gap-3 h-12 transition-all duration-300"
+            :class="[animatingTheme && 'scale-[1.02]']"
+            @click="handleThemeToggle"
+          >
+            <Moon
+              v-if="themeStore.isDark"
+              class="h-5 w-5 text-blue-700"
+              :class="{ 'animate-spin-once': animatingTheme }"
+            />
+            <Sun
+              v-else
+              class="h-5 w-5 text-orange-600"
+              :class="{ 'animate-spin-once': animatingTheme }"
+            />
+            <span class="font-medium">{{
+              themeStore.isDark ? "Dark" : "Light"
+            }}</span>
+          </Button>
+        </div>
 
         <Separator />
 
@@ -103,3 +136,31 @@ const toggleTheme = () => {
     </DialogContent>
   </Dialog>
 </template>
+
+<style scoped>
+@keyframes spin-once {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes pop-once {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.3);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.animate-spin-once {
+  animation: spin-once 0.5s ease-in-out;
+}
+.animate-pop-once {
+  animation: pop-once 0.4s ease-in-out;
+}
+</style>
