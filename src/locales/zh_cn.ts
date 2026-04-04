@@ -1,4 +1,9 @@
 export default {
+  settings: {
+    theme: "深色模式",
+    background: "动态背景",
+    language: "语言",
+  },
   common: {
     cpu: "处理器",
     ram: "内存",
