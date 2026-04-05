@@ -1,4 +1,9 @@
 export default {
+  settings: {
+    theme: "Themes",
+    background: "Animated Background",
+    language: "Language",
+  },
   common: {
     cpu: "CPU",
     ram: "RAM",
