@@ -25,10 +25,16 @@ const { backends, currentBackend } = useBackendStore();
 const themeStore = useThemeStore();
 
 const backend = computed(() => {
-  const token = decodeURIComponent(
-    (route.params as { backendId: string }).backendId,
-  );
-  return backends.value.find((b) => b.token === token) ?? null;
+  const raw = (route.params as { backendId: string }).backendId;
+  const sep = raw.indexOf(":::");
+  if (sep === -1) {
+    // 向后兼容：旧格式只含 token
+    const token = decodeURIComponent(raw);
+    return backends.value.find((b) => b.token === token) ?? null;
+  }
+  const url = decodeURIComponent(raw.slice(0, sep));
+  const token = decodeURIComponent(raw.slice(sep + 3));
+  return backends.value.find((b) => b.url === url && b.token === token) ?? null;
 });
 
 const isActive = computed(

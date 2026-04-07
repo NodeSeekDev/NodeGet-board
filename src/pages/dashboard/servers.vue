@@ -23,7 +23,7 @@ definePage({
   meta: {
     title: "router.servers",
     icon: Router,
-    order: 3,
+    order: 2,
     group: "router.group.nodeManage",
   },
 });
@@ -73,7 +73,9 @@ const isActive = (backend: Backend) =>
   currentBackend.value?.token === backend.token;
 
 const handleManage = (backend: Backend) => {
-  router.push(`/dashboard/servers-detail/${encodeURIComponent(backend.token)}`);
+  router.push(
+    `/dashboard/servers-detail/${encodeURIComponent(backend.url)}:::${encodeURIComponent(backend.token)}`,
+  );
 };
 
 onMounted(() => {
