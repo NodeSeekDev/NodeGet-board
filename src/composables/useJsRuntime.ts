@@ -43,32 +43,35 @@ export function useJsRuntime() {
   };
 
   /**
-   * 创建脚本
+   * 添加新脚本
    * API: js-worker_create
    *
-   * @param {string} name 脚本唯一名称
-   * @param {string} content Base64 编码前的 UTF-8 JS 源码
-   * @param {string} [routeName] 可选。若设置则开启 HTTP 路由入口，对应路径前缀为 /worker-route/{route_name}
-   * @param {number} [runtimeCleanTime] 脚本 Runtime 空闲清理时间（毫秒），null 表示不自动清理
-   * @param {Record<string, any>} [env] 可选，任意 JSON 结构，存入数据库并可在运行时传给脚本
+   * @param {Object} options 参数对象
+   * @param {string} options.name 脚本的唯一名称 (js_script_name)
+   * @param {string} options.content Base64 编码前的 UTF-8 JS 源码
+   * @param {string} [options.routeName] 可选。若设置则开启 HTTP 路由入口，对应路径前缀为 /worker-route/{route_name}
+   * @param {number} [options.runtimeCleanTime] 脚本 Runtime 空闲清理时间（毫秒），null 表示不自动清理
+   * @param {Record<string, any>} [options.env] 可选，任意 JSON 结构，存入数据库并可在运行时传给脚本
    */
-  const addWorker = async (
-    name: string,
-    content: string,
-    routeName?: string | null,
-    runtimeCleanTime?: number | null,
-    env?: Record<string, any>,
-  ) => {
+  const addWorker = async (options: {
+    name: string;
+    content: string;
+    routeName?: string | null;
+    runtimeCleanTime?: number | null;
+    env?: Record<string, any>;
+    description?: string;
+  }) => {
     if (!backendUrl.value) return;
 
-    const contentBase64 = btoa(unescape(encodeURIComponent(content)));
+    const contentBase64 = btoa(unescape(encodeURIComponent(options.content)));
     return await rpc<any>("js-worker_create", {
       token: backendToken.value,
-      name,
+      name: options.name,
       js_script_base64: contentBase64,
-      route_name: routeName,
-      runtime_clean_time: runtimeCleanTime,
-      env: env,
+      route_name: options.routeName,
+      runtime_clean_time: options.runtimeCleanTime,
+      env: options.env,
+      description: options.description,
     });
   };
 
@@ -123,6 +126,7 @@ export function useJsRuntime() {
       updated_at: res.update_at || 0,
       env: res.env || {},
       runtime_clean_time: res.runtime_clean_time,
+      description: res.description || "",
     };
   };
 
@@ -142,9 +146,13 @@ export function useJsRuntime() {
       name,
       ...updates,
     };
-    if (updates.content) {
+    if (updates.route !== undefined) {
+      params.route_name = updates.route;
+      delete params.route;
+    }
+    if (updates.content !== undefined) {
       params.js_script_base64 = btoa(
-        unescape(encodeURIComponent(updates.content)),
+        unescape(encodeURIComponent(updates.content as string)),
       );
       delete params.content;
     }

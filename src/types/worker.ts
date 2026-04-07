@@ -6,7 +6,8 @@ export interface JsWorker {
   created_at: number;
   updated_at: number;
   env?: Record<string, string>;
-  runtime_clean_time?: string;
+  runtime_clean_time?: number | null;
+  description?: string;
 }
 export interface JsResult {
   id: number;

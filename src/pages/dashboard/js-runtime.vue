@@ -51,7 +51,11 @@ onMounted(() => {
 const addWorkerFun = async (name: string, content: string) => {
   saveLoading.value = true;
   try {
-    await runtime.addWorker(name, content);
+    await runtime.addWorker({
+      name,
+      content,
+      runtimeCleanTime: 120000,
+    });
     toast.success(t("dashboard.jsRuntime.createSuccess"));
     dialogOpen.value = false;
     await listAllWorkersFun();

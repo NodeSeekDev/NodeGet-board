@@ -15,6 +15,7 @@ import {
   RotateCcw,
   FileText,
   ChevronRight,
+  Inbox,
 } from "lucide-vue-next";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -55,6 +56,7 @@ import {
 } from "@/composables/useJsRuntime";
 import { useThemeStore } from "@/stores/theme";
 import { cn } from "@/lib/utils";
+import MarkdownIt from "markdown-it";
 
 definePage({
   meta: {
@@ -68,6 +70,7 @@ const router = useRouter();
 const { t } = useI18n();
 const runtime = useJsRuntime();
 const themeStore = useThemeStore();
+const md = new MarkdownIt({ html: false });
 
 const workerId = computed(() => route.params.id);
 const worker = ref<JsWorker | null>(null);
@@ -90,6 +93,20 @@ const envVars = ref<{ key: string; value: string }[]>([]);
 const workerRoute = ref("");
 const cleanTime = ref("");
 
+// Description State
+const descriptionEditOpen = ref(false);
+const descriptionEditText = ref("");
+const descriptionLoading = ref(false);
+const renderedDescription = computed(() => {
+  if (!worker.value?.description) return "";
+  return md.render(worker.value.description);
+});
+
+const openDescriptionEditFun = () => {
+  descriptionEditText.value = worker.value?.description || "";
+  descriptionEditOpen.value = true;
+};
+
 // Logs Tab State
 const logsLoading = ref(false);
 const allLogs = ref<JsResult[]>([]);
@@ -109,22 +126,8 @@ const totalPages = computed(() =>
   Math.ceil(allLogs.value.length / pageSize.value),
 );
 
-const formatDateTimeLocal = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
-};
-
-const now = new Date();
-const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-
 const logFilter = ref({
   id: "",
-  startTime: formatDateTimeLocal(oneHourAgo),
-  endTime: formatDateTimeLocal(now),
   status: "all",
   limit: 20,
   latestOnly: false,
@@ -142,16 +145,6 @@ const loadLogsFun = async () => {
     if (logFilter.value.id) {
       const id = Number(logFilter.value.id);
       if (!Number.isNaN(id) && id > 0) condition.push({ id });
-    }
-
-    if (
-      !logFilter.value.latestOnly &&
-      logFilter.value.startTime &&
-      logFilter.value.endTime
-    ) {
-      const startTs = new Date(logFilter.value.startTime).getTime();
-      const endTs = new Date(logFilter.value.endTime).getTime();
-      condition.push({ start_time_from_to: [startTs, endTs] });
     }
 
     if (logFilter.value.status === "success") {
@@ -179,12 +172,8 @@ const loadLogsFun = async () => {
 };
 
 const resetLogsFilterFun = () => {
-  const n = new Date();
-  const o = new Date(n.getTime() - 60 * 60 * 1000);
   logFilter.value = {
     id: "",
-    startTime: formatDateTimeLocal(o),
-    endTime: formatDateTimeLocal(n),
     status: "all",
     limit: 20,
     latestOnly: false,
@@ -228,7 +217,8 @@ const getWorkerFun = async () => {
       worker.value = data;
       content.value = data.content;
       workerRoute.value = data.route || "";
-      cleanTime.value = data.runtime_clean_time || "";
+      cleanTime.value =
+        data.runtime_clean_time != null ? String(data.runtime_clean_time) : "";
       envVars.value = Object.entries(data.env || {}).map(([key, value]) => ({
         key,
         value: String(value),
@@ -268,11 +258,25 @@ onMounted(() => {
   getWorkerFun();
 });
 
+const syncLatestWorkerState = async (): Promise<JsWorker> => {
+  const data = await runtime.getWorker(workerId.value as string);
+  if (!data) throw new Error("Worker not found");
+  return data;
+};
+
 const updateWorkerContentFun = async () => {
   if (!worker.value) return;
   saveLoading.value = true;
   try {
-    await runtime.updateWorker(worker.value.name, { content: content.value });
+    const latest = await syncLatestWorkerState();
+
+    await runtime.updateWorker(latest.name, {
+      content: content.value,
+      route: latest.route || "",
+      runtime_clean_time: latest.runtime_clean_time,
+      env: latest.env || {},
+      description: latest.description || "",
+    });
     toast.success(t("dashboard.jsRuntime.updateSuccess"));
     worker.value.content = content.value;
   } catch (e: any) {
@@ -351,10 +355,14 @@ const updateWorkerSettingsFun = async () => {
 
   saveLoading.value = true;
   try {
-    await runtime.updateWorker(worker.value.name, {
+    const latest = await syncLatestWorkerState();
+
+    await runtime.updateWorker(latest.name, {
       route: workerRoute.value,
-      runtime_clean_time: cleanTime.value,
+      runtime_clean_time: cleanTime.value ? Number(cleanTime.value) : null,
       env: envObj,
+      content: latest.content,
+      description: latest.description || "",
     });
     toast.success(t("dashboard.jsRuntime.updateSuccess"));
     await getWorkerFun();
@@ -362,6 +370,29 @@ const updateWorkerSettingsFun = async () => {
     toast.error(e.message || "Update failed");
   } finally {
     saveLoading.value = false;
+  }
+};
+
+const updateWorkerDescriptionFun = async () => {
+  if (!worker.value) return;
+  descriptionLoading.value = true;
+  try {
+    const latest = await syncLatestWorkerState();
+
+    await runtime.updateWorker(latest.name, {
+      content: latest.content,
+      route: latest.route || "",
+      runtime_clean_time: latest.runtime_clean_time,
+      env: latest.env || {},
+      description: descriptionEditText.value,
+    });
+    toast.success("描述更新成功");
+    worker.value.description = descriptionEditText.value;
+    descriptionEditOpen.value = false;
+  } catch (e: any) {
+    toast.error(e.message || "Failed to update description");
+  } finally {
+    descriptionLoading.value = false;
   }
 };
 
@@ -450,6 +481,34 @@ const formatTime = (ts: number | null) => {
                     {{ worker?.route || t("common.none") }}
                   </p>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card class="mt-4">
+            <CardHeader class="flex flex-row items-center justify-between pb-2">
+              <CardTitle class="text-lg">脚本描述</CardTitle>
+              <Button
+                size="sm"
+                variant="outline"
+                @click="openDescriptionEditFun"
+              >
+                <FileText class="w-4 h-4 mr-2" />
+                编辑描述
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div
+                v-if="worker?.description"
+                class="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed"
+                v-html="renderedDescription"
+              ></div>
+              <div
+                v-else
+                class="text-muted-foreground text-sm flex flex-col items-center justify-center py-10 bg-muted/20 border border-dashed rounded-lg"
+              >
+                <FileText class="h-8 w-8 mb-2 opacity-50" />
+                <span>无脚本描述</span>
               </div>
             </CardContent>
           </Card>
@@ -694,28 +753,9 @@ const formatTime = (ts: number | null) => {
                   </SelectContent>
                 </Select>
               </div>
-              <div class="space-y-1.5">
-                <label class="text-sm font-medium text-foreground/80">{{
-                  t("dashboard.jsRuntime.logs.startTime", "Start Time")
-                }}</label>
-                <Input
-                  v-model="logFilter.startTime"
-                  type="datetime-local"
-                  class="bg-background/50 h-9"
-                />
-              </div>
-              <div class="space-y-1.5">
-                <label class="text-sm font-medium text-foreground/80">{{
-                  t("dashboard.jsRuntime.logs.endTime", "End Time")
-                }}</label>
-                <Input
-                  v-model="logFilter.endTime"
-                  type="datetime-local"
-                  class="bg-background/50 h-9"
-                />
-              </div>
+
               <div
-                class="sm:col-span-2 flex items-end justify-end gap-3 w-full"
+                class="sm:col-span-2 lg:col-span-4 flex items-end justify-end gap-3 w-full"
               >
                 <Button
                   :disabled="logsLoading"
@@ -742,47 +782,88 @@ const formatTime = (ts: number | null) => {
             </div>
           </div>
 
-          <Card class="flex-1 flex flex-col min-h-0 overflow-hidden">
+          <div
+            class="flex-1 rounded-xl border bg-card text-card-foreground shadow-sm flex flex-col min-h-0 overflow-hidden relative"
+          >
             <div class="flex-1 min-h-0 overflow-auto">
               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead class="w-[100px]">{{
-                      t("dashboard.jsRuntime.logs.recordId", "Record ID")
-                    }}</TableHead>
-                    <TableHead class="w-[170px]">{{
-                      t("dashboard.jsRuntime.logs.startTime", "Execution Time")
-                    }}</TableHead>
-                    <TableHead class="w-[100px]">{{
-                      t("dashboard.jsRuntime.logs.status", "Status")
-                    }}</TableHead>
-                    <TableHead>{{
+                <TableHeader class="bg-muted/30">
+                  <TableRow class="hover:bg-transparent">
+                    <TableHead
+                      class="w-[100px] font-medium whitespace-nowrap"
+                      >{{
+                        t("dashboard.jsRuntime.logs.recordId", "Record ID")
+                      }}</TableHead
+                    >
+                    <TableHead
+                      class="w-[170px] font-medium whitespace-nowrap"
+                      >{{
+                        t(
+                          "dashboard.jsRuntime.logs.startTime",
+                          "Execution Time",
+                        )
+                      }}</TableHead
+                    >
+                    <TableHead
+                      class="w-[100px] font-medium whitespace-nowrap"
+                      >{{
+                        t("dashboard.jsRuntime.logs.status", "Status")
+                      }}</TableHead
+                    >
+                    <TableHead class="font-medium whitespace-nowrap">{{
                       t("dashboard.jsRuntime.logs.message", "Message")
                     }}</TableHead>
-                    <TableHead class="text-right w-[150px]">{{
+                    <TableHead class="w-[150px] font-medium text-right pr-6">{{
                       t("dashboard.jsRuntime.logs.actions", "Actions")
                     }}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  <TableRow v-if="logs.length === 0">
-                    <TableCell
-                      colspan="5"
-                      class="text-center py-8 text-muted-foreground"
-                    >
-                      {{
-                        logsLoading ? t("common.loading") : t("common.noData")
-                      }}
+                  <TableRow v-if="logsLoading && logs.length === 0">
+                    <TableCell colspan="5" class="h-[300px] text-center">
+                      <div
+                        class="flex flex-col items-center justify-center space-y-3"
+                      >
+                        <Loader2
+                          class="w-6 h-6 animate-spin text-muted-foreground/50"
+                        />
+                        <span class="text-sm font-medium">{{
+                          t("common.loading")
+                        }}</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                  <TableRow v-else-if="logs.length === 0">
+                    <TableCell colspan="5" class="h-[300px] text-center">
+                      <div
+                        class="flex flex-col items-center justify-center text-muted-foreground space-y-3"
+                      >
+                        <div
+                          class="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center"
+                        >
+                          <Inbox class="w-6 h-6 text-muted-foreground/60" />
+                        </div>
+                        <p class="text-sm">
+                          {{ t("common.noData", "No Data") }}
+                        </p>
+                      </div>
                     </TableCell>
                   </TableRow>
                   <TableRow v-for="log in logs" :key="log.id">
-                    <TableCell class="font-mono text-xs">{{
-                      log.id
-                    }}</TableCell>
-                    <TableCell class="whitespace-nowrap">{{
-                      formatTime(log.start_time)
-                    }}</TableCell>
-                    <TableCell>
+                    <TableCell
+                      class="font-mono text-xs text-foreground/80 py-3"
+                      >{{ log.id }}</TableCell
+                    >
+                    <TableCell class="whitespace-nowrap py-3">
+                      <div
+                        class="flex items-center gap-2 text-sm text-foreground/90"
+                      >
+                        <span class="font-mono">{{
+                          formatTime(log.start_time)
+                        }}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell class="py-3">
                       <Badge
                         :variant="log.error_message ? 'destructive' : 'default'"
                       >
@@ -793,9 +874,9 @@ const formatTime = (ts: number | null) => {
                         }}
                       </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell class="py-3">
                       <p
-                        class="text-sm truncate max-w-[200px] md:max-w-[400px]"
+                        class="text-sm truncate max-w-[200px] md:max-w-[400px] text-foreground/80"
                         :title="
                           log.error_message ||
                           t('dashboard.jsRuntime.logs.success', 'Success')
@@ -807,7 +888,7 @@ const formatTime = (ts: number | null) => {
                         }}
                       </p>
                     </TableCell>
-                    <TableCell class="text-right">
+                    <TableCell class="text-right pr-6 py-3">
                       <div class="flex items-center justify-end gap-1">
                         <Button
                           variant="ghost"
@@ -897,7 +978,7 @@ const formatTime = (ts: number | null) => {
                 </Button>
               </div>
             </div>
-          </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="settings" class="m-0">
@@ -967,6 +1048,7 @@ const formatTime = (ts: number | null) => {
                     v-model="cleanTime"
                     :placeholder="t('dashboard.jsRuntime.settings.cleanTime')"
                     class="flex-1 font-mono"
+                    type="number"
                   />
                 </div>
               </CardContent>
@@ -1037,4 +1119,42 @@ const formatTime = (ts: number | null) => {
       </DialogContent>
     </Dialog>
   </div>
+
+  <Dialog v-model:open="descriptionEditOpen">
+    <DialogContent class="sm:max-w-[700px]">
+      <DialogHeader>
+        <DialogTitle>编辑脚本描述</DialogTitle>
+        <DialogDescription
+          >支持 Markdown 语法，不支持 HTML
+          标签嵌入，留空则显示无描述。</DialogDescription
+        >
+      </DialogHeader>
+
+      <div class="space-y-4 py-4">
+        <div class="flex flex-col min-h-0 border rounded-lg bg-card">
+          <Codemirror
+            v-model="descriptionEditText"
+            :extensions="[]"
+            class="h-[400px] text-[13px]"
+          />
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-3 pt-4 border-t mt-2">
+        <Button variant="outline" @click="descriptionEditOpen = false"
+          >取消</Button
+        >
+        <Button
+          @click="updateWorkerDescriptionFun"
+          :disabled="descriptionLoading"
+        >
+          <Loader2
+            v-if="descriptionLoading"
+            class="mr-2 h-4 w-4 animate-spin"
+          />
+          保存描述
+        </Button>
+      </div>
+    </DialogContent>
+  </Dialog>
 </template>

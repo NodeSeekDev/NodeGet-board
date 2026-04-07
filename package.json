@@ -28,6 +28,7 @@
     "codemirror": "^6.0.2",
     "echarts": "^6.0.0",
     "lucide-vue-next": "^0.563.0",
+    "markdown-it": "^14.1.1",
     "modern-screenshot": "^4.6.8",
     "pinia": "^3.0.4",
     "pinia-plugin-persistedstate": "^4.7.1",
@@ -44,6 +45,7 @@
   },
   "devDependencies": {
     "@tsconfig/node24": "^24.0.4",
+    "@types/markdown-it": "^14.1.2",
     "@types/node": "^24.10.9",
     "@types/three": "^0.183.1",
     "@typescript-eslint/parser": "^8.56.1",
