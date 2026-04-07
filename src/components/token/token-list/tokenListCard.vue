@@ -336,7 +336,8 @@ const handleConfirmResetToken = (token: Token) => {};
       <DialogDescription>
         {{ t("dashboard.token.list.resetDialog.description") }}
       </DialogDescription>
-      {{ t("dashboard.token.list.resetDialog.confirm") }}
+      <!-- {{ t('dashboard.token.list.resetDialog.confirm') }} -->
+      开发中......
       <DialogFooter>
         <DialogClose as-child>
           <Button variant="outline"> {{ t("dashboard.token.cancel") }} </Button>
