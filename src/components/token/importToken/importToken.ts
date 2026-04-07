@@ -72,7 +72,7 @@ const ensureSingleKeyObject = (value: unknown, fieldName: string) => {
     throw new Error(`invalid_${fieldName}`);
   }
 
-  return entries[0];
+  return entries[0]!;
 };
 
 const validatePermissionEntry = (entry: PermissionEntry, index: number) => {

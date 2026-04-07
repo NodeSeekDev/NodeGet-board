@@ -1,0 +1,26 @@
+{
+  "name": "demo-extension",
+  "version": "1.0",
+  "description": "NodeGet 扩展功能测试用例",
+  "extension_version": 1,
+  "author": "NodeGet",
+  "repository": "",
+  "homepage": "",
+  "license": "MIT",
+  "icon": "assets/icon.svg",
+  "routes": [
+    {
+      "type": "global",
+      "name": "demo-global",
+      "icon": "assets/route-icon.svg",
+      "entry": "index.html"
+    },
+    {
+      "type": "node",
+      "name": "demo-node",
+      "icon": "assets/route-icon.svg",
+      "entry": "index.html"
+    }
+  ],
+  "limits": []
+}

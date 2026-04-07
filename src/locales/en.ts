@@ -382,6 +382,22 @@ export default {
         },
       },
     },
+    extensions: {
+      title: "Extensions",
+      desc: "Manage installed extension apps",
+      install: "Install Extension",
+      installTitle: "Install Extension",
+      installDesc:
+        "Select extension folder, parse app.json, confirm permissions and install.",
+      noExtensions:
+        'No extensions installed. Click "Install Extension" to get started.',
+      colName: "Name",
+      colId: "ID",
+      colDesc: "Description",
+      colVersion: "Version",
+      colStatus: "Status",
+      colRepo: "Repo",
+    },
     kv: {
       title: "KV Management",
       createSuccess: 'Namespace "{ns}" created successfully',
