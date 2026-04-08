@@ -14,6 +14,8 @@ import {
   Minimize2,
   PanelRightClose,
   FileTerminal,
+  Copy,
+  CopyCheck,
 } from "lucide-vue-next";
 
 const props = withDefaults(
@@ -375,20 +377,76 @@ defineExpose({
 
 // Scripts
 import { useScripts } from "@/composables/useScripts";
+import type { Script } from "@/composables/useScripts";
 const { scripts, loading } = useScripts();
 import Switch from "./ui/switch/Switch.vue";
-import Badge from "./ui/badge/Badge.vue";
+import { toast } from "vue-sonner";
+
+const scriptsList = ref<(Script & { copyStatus: boolean })[]>([]);
 
 const scriptShow = ref(false);
 
 const autoRun = ref(false);
 const codeIn = (code: string) => {
   if (autoRun.value) {
-    terminal?.input(code + "\r");
+    terminal?.paste(code);
+    terminal?.input("\r");
   } else {
-    terminal?.input(code);
+    terminal?.paste(code);
   }
 };
+
+const copyScript = async (s: string, index: number) => {
+  const item = scriptsList.value[index];
+  if (item) {
+    item.copyStatus = true;
+  }
+
+  if (!navigator.clipboard) {
+    toast.error("Clipboard API unsupported");
+  }
+
+  try {
+    await navigator.clipboard.writeText(s);
+    toast.success("copy success");
+  } catch (err) {
+    toast.error("copy failed");
+  }
+  // 兼容代码 - 不启用
+  // const textarea = document.createElement('textarea')
+  // textarea.value = s
+  // textarea.style.position = 'fixed'
+  // textarea.style.left = '-9999px'
+  // textarea.style.top = '0'
+  // document.body.appendChild(textarea)
+  // textarea.focus()
+  // textarea.select()
+
+  // const success = document.execCommand('copy')
+  // document.body.removeChild(textarea)
+
+  if (item) {
+    setTimeout(() => {
+      item.copyStatus = false;
+    }, 2000);
+  }
+};
+
+watch(
+  () => scripts.value,
+  (val) => {
+    scriptsList.value = val
+      .filter((item) => item.lang === "shell")
+      .map((item) => ({
+        ...item,
+        copyStatus: false,
+      }));
+  },
+  {
+    immediate: true,
+    deep: true,
+  },
+);
 </script>
 
 <template>
@@ -410,8 +468,8 @@ const codeIn = (code: string) => {
         <Button
           size="icon"
           variant="ghost"
-          @click="scriptShow = true"
-          :title="$t('webterminal.scripts')"
+          @click="scriptShow = !scriptShow"
+          :title="$t('dashboard.webterminal.scripts.name')"
         >
           <FileTerminal class="w-4 h-4" />
         </Button>
@@ -445,37 +503,48 @@ const codeIn = (code: string) => {
     />
 
     <div
-      class="flex flex-col p-4 h-full border border-gray-200 rounded-tl-lg rounded-bl-lg shadow-sm absolute top-0 right-0 bg-white dark:bg-gray-800 w-[300px] transition-all duration-300 overflow-hidden"
+      class="flex flex-col p-4 rounded-tl-lg rounded-bl-lg shadow-sm absolute top-11 bottom-0 right-0 bg-white dark:bg-[#1d1d20] w-[300px] transition-all duration-300 overflow-hidden z-1"
       :class="scriptShow ? 'translate-x-0' : 'translate-x-full'"
     >
       <div
         class="text-lg font-semibold text-gray-800 mb-3 dark:text-white items-end gap-2 justify-between flex"
       >
-        <div class="flex">
+        <div class="flex items-center">
           <PanelRightClose
             @click="scriptShow = false"
-            class="mr-2 cursor-pointer"
+            class="mr-2 cursor-pointer w-5 h-5"
           />
-          脚本片段
+          {{ $t("dashboard.webterminal.scripts.name") }}
         </div>
-        <Switch v-model="autoRun" label="自动回车"></Switch>
+        <Switch
+          v-model="autoRun"
+          :label="$t('dashboard.webterminal.scripts.autoRun')"
+        ></Switch>
       </div>
-      <div v-if="loading" class="text-gray-500">加载中...</div>
+      <div v-if="loading" class="text-gray-500">
+        {{ $t("dashboard.webterminal.scripts.loading") }}
+      </div>
       <div v-else class="flex flex-wrap gap-2 flex-1 overflow-auto min-h-0">
         <Button
           variant="outline"
           class="w-full flex flex-col gap-1 items-start h-auto border"
-          v-for="script in scripts"
+          v-for="(script, index) in scriptsList"
           @click="codeIn(script.content)"
         >
           <div class="flex flex-row gap-1 items-start w-full">
-            <div class="text-base font-blod max-w-[80%] truncate">
+            <div class="text-base font-blod flex-1 truncate text-left">
               {{ script.name }}
             </div>
-            <div>
-              <Badge class="text-xs font-mono" variant="outline">
-                {{ script.lang }}
-              </Badge>
+            <div
+              @click.stop="copyScript(script.content, index)"
+              :title="$t('dashboard.webterminal.scripts.copy')"
+              class="cursor-pointer"
+            >
+              <Copy
+                class="opacity-50 dark:opacity-65"
+                v-if="script.copyStatus == false"
+              ></Copy>
+              <CopyCheck class="opacity-80" v-else></CopyCheck>
             </div>
           </div>
           <div class="flex flex-col gap-1 items-start w-full text-left">

@@ -327,6 +327,14 @@ export default {
       sortEdit: "编辑排序",
       sortSave: "保存排序",
     },
+    webterminal: {
+      scripts: {
+        name: "脚本片段",
+        autoRun: "自动回车",
+        loading: "加载中...",
+        copy: "复制代码",
+      },
+    },
   },
   router: {
     overview: "服务概览",

@@ -36,10 +36,7 @@ const goRun = () => {
 };
 
 const handlePickScripts = (s: string) => {
-  console.log(s);
-  console.log(code.value);
   code.value = s;
-  console.log(code.value);
 };
 </script>
 

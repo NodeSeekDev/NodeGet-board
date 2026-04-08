@@ -331,6 +331,14 @@ export default {
       sortEdit: "Edit Order",
       sortSave: "Save Order",
     },
+    webterminal: {
+      scripts: {
+        name: "Script Snippet",
+        autoRun: "auto run",
+        loading: "Loading...",
+        copy: "copy script snippet content",
+      },
+    },
   },
   router: {
     overview: "Overview",
