@@ -516,10 +516,13 @@ watch(
           />
           {{ $t("dashboard.webterminal.scripts.name") }}
         </div>
-        <Switch
-          v-model="autoRun"
-          :label="$t('dashboard.webterminal.scripts.autoRun')"
-        ></Switch>
+        <label class="flex items-center">
+          <span class="text-sm color-gray-500 mr-1 opacity-60">自动回车</span>
+          <Switch
+            v-model="autoRun"
+            :title="$t('dashboard.webterminal.scripts.autoRun')"
+          />
+        </label>
       </div>
       <div v-if="loading" class="text-gray-500">
         {{ $t("dashboard.webterminal.scripts.loading") }}

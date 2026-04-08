@@ -34,10 +34,15 @@ const codeProxy = computed({
         <div class="flex items-center gap-2">
           <Code class="h-5 w-5" />{{ $t("dashboard.batchExec.codeInputLabel") }}
         </div>
-        <Switch
-          v-model="codeTips"
-          :label="$t('dashboard.batchExec.codeTips')"
-        />
+        <label class="flex items-center">
+          <span class="text-sm color-gray-500 mr-1 opacity-60">{{
+            $t("dashboard.batchExec.codeTips")
+          }}</span>
+          <Switch
+            v-model="codeTips"
+            :title="$t('dashboard.batchExec.codeTips')"
+          />
+        </label>
       </CardTitle>
     </CardHeader>
     <CardContent>
