@@ -22,5 +22,25 @@
       "entry": "index.html"
     }
   ],
-  "limits": []
+  "limits": [
+    {
+      "permissions": [
+        {
+          "task": {
+            "create": "execute"
+          }
+        },
+        {
+          "task": {
+            "read": "execute"
+          }
+        }
+      ],
+      "scopes": [
+        {
+          "global": null
+        }
+      ]
+    }
+  ]
 }

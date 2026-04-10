@@ -1,5 +1,6 @@
 import { ref, computed } from "vue";
 import { useBackendStore } from "@/composables/useBackendStore";
+import { useThemeStore } from "@/stores/theme";
 import { getWsConnection } from "@/composables/useWsConnection";
 import { unzip } from "fflate";
 
@@ -84,14 +85,14 @@ export type ExtensionKvData = {
 
 export type Extension = ExtensionKvData & { id: string };
 
+const extensions = ref<Extension[]>([]);
+const loading = ref(false);
+const error = ref<string | null>(null);
+
 export function useExtensions() {
   const { currentBackend } = useBackendStore();
   const backendUrl = computed(() => currentBackend.value?.url ?? "");
   const backendToken = computed(() => currentBackend.value?.token ?? "");
-
-  const extensions = ref<Extension[]>([]);
-  const loading = ref(false);
-  const error = ref<string | null>(null);
 
   const rpc = <T>(method: string, params: unknown): Promise<T> =>
     getWsConnection(backendUrl.value).call<T>(method, params);
@@ -434,7 +435,11 @@ export function useExtensions() {
     nodeUuid?: string,
   ): string => {
     const base = getStaticUrl(extensionId, entry);
-    const params: string[] = [`token=${encodeURIComponent(token)}`];
+    const theme = useThemeStore().isDark ? "dark" : "light";
+    const params: string[] = [
+      `token=${encodeURIComponent(token)}`,
+      `theme=${theme}`,
+    ];
     if (nodeUuid) params.push(`node=${encodeURIComponent(nodeUuid)}`);
     return `${base}#?${params.join("&")}`;
   };
@@ -449,6 +454,7 @@ export function useExtensions() {
     deleteExtension,
     installExtension,
     reinstallExtension,
+    uploadFile,
     getStaticUrl,
     getIframeUrl,
   };

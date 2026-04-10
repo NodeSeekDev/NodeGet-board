@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import { diffLines } from "diff";
 import {
   FolderOpen,
   Upload,
@@ -54,6 +55,59 @@ const routeTypeBadgeVariant = (type: string) =>
   type === "global" ? ("default" as const) : ("secondary" as const);
 
 const limitsCount = computed(() => parsedApp.value?.limits?.length ?? 0);
+
+const normalizeJson = (val: unknown): unknown => {
+  if (Array.isArray(val)) return val.map(normalizeJson);
+  if (val !== null && typeof val === "object") {
+    return Object.fromEntries(
+      Object.entries(val as Record<string, unknown>)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([k, v]) => [k, normalizeJson(v)]),
+    );
+  }
+  return val;
+};
+
+const limitsChanged = computed(() => {
+  if (!isReinstall.value || !props.reinstallTarget) return true;
+  const oldLimits = JSON.stringify(
+    normalizeJson(props.reinstallTarget.app.limits ?? []),
+  );
+  const newLimits = JSON.stringify(
+    normalizeJson(parsedApp.value?.limits ?? []),
+  );
+  return oldLimits !== newLimits;
+});
+
+const needsTokenConfirm = computed(
+  () => !isReinstall.value || limitsChanged.value,
+);
+
+type DiffLine = { text: string; added: boolean; removed: boolean };
+
+const limitsDiff = computed((): DiffLine[] | null => {
+  if (!isReinstall.value || !props.reinstallTarget) return null;
+  const oldStr = JSON.stringify(
+    normalizeJson(props.reinstallTarget.app.limits ?? []),
+    null,
+    2,
+  );
+  const newStr = JSON.stringify(
+    normalizeJson(parsedApp.value?.limits ?? []),
+    null,
+    2,
+  );
+  return diffLines(oldStr, newStr).flatMap((part) => {
+    const prefix = part.added ? "+" : part.removed ? "-" : " ";
+    const lines = part.value.split("\n");
+    if (lines.at(-1) === "") lines.pop();
+    return lines.map((line) => ({
+      text: prefix + line,
+      added: !!part.added,
+      removed: !!part.removed,
+    }));
+  });
+});
 
 const reset = () => {
   step.value = "select";
@@ -116,6 +170,7 @@ const processFiles = async (files: File[]) => {
   try {
     const text = await appJsonFile.text();
     parsedApp.value = JSON.parse(text);
+    tokenAgreed.value = false;
     step.value = "confirm";
   } catch {
     parseError.value = "app.json 格式错误，无法解析 JSON";
@@ -273,24 +328,52 @@ defineExpose({ onProgress, onInstallDone, onInstallError });
               </div>
             </div>
 
-            <!-- Token 权限询问 -->
-            <div class="space-y-2">
-              <h4 class="text-sm font-medium">是否创建以下权限的 Token？</h4>
-              <div
-                v-if="limitsCount > 0"
-                class="rounded-md border overflow-hidden"
-              >
+            <!-- Token 权限询问（仅新安装或权限有变化时显示） -->
+            <div v-if="needsTokenConfirm" class="space-y-2">
+              <h4 class="text-sm font-medium">
+                {{ limitsDiff ? "权限变更" : "是否创建以下权限的 Token？" }}
+              </h4>
+
+              <!-- 重装且权限有变化：显示 diff -->
+              <div v-if="limitsDiff" class="rounded-md border overflow-hidden">
                 <pre
-                  class="p-3 text-xs font-mono bg-muted/30 overflow-x-auto whitespace-pre-wrap break-all max-h-32"
-                  >{{ JSON.stringify(parsedApp?.limits, null, 2) }}</pre
+                  class="p-3 text-xs font-mono overflow-x-auto max-h-48 leading-5"
+                ><span
+                  v-for="(line, i) in limitsDiff"
+                  :key="i"
+                  :class="[
+                    'block',
+                    line.added ? 'bg-green-500/15 text-green-700 dark:text-green-400' :
+                    line.removed ? 'bg-red-500/15 text-red-700 dark:text-red-400' :
+                    'text-muted-foreground',
+                  ]"
+                >{{ line.text }}</span></pre>
+              </div>
+
+              <!-- 新安装：显示完整 JSON -->
+              <template v-else>
+                <div
+                  v-if="limitsCount > 0"
+                  class="rounded-md border overflow-hidden"
                 >
-              </div>
-              <div
-                v-else
-                class="rounded-md border p-3 text-xs text-muted-foreground font-mono bg-muted/30"
-              >
-                默认只读监控权限（cpu、system）
-              </div>
+                  <pre
+                    class="p-3 text-xs font-mono bg-muted/30 overflow-x-auto whitespace-pre-wrap break-all max-h-32"
+                    >{{
+                      JSON.stringify(
+                        normalizeJson(parsedApp?.limits ?? []),
+                        null,
+                        2,
+                      )
+                    }}</pre
+                  >
+                </div>
+                <div
+                  v-else
+                  class="rounded-md border p-3 text-xs text-muted-foreground font-mono bg-muted/30"
+                >
+                  默认只读监控权限（cpu、system）
+                </div>
+              </template>
               <label
                 class="flex items-center gap-2 cursor-pointer select-none text-sm"
               >
@@ -316,7 +399,10 @@ defineExpose({ onProgress, onInstallDone, onInstallError });
 
         <DialogFooter class="mt-4">
           <Button variant="outline" @click="step = 'select'">返回</Button>
-          <Button :disabled="!tokenAgreed" @click="handleInstall">
+          <Button
+            :disabled="needsTokenConfirm && !tokenAgreed"
+            @click="handleInstall"
+          >
             <Upload class="h-4 w-4 mr-2" />
             {{ isReinstall ? "确认重装" : "创建 Token 并安装" }}
           </Button>

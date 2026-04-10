@@ -1,7 +1,17 @@
 <script setup lang="ts">
-import { ref, computed, defineComponent, h, type VNode } from "vue";
+import { ref, computed, watch, defineComponent, h, type VNode } from "vue";
 import { useRouter } from "vue-router";
 import { marked } from "marked";
+import { Codemirror } from "vue-codemirror";
+import { json } from "@codemirror/lang-json";
+import { oneDark } from "@codemirror/theme-one-dark";
+import { StreamLanguage } from "@codemirror/language";
+import { javascript } from "@codemirror/legacy-modes/mode/javascript";
+import { css } from "@codemirror/legacy-modes/mode/css";
+import { xml } from "@codemirror/legacy-modes/mode/xml";
+import { shell } from "@codemirror/legacy-modes/mode/shell";
+import { yaml } from "@codemirror/legacy-modes/mode/yaml";
+import { useThemeStore } from "@/stores/theme";
 
 // 渲染 markdown，禁用原生 HTML
 const renderMarkdown = (src: string): string => {
@@ -16,6 +26,7 @@ import {
   AlertCircle,
   Loader2,
   Save,
+  Upload,
   Trash2,
   Eye,
   EyeOff,
@@ -49,7 +60,8 @@ const { currentBackend } = useBackendStore();
 const backendUrl = computed(() => currentBackend.value?.url ?? "");
 const router = useRouter();
 
-const { saveExtension, deleteExtension, getStaticUrl } = useExtensions();
+const { saveExtension, deleteExtension, getStaticUrl, uploadFile } =
+  useExtensions();
 
 const backendToken = computed(() => currentBackend.value?.token ?? "");
 
@@ -95,13 +107,96 @@ const fetchNodeUuids = async () => {
 };
 
 // 文件树
+const themeStore = useThemeStore();
+
 const selectedFile = ref<string | null>(null);
 const fileContent = ref<string>("");
+
+const editorExtensions = computed(() => {
+  const ext = selectedFile.value?.split(".").pop()?.toLowerCase() ?? "";
+  const langMap: Record<string, () => unknown> = {
+    json: () => json(),
+    js: () => StreamLanguage.define(javascript),
+    mjs: () => StreamLanguage.define(javascript),
+    ts: () => StreamLanguage.define(javascript),
+    css: () => StreamLanguage.define(css),
+    html: () => StreamLanguage.define(xml),
+    xml: () => StreamLanguage.define(xml),
+    sh: () => StreamLanguage.define(shell),
+    bash: () => StreamLanguage.define(shell),
+    yaml: () => StreamLanguage.define(yaml),
+    yml: () => StreamLanguage.define(yaml),
+  };
+  const lang = langMap[ext]?.();
+  return [...(lang ? [lang] : []), ...(themeStore.isDark ? [oneDark] : [])];
+});
 const fileLoading = ref(false);
 const fileError = ref<string | null>(null);
+const editedContent = ref("");
+const fileSaving = ref(false);
+const fileUploadInputRef = ref<HTMLInputElement | null>(null);
+
+const isSpecialFile = computed(
+  () =>
+    selectedFile.value === "__app.json__" ||
+    selectedFile.value === "__readme__",
+);
+const isDirty = computed(() => editedContent.value !== fileContent.value);
+
+watch(fileContent, (val) => {
+  editedContent.value = val;
+});
+
+const saveFile = async () => {
+  if (!selectedFile.value || isSpecialFile.value) return;
+  fileSaving.value = true;
+  try {
+    const encoded = new TextEncoder().encode(editedContent.value);
+    await uploadFile(
+      props.extension.id,
+      selectedFile.value,
+      encoded.buffer as ArrayBuffer,
+    );
+    fileContent.value = editedContent.value;
+    toast.success("已保存");
+  } catch (e: unknown) {
+    toast.error(e instanceof Error ? e.message : "保存失败");
+  } finally {
+    fileSaving.value = false;
+  }
+};
+
+const handleFileUpload = async (e: Event) => {
+  const file = (e.target as HTMLInputElement).files?.[0];
+  if (!file || !selectedFile.value || isSpecialFile.value) return;
+  (e.target as HTMLInputElement).value = "";
+  fileSaving.value = true;
+  try {
+    const content = await file.arrayBuffer();
+    await uploadFile(
+      props.extension.id,
+      selectedFile.value,
+      content,
+      file.type || undefined,
+    );
+    fileContent.value = await new Response(content).text();
+    toast.success("已上传");
+  } catch (e: unknown) {
+    toast.error(e instanceof Error ? e.message : "上传失败");
+  } finally {
+    fileSaving.value = false;
+  }
+};
 
 // 设置
 const activeTab = ref("overview");
+
+watch(activeTab, (tab) => {
+  if (tab === "files" && !selectedFile.value) {
+    const first = props.extension.files?.[0];
+    if (first) loadFileContent(first.path);
+  }
+});
 const tokenInput = ref(props.extension.token);
 const savingToken = ref(false);
 const toggling = ref(false);
@@ -371,15 +466,15 @@ const ExtensionFileNode = defineComponent({
 </script>
 
 <template>
-  <Tabs v-model="activeTab">
-    <TabsList class="mb-4">
+  <Tabs v-model="activeTab" class="flex flex-col flex-1 min-h-0">
+    <TabsList class="mb-4 shrink-0">
       <TabsTrigger value="overview">概览</TabsTrigger>
       <TabsTrigger value="files">文件</TabsTrigger>
       <TabsTrigger value="settings">设置</TabsTrigger>
     </TabsList>
 
     <!-- ── 概览 ── -->
-    <TabsContent value="overview">
+    <TabsContent value="overview" class="flex-1 min-h-0 overflow-y-auto">
       <div class="rounded-lg border p-4 space-y-4">
         <!-- 基本字段 -->
         <div class="space-y-2 text-sm">
@@ -476,7 +571,7 @@ const ExtensionFileNode = defineComponent({
         <!-- README -->
         <div
           v-if="extension.readme"
-          class="rounded border p-3 max-h-64 overflow-y-auto prose prose-sm prose-neutral dark:prose-invert max-w-none text-sm"
+          class="rounded border p-3 prose prose-sm prose-neutral dark:prose-invert max-w-none text-sm overflow-y-auto"
           v-html="renderMarkdown(extension.readme)"
         />
         <div
@@ -489,40 +584,73 @@ const ExtensionFileNode = defineComponent({
     </TabsContent>
 
     <!-- ── 文件 ── -->
-    <TabsContent value="files">
-      <div class="grid grid-cols-2 gap-4">
-        <div class="rounded-lg border p-3 space-y-1">
-          <p class="text-xs text-muted-foreground mb-2">普通文件</p>
-          <component
-            :is="ExtensionFileNode"
-            v-for="node in resourceFiles"
-            :key="node.path"
-            :node="node"
-            :selected="selectedFile"
-            @select="loadFileContent"
-          />
-          <p
-            v-if="!resourceFiles.length"
-            class="text-xs text-muted-foreground italic"
-          >
-            无资源文件
-          </p>
-          <p class="text-xs text-muted-foreground mt-3 mb-2">特殊文件</p>
-          <button
-            v-for="sf in specialFiles"
-            :key="sf.path"
-            class="flex items-center gap-1.5 w-full text-left text-xs px-2 py-1 rounded hover:bg-muted transition-colors"
-            :class="{ 'bg-muted': selectedFile === sf.path }"
-            @click="loadFileContent(sf.path)"
-          >
-            <File class="h-3 w-3 text-muted-foreground" />{{ sf.name }}
-          </button>
+    <TabsContent value="files" class="flex-1 min-h-0">
+      <div class="grid grid-cols-3 gap-4 h-full">
+        <div class="col-span-1 rounded-lg border p-3 flex flex-col min-h-0">
+          <p class="text-xs text-muted-foreground mb-2 shrink-0">普通文件</p>
+          <div class="flex-1 overflow-y-auto space-y-0.5">
+            <component
+              :is="ExtensionFileNode"
+              v-for="node in resourceFiles"
+              :key="node.path"
+              :node="node"
+              :selected="selectedFile"
+              @select="loadFileContent"
+            />
+            <p
+              v-if="!resourceFiles.length"
+              class="text-xs text-muted-foreground italic"
+            >
+              无资源文件
+            </p>
+            <p class="text-xs text-muted-foreground mt-3 mb-2">特殊文件</p>
+            <button
+              v-for="sf in specialFiles"
+              :key="sf.path"
+              class="flex items-center gap-1.5 w-full text-left text-xs px-2 py-1 rounded hover:bg-muted transition-colors"
+              :class="{ 'bg-muted': selectedFile === sf.path }"
+              @click="loadFileContent(sf.path)"
+            >
+              <File class="h-3 w-3 text-muted-foreground" />{{ sf.name }}
+            </button>
+          </div>
         </div>
 
-        <div class="rounded-lg border p-3">
-          <p class="text-xs text-muted-foreground mb-2">
-            内容预览（注：左侧可以编辑的）
-          </p>
+        <div class="col-span-2 rounded-lg border p-3 flex flex-col min-h-0">
+          <div class="flex items-center justify-between mb-2 shrink-0">
+            <p class="text-xs text-muted-foreground">内容预览</p>
+            <div
+              v-if="
+                selectedFile && !fileLoading && !fileError && !isSpecialFile
+              "
+              class="flex items-center gap-1"
+            >
+              <input
+                ref="fileUploadInputRef"
+                type="file"
+                class="hidden"
+                @change="handleFileUpload"
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                class="h-6 px-2 text-xs"
+                @click="fileUploadInputRef?.click()"
+              >
+                <Upload class="h-3 w-3 mr-1" />上传替换
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                class="h-6 px-2 text-xs"
+                :disabled="!isDirty || fileSaving"
+                @click="saveFile"
+              >
+                <Loader2 v-if="fileSaving" class="h-3 w-3 mr-1 animate-spin" />
+                <Save v-else class="h-3 w-3 mr-1" />保存
+              </Button>
+            </div>
+          </div>
           <div
             v-if="!selectedFile"
             class="text-xs text-muted-foreground italic"
@@ -541,10 +669,13 @@ const ExtensionFileNode = defineComponent({
           >
             <AlertCircle class="h-3 w-3" />{{ fileError }}
           </div>
-          <div v-else class="h-48 overflow-y-auto">
-            <pre class="text-xs font-mono whitespace-pre-wrap break-all">{{
-              fileContent
-            }}</pre>
+          <div v-else class="flex-1 min-h-0 rounded overflow-hidden border">
+            <Codemirror
+              v-model="editedContent"
+              :extensions="editorExtensions"
+              :disabled="isSpecialFile"
+              :style="{ height: '100%', fontSize: '12px' }"
+            />
           </div>
         </div>
       </div>

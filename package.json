@@ -26,6 +26,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "codemirror": "^6.0.2",
+    "diff": "^8.0.4",
     "echarts": "^6.0.0",
     "fflate": "^0.8.2",
     "lucide-vue-next": "^0.563.0",
@@ -46,6 +47,7 @@
   },
   "devDependencies": {
     "@tsconfig/node24": "^24.0.4",
+    "@types/diff": "^8.0.0",
     "@types/node": "^24.10.9",
     "@types/three": "^0.183.1",
     "@typescript-eslint/parser": "^8.56.1",
