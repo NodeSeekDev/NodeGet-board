@@ -468,7 +468,7 @@ const ExtensionFileNode = defineComponent({
 
 <template>
   <Tabs v-model="activeTab" class="flex flex-col flex-1 min-h-0">
-    <TabsList class="mb-4 shrink-0">
+    <TabsList class="mb-4 shrink-0 self-start">
       <TabsTrigger value="overview">概览</TabsTrigger>
       <TabsTrigger value="files">文件</TabsTrigger>
       <TabsTrigger value="settings">设置</TabsTrigger>
