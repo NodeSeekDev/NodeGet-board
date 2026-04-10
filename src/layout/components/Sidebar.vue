@@ -187,7 +187,7 @@ function buildMenuTree(parentPath: string): SidebarRoute[] {
     }));
 }
 
-const { extensions, fetchExtensions } = useExtensions();
+const { extensions, fetchExtensions, getStaticUrl } = useExtensions();
 
 onMounted(() => {
   if (extensions.value.length === 0) fetchExtensions();
@@ -204,7 +204,9 @@ const extensionGlobalRoutes = computed<SidebarRoute[]>(() =>
           path: `/dashboard/app/${r.name}`,
           meta: {
             title: r.name,
-            icon: LayoutGrid,
+            icon: ext.app.icon
+              ? getStaticUrl(ext.id, ext.app.icon)
+              : LayoutGrid,
             order: 100,
           },
         })),
@@ -223,7 +225,9 @@ const extensionNodeRoutes = computed<SidebarRoute[]>(() => {
           path: `/dashboard/node/${nodeUuid.value}/${r.name}`,
           meta: {
             title: r.name,
-            icon: LayoutGrid,
+            icon: ext.app.icon
+              ? getStaticUrl(ext.id, ext.app.icon)
+              : LayoutGrid,
           },
         })),
     );

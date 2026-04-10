@@ -61,6 +61,8 @@ const routeTo = computed<RouteLocationRaw>(() =>
     : props.route.path,
 );
 const { t } = useI18n();
+
+const isIconUrl = computed(() => typeof props.route.meta?.icon === "string");
 </script>
 
 <template>
@@ -74,9 +76,16 @@ const { t } = useI18n();
             )
           "
         >
+          <img
+            v-if="isIconUrl && route.meta?.icon && level === 0"
+            :src="route.meta.icon as string"
+            alt=""
+            class="h-4 w-4 shrink-0 rounded-sm object-contain"
+            @error="($event.target as HTMLImageElement).style.display = 'none'"
+          />
           <component
             :is="route.meta?.icon"
-            v-if="route.meta?.icon && level === 0"
+            v-else-if="route.meta?.icon && level === 0"
             class="h-4 w-4 shrink-0"
           />
           <span class="flex-1 truncate text-left">{{
@@ -107,9 +116,16 @@ const { t } = useI18n();
         class="flex w-full items-center justify-center rounded-md p-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
         @click="isOpen = !isOpen"
       >
+        <img
+          v-if="isIconUrl && route.meta?.icon"
+          :src="route.meta.icon as string"
+          alt=""
+          class="h-4 w-4 rounded-sm object-contain"
+          @error="($event.target as HTMLImageElement).style.display = 'none'"
+        />
         <component
           :is="route.meta?.icon"
-          v-if="route.meta?.icon"
+          v-else-if="route.meta?.icon"
           class="h-4 w-4"
         />
       </button>
@@ -123,9 +139,14 @@ const { t } = useI18n();
           <span
             class="flex items-center justify-center rounded-md p-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
           >
+            <img
+              v-if="isIconUrl && route.meta?.icon"
+              :src="route.meta.icon as string"
+              class="h-4 w-4 rounded-sm object-contain"
+            />
             <component
               :is="route.meta?.icon"
-              v-if="route.meta?.icon"
+              v-else-if="route.meta?.icon"
               class="h-4 w-4"
             />
           </span>
@@ -145,9 +166,14 @@ const { t } = useI18n();
       "
       active-class="bg-accent text-accent-foreground font-medium"
     >
+      <img
+        v-if="isIconUrl && route.meta?.icon && level === 0"
+        :src="route.meta.icon as string"
+        class="h-4 w-4 shrink-0 rounded-sm object-contain"
+      />
       <component
         :is="route.meta?.icon"
-        v-if="route.meta?.icon && level === 0"
+        v-else-if="route.meta?.icon && level === 0"
         class="h-4 w-4 shrink-0"
       />
       <span class="truncate">{{

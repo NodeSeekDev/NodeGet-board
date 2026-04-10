@@ -24,6 +24,10 @@
           <span class="label">Node UUID</span>
           <span id="node-val" class="value mono">—</span>
         </div>
+        <div class="row">
+          <span class="label">Theme</span>
+          <span id="theme-val" class="value mono">—</span>
+        </div>
       </section>
 
       <section class="info-card">
@@ -31,7 +35,10 @@
         <div class="status ok">✓ 扩展加载成功</div>
         <p class="hint">
           此扩展通过 iframe 嵌入 NodeGet Dashboard。<br />
-          URL hash 中的 <code>token</code> 和 <code>node</code> 参数由宿主注入。
+          宿主通过 URL hash 注入 <code>token</code>、<code>node</code>、<code
+            >theme</code
+          >
+          参数， 并在主题切换时通过 <code>postMessage</code> 实时通知。
         </p>
       </section>
     </div>

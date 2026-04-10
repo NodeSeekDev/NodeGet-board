@@ -1,5 +1,3 @@
-// 从 URL hash 解析注入的参数
-// 格式: #?token=xxx&node=yyy
 const parseHashParams = () => {
   const hash = window.location.hash;
   const query = hash.startsWith("#?") ? hash.slice(2) : hash.slice(1);
@@ -7,10 +5,13 @@ const parseHashParams = () => {
   return {
     token: params.get("token") || "",
     node: params.get("node") || "",
+    theme: params.get("theme") || "dark",
   };
 };
 
-const { token, node } = parseHashParams();
+const { token, node, theme } = parseHashParams();
+
+document.documentElement.setAttribute("data-theme", theme);
 
 const mask = (str) => {
   if (!str) return "—";
@@ -20,3 +21,11 @@ const mask = (str) => {
 
 document.getElementById("token-val").textContent = mask(token);
 document.getElementById("node-val").textContent = node || "—（全局路由）";
+document.getElementById("theme-val").textContent = theme;
+
+window.addEventListener("message", (e) => {
+  if (e.data?.type === "theme-change") {
+    document.documentElement.setAttribute("data-theme", e.data.theme);
+    document.getElementById("theme-val").textContent = e.data.theme;
+  }
+});

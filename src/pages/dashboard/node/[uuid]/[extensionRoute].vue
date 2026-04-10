@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, onMounted } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { AlertCircle } from "lucide-vue-next";
 import { useExtensions } from "@/composables/useExtensions";
+import { useThemeStore } from "@/stores/theme";
 
 definePage({
   meta: { title: "", hidden: true },
@@ -32,15 +33,36 @@ const iframeUrl = computed(() => {
   return getIframeUrl(ext.id, r.entry, ext.token, nodeUuid.value);
 });
 
-onMounted(() => {
-  if (extensions.value.length === 0) fetchExtensions();
+const ready = ref(false);
+const iframeEl = ref<HTMLIFrameElement | null>(null);
+const themeStore = useThemeStore();
+
+onMounted(async () => {
+  if (extensions.value.length === 0) await fetchExtensions();
+  ready.value = true;
 });
+
+watch(
+  () => themeStore.isDark,
+  (isDark) => {
+    iframeEl.value?.contentWindow?.postMessage(
+      { type: "theme-change", theme: isDark ? "dark" : "light" },
+      "*",
+    );
+  },
+);
 </script>
 
 <template>
   <div class="h-full w-full flex flex-col">
+    <div v-if="!ready" class="flex flex-1 items-center justify-center">
+      <div
+        class="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"
+      />
+    </div>
+
     <div
-      v-if="!matched"
+      v-else-if="!matched"
       class="flex flex-1 items-center justify-center gap-2 text-muted-foreground"
     >
       <AlertCircle class="h-5 w-5" />
@@ -49,6 +71,7 @@ onMounted(() => {
 
     <iframe
       v-else
+      ref="iframeEl"
       :src="iframeUrl"
       class="flex-1 w-full border-0"
       sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
