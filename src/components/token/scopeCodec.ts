@@ -129,28 +129,56 @@ export const buildLimitPayload = (token: Token) => {
   }));
 };
 
+export const generateUuid = () => {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
+    return crypto.randomUUID();
+  }
+
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (char) => {
+    const random = (Math.random() * 16) | 0;
+    return (char === "x" ? random : (random & 0x3) | 0x8).toString(16);
+  });
+};
+
 export const buildCredentialPayload = (
   source: Pick<Token, "username" | "password">,
 ) => {
   const username = source.username.trim();
   const password = source.password.trim();
 
-  if (!username && !password) {
-    return {};
-  }
-
-  if (username && !password) {
-    return {
-      username,
-      password: crypto.randomUUID(),
-    };
-  }
-
   return {
-    username,
-    password,
+    ...(username ? { username } : {}),
+    ...(password ? { password } : {}),
   };
 };
+
+const toOptionalTimestamp = (value: number) =>
+  Number.isFinite(value) && value > 0 ? value : undefined;
+
+export const buildOptionalFieldPayload = (
+  token: Pick<
+    Token,
+    "username" | "password" | "timestamp_from" | "timestamp_to"
+  >,
+) => {
+  const timestampFrom = toOptionalTimestamp(token.timestamp_from);
+  const timestampTo = toOptionalTimestamp(token.timestamp_to);
+
+  return {
+    ...buildCredentialPayload(token),
+    ...(timestampFrom !== undefined ? { timestamp_from: timestampFrom } : {}),
+    ...(timestampTo !== undefined ? { timestamp_to: timestampTo } : {}),
+  };
+};
+
+export const serializeTokenPayload = (token: Token) => ({
+  version: token.version ?? 1,
+  token_limit: buildLimitPayload(token),
+  ...buildOptionalFieldPayload(token),
+});
 
 export const mapTokenDetailToForm = (detail: TokenDetail | null): Token => {
   if (!detail) return createDefaultToken();

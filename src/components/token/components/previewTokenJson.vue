@@ -1,13 +1,20 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import type { Token } from "../type";
 import { ScanEye } from "lucide-vue-next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-defineProps<{
+import { serializeTokenPayload } from "../scopeCodec";
+
+const props = defineProps<{
   token: Token;
 }>();
 const { t } = useI18n();
+
+const previewJson = computed(() =>
+  JSON.stringify(serializeTokenPayload(props.token), null, 2),
+);
 </script>
 
 <template>
@@ -20,9 +27,7 @@ const { t } = useI18n();
     </CardHeader>
 
     <CardContent class="grid space-y-6">
-      <pre class="overflow-x-auto text-xs leading-5">{{
-        JSON.stringify(token, null, 2)
-      }}</pre>
+      <pre class="overflow-x-auto text-xs leading-5">{{ previewJson }}</pre>
     </CardContent>
   </Card>
 </template>

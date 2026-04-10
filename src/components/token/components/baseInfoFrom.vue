@@ -2,6 +2,7 @@
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { type Token } from "../type";
+import { generateUuid } from "../scopeCodec";
 import { ChevronDown, CircleX } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -66,6 +67,23 @@ const timestampToMin = computed(() => timestampFromInput.value || undefined);
 
 const updateData = () => {
   emits("update:token", localToken.value);
+};
+
+const handleUsernameBlur = () => {
+  const username = localToken.value.username.trim();
+  const password = localToken.value.password.trim();
+
+  localToken.value.username = username;
+  if (username && !password) {
+    localToken.value.password = generateUuid();
+  }
+
+  updateData();
+};
+
+const handlePasswordBlur = () => {
+  localToken.value.password = localToken.value.password.trim();
+  updateData();
 };
 
 const handleTimestampFromBlur = () => {
@@ -135,7 +153,7 @@ const clearTimestampTo = () => {
             </Label>
             <Input
               v-model="localToken.username"
-              @blur="updateData()"
+              @blur="handleUsernameBlur"
               :placeholder="t('dashboard.token.tokenInfo.usernamePlaceholder')"
               clearable
             ></Input>
@@ -147,7 +165,7 @@ const clearTimestampTo = () => {
             <Input
               v-model="localToken.password"
               type="password"
-              @blur="updateData()"
+              @blur="handlePasswordBlur"
               :placeholder="t('dashboard.token.tokenInfo.passwordPlaceholder')"
             ></Input>
           </div>

@@ -5,9 +5,9 @@ import { wsRpcCall } from "@/composables/useWsRpc";
 import { toast } from "vue-sonner";
 import { type Token } from "../type";
 import {
-  buildCredentialPayload,
-  buildLimitPayload,
+  buildOptionalFieldPayload,
   mapTokenDetailToForm,
+  serializeTokenPayload,
 } from "../scopeCodec";
 
 export type errorResponse = {
@@ -16,8 +16,6 @@ export type errorResponse = {
     message: string;
   };
 };
-
-const toNullableTimestamp = (value: number) => (value > 0 ? value : null);
 
 export { mapTokenDetailToForm };
 
@@ -35,10 +33,7 @@ export const useEditTokenHook = () => {
     const target_token = targetToken.trim();
     if (!url || !token || !target_token) return false;
 
-    const normalizedLimit = buildLimitPayload(tokenData);
-    const version = tokenData.version ?? 1;
-    const timestamp_from = toNullableTimestamp(tokenData.timestamp_from);
-    const timestamp_to = toNullableTimestamp(tokenData.timestamp_to);
+    const serializedToken = serializeTokenPayload(tokenData);
     try {
       const result = await wsRpcCall<{
         success?: string;
@@ -47,11 +42,9 @@ export const useEditTokenHook = () => {
       }>(url, "token_edit", {
         token,
         target_token,
-        version,
-        timestamp_from,
-        timestamp_to,
-        limit: normalizedLimit,
-        ...buildCredentialPayload(tokenData),
+        version: serializedToken.version,
+        limit: serializedToken.token_limit,
+        ...buildOptionalFieldPayload(tokenData),
       });
 
       if (result?.success || result?.message || result?.token_key) {
