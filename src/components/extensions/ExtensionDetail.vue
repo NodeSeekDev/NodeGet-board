@@ -6,6 +6,7 @@ import { Codemirror } from "vue-codemirror";
 import { json } from "@codemirror/lang-json";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { StreamLanguage } from "@codemirror/language";
+import type { Extension as CMExtension } from "@codemirror/state";
 import { javascript } from "@codemirror/legacy-modes/mode/javascript";
 import { css } from "@codemirror/legacy-modes/mode/css";
 import { xml } from "@codemirror/legacy-modes/mode/xml";
@@ -114,7 +115,7 @@ const fileContent = ref<string>("");
 
 const editorExtensions = computed(() => {
   const ext = selectedFile.value?.split(".").pop()?.toLowerCase() ?? "";
-  const langMap: Record<string, () => unknown> = {
+  const langMap: Record<string, () => CMExtension> = {
     json: () => json(),
     js: () => StreamLanguage.define(javascript),
     mjs: () => StreamLanguage.define(javascript),

@@ -100,7 +100,7 @@ const limitsDiff = computed((): DiffLine[] | null => {
   return diffLines(oldStr, newStr).flatMap((part) => {
     const prefix = part.added ? "+" : part.removed ? "-" : " ";
     const lines = part.value.split("\n");
-    if (lines.at(-1) === "") lines.pop();
+    if (lines[lines.length - 1] === "") lines.pop();
     return lines.map((line) => ({
       text: prefix + line,
       added: !!part.added,
