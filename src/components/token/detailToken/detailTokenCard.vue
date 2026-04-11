@@ -87,6 +87,7 @@ onMounted(() => {
             variant="ghost"
             size="icon"
             class="mt-0.5 size-9 shrink-0"
+            :disabled="detailLoading"
             @click="handleBack"
           >
             <ArrowLeft class="h-4 w-4" />
@@ -109,12 +110,13 @@ onMounted(() => {
       </div>
 
       <div class="flex flex-wrap gap-2">
-        <Button variant="outline" @click="handleEdit">
+        <Button variant="outline" :disabled="detailLoading" @click="handleEdit">
           <Pencil class="h-4 w-4" />
           {{ t("dashboard.token.detail.editButton") }}
         </Button>
         <Button
           variant="outline"
+          :disabled="detailLoading"
           @click="
             copyText(
               displayText(rawDetail?.token_key, ''),
@@ -126,6 +128,7 @@ onMounted(() => {
           {{ t("dashboard.token.detail.copyTokenKey") }}
         </Button>
         <Button
+          :disabled="detailLoading"
           @click="
             copyText(
               formattedJson,
