@@ -26,6 +26,7 @@ const TASK_TYPES = new Set([
   "edit_config",
 ]);
 const CRONTAB_TYPES = new Set(["read", "write", "delete"]);
+const NODE_GET_TYPES = new Set(["list_all_agent_uuid", "GetRtPool"]);
 
 const ensureFiniteNumber = (value: unknown, fieldName: string) => {
   if (typeof value !== "number" || !Number.isFinite(value)) {
@@ -178,9 +179,7 @@ const validatePermissionEntry = (entry: PermissionEntry, index: number) => {
   if ("node_get" in entry || "nodeget" in entry) {
     const rawValue = "node_get" in entry ? entry.node_get : entry.nodeget;
     const value = ensureNonEmptyString(rawValue, `node_get_${index}`);
-    if (value !== "list_all_agent_uuid") {
-      throw new Error(`invalid_node_get_${index}`);
-    }
+    ensureAllowedValue(value, NODE_GET_TYPES, `node_get_${index}`);
     return;
   }
 

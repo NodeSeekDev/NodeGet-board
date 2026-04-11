@@ -379,6 +379,7 @@ export default {
             nodeGet: {
               title: "Node Get",
               listAllAgentUuid: "List All Agent Uuid",
+              getRtPool: "GetRtPool",
             },
           },
         },

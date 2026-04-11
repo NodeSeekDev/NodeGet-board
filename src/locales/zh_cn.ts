@@ -371,6 +371,7 @@ export default {
             nodeGet: {
               title: "节点获取",
               listAllAgentUuid: "获取所有 Agent UUID",
+              getRtPool: "GetRtPool",
             },
           },
         },

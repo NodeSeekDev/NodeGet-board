@@ -13,19 +13,35 @@ const emits = defineEmits<{
 const { t } = useI18n();
 
 const listAllAgentUuid = ref(false);
+const getRtPool = ref(false);
 const hydrating = ref(false);
 const { isOpen, handleToggle } = usePermissionModuleOpen(
   () => props.modelValue,
 );
 
-const build = (): PermissionEntry[] =>
-  listAllAgentUuid.value ? [{ node_get: "list_all_agent_uuid" }] : [];
+const build = (): PermissionEntry[] => {
+  const entries: PermissionEntry[] = [];
+
+  if (listAllAgentUuid.value) {
+    entries.push({ node_get: "list_all_agent_uuid" });
+  }
+
+  if (getRtPool.value) {
+    entries.push({ node_get: "GetRtPool" });
+  }
+
+  return entries;
+};
 
 const hydrate = (entries: PermissionEntry[]) => {
   listAllAgentUuid.value = entries.some(
     (entry) =>
       entry?.node_get === "list_all_agent_uuid" ||
       entry?.nodeget === "list_all_agent_uuid",
+  );
+  getRtPool.value = entries.some(
+    (entry) =>
+      entry?.node_get === "GetRtPool" || entry?.nodeget === "GetRtPool",
   );
 };
 
@@ -42,7 +58,7 @@ watch(
   { immediate: true, deep: true },
 );
 
-watch(listAllAgentUuid, () => {
+watch([listAllAgentUuid, getRtPool], () => {
   if (hydrating.value) return;
   const nextEntries = build();
   if (arePermissionEntriesEqual(nextEntries, props.modelValue)) return;
@@ -70,6 +86,18 @@ watch(listAllAgentUuid, () => {
         {{
           t(
             "dashboard.token.permissionsConfig.limitItem.permissionCard.nodeGet.listAllAgentUuid",
+          )
+        }}
+      </Button>
+      <Button
+        type="button"
+        size="sm"
+        :variant="getRtPool ? 'default' : 'outline'"
+        @click="getRtPool = !getRtPool"
+      >
+        {{
+          t(
+            "dashboard.token.permissionsConfig.limitItem.permissionCard.nodeGet.getRtPool",
           )
         }}
       </Button>
