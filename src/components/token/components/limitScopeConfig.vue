@@ -4,7 +4,7 @@ import { useI18n } from "vue-i18n";
 import { type TokenLimitScope } from "../type";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAgentHook } from "../useAgent";
+import { type AgentOption, useAgentHook } from "../useAgent";
 import { useKvHook } from "../useKv";
 import Button from "@/components/ui/button/Button.vue";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -43,7 +43,7 @@ const localScope = ref<TokenLimitScope>(props.scope);
 const activeTab = ref<ScopeTabValue>(
   props.scopeTab ?? detectScopeTab(props.scope),
 );
-const agentUuidList = ref<string[]>([]);
+const agentList = ref<AgentOption[]>([]);
 const agentUuidLoading = ref(false);
 const agentUuidLoaded = ref(false);
 const kvNamespaceList = ref<string[]>([]);
@@ -92,10 +92,14 @@ const handleGetAgentList = () => {
 
   agentUuidLoading.value = true;
   useAgent
-    .getAgentList()
+    .getAgentOptions()
     .then((res) => {
-      agentUuidList.value = res;
+      agentList.value = res;
       agentUuidLoaded.value = true;
+    })
+    .catch(() => {
+      agentList.value = [];
+      agentUuidLoaded.value = false;
     })
     .finally(() => {
       agentUuidLoading.value = false;
@@ -203,6 +207,17 @@ const toggleKvNamespace = (value: string, isChecked: boolean) => {
   );
 };
 
+const formatAgentLabel = (agent: AgentOption) => {
+  const shortUuid = agent.uuid.slice(0, 8);
+  const customName = agent.customName.trim();
+
+  if (!customName || customName === shortUuid || customName === agent.uuid) {
+    return shortUuid;
+  }
+
+  return `${shortUuid} (${customName})`;
+};
+
 const normalizeTargets = (targets: AcceptableInputValue[]) => {
   return targets.filter(
     (target): target is string => typeof target === "string",
@@ -271,19 +286,21 @@ const getCheckboxId = (value: string) => `${checkboxIdPrefix}-${value}`;
           </div>
           <div class="space-y-2">
             <div
-              v-for="(item, index) in agentUuidList"
-              :key="index"
+              v-for="item in agentList"
+              :key="item.uuid"
               class="flex items-center space-x-2"
             >
               <Checkbox
-                :id="getCheckboxId(item)"
-                :modelValue="isAgentUuidChecked(item)"
+                :id="getCheckboxId(item.uuid)"
+                :modelValue="isAgentUuidChecked(item.uuid)"
                 @update:modelValue="
                   (checked: CheckboxCheckedState) =>
-                    toggleAgentUuid(item, checked === true)
+                    toggleAgentUuid(item.uuid, checked === true)
                 "
               />
-              <Label :for="getCheckboxId(item)">{{ item }}</Label>
+              <Label :for="getCheckboxId(item.uuid)">{{
+                formatAgentLabel(item)
+              }}</Label>
             </div>
           </div>
         </TabsContent>
