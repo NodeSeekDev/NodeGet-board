@@ -142,7 +142,7 @@ export default {
       list: {
         title: "Token Management",
         description: "Manage your API tokens.",
-        searchPlaceholder: "Please enter the Token Key to search",
+        searchPlaceholder: "Please enter the username/Token Key to search",
         usernamePlaceholder: "Please enter username",
         tokenKeyPlaceholder: "Please enter Token Key",
         resetButton: "Reset",

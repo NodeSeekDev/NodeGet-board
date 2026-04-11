@@ -31,7 +31,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Eye, Pencil, Trash2, RotateCcw } from "lucide-vue-next";
+import { Eye, Pencil, Trash2, RotateCcw, Search } from "lucide-vue-next";
 import { useTokenListHook, type Token } from "./useTokenList";
 
 const useTokenList = useTokenListHook();
@@ -43,10 +43,8 @@ const fetchLoading = ref(false);
 const deleteLoading = ref(false);
 const page = ref(1);
 const pageSize = 10;
-const usernameKeyword = ref("");
-const tokenKeyKeyword = ref("");
-const debouncedUsernameKeyword = refDebounced(usernameKeyword, 300);
-const debouncedTokenKeyKeyword = refDebounced(tokenKeyKeyword, 300);
+const searchKeyword = ref("");
+const debouncedSearchKeyword = refDebounced(searchKeyword, 300);
 // 控制重置token弹窗显隐
 const resetTokenOpen = ref(false);
 // 控制重置token loading
@@ -60,16 +58,15 @@ const normalizeSearchText = (value: string | null | undefined) =>
     .toLowerCase();
 
 const filteredTokens = computed(() => {
-  const username = normalizeSearchText(debouncedUsernameKeyword.value);
-  const tokenKey = normalizeSearchText(debouncedTokenKeyKeyword.value);
+  const keyword = normalizeSearchText(debouncedSearchKeyword.value);
 
   return tokensList.value.filter((token) => {
     const matchesUsername =
-      !username || normalizeSearchText(token.username).includes(username);
+      !keyword || normalizeSearchText(token.username).includes(keyword);
     const matchesTokenKey =
-      !tokenKey || normalizeSearchText(token.token_key).includes(tokenKey);
+      !keyword || normalizeSearchText(token.token_key).includes(keyword);
 
-    return matchesUsername && matchesTokenKey;
+    return matchesUsername || matchesTokenKey;
   });
 });
 
@@ -86,7 +83,7 @@ const pageLabel = computed(() => {
   return `${start} - ${end}`;
 });
 
-watch([debouncedUsernameKeyword, debouncedTokenKeyKeyword], () => {
+watch(debouncedSearchKeyword, () => {
   page.value = 1;
 });
 
@@ -119,8 +116,7 @@ const handleGetTokenList = () => {
 };
 
 const handleResetFilters = () => {
-  usernameKeyword.value = "";
-  tokenKeyKeyword.value = "";
+  searchKeyword.value = "";
   page.value = 1;
 };
 
@@ -182,14 +178,14 @@ const handleConfirmResetToken = (token: Token) => {};
     <div
       class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
     >
-      <div class="grid w-full gap-3 md:grid-cols-2 lg:max-w-2xl">
-        <Input
-          v-model="usernameKeyword"
-          :placeholder="t('dashboard.token.list.usernamePlaceholder')"
+      <div class="relative flex-1 max-w-sm">
+        <Search
+          class="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
         />
         <Input
-          v-model="tokenKeyKeyword"
-          :placeholder="t('dashboard.token.list.tokenKeyPlaceholder')"
+          v-model="searchKeyword"
+          :placeholder="t('dashboard.token.list.searchPlaceholder')"
+          class="pl-8"
         />
       </div>
       <div class="flex flex-wrap items-center gap-2 lg:justify-end">
