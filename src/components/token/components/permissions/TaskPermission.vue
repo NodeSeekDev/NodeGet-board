@@ -4,6 +4,7 @@ import { useI18n } from "vue-i18n";
 import type { PermissionEntry } from "../../type";
 import { Button } from "@/components/ui/button";
 import { arePermissionEntriesEqual } from "./permissionsState";
+import { usePermissionModuleOpen } from "./usePermissionModuleOpen";
 
 const TASK_TYPES = [
   "ping",
@@ -27,6 +28,9 @@ const createTargets = ref<string[]>([]);
 const readTargets = ref<string[]>([]);
 const writeTargets = ref<string[]>([]);
 const hydrating = ref(false);
+const { isOpen, handleToggle } = usePermissionModuleOpen(
+  () => props.modelValue,
+);
 
 const toggle = (list: string[], value: string) => {
   const index = list.indexOf(value);
@@ -100,7 +104,7 @@ watch(
 </script>
 
 <template>
-  <details class="rounded-md border p-3" open>
+  <details class="rounded-md border p-3" :open="isOpen" @toggle="handleToggle">
     <summary class="cursor-pointer select-none text-sm font-medium">
       {{
         t(

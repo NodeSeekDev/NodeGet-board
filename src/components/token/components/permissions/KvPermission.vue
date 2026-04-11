@@ -17,6 +17,7 @@ import {
   hydrateKvPermissions,
   isSameKvPermissionState,
 } from "./kvPermissionState";
+import { usePermissionModuleOpen } from "./usePermissionModuleOpen";
 
 const props = defineProps<{ modelValue: PermissionEntry[] }>();
 const emits = defineEmits<{
@@ -30,6 +31,9 @@ const readTargets = ref<string[]>([]);
 const writeTargets = ref<string[]>([]);
 const deleteTargets = ref<string[]>([]);
 const hydrating = ref(false);
+const { isOpen, handleToggle } = usePermissionModuleOpen(
+  () => props.modelValue,
+);
 
 const build = (): PermissionEntry[] => {
   return buildKvPermissions({
@@ -118,7 +122,7 @@ watch(
 </script>
 
 <template>
-  <details class="rounded-md border p-3" open>
+  <details class="rounded-md border p-3" :open="isOpen" @toggle="handleToggle">
     <summary class="cursor-pointer select-none text-sm font-medium">
       {{
         t("dashboard.token.permissionsConfig.limitItem.permissionCard.kv.title")

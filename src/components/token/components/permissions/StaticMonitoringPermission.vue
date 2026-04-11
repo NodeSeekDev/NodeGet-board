@@ -4,6 +4,7 @@ import { useI18n } from "vue-i18n";
 import type { PermissionEntry } from "../../type";
 import { Button } from "@/components/ui/button";
 import { arePermissionEntriesEqual } from "./permissionsState";
+import { usePermissionModuleOpen } from "./usePermissionModuleOpen";
 
 const READ_FIELDS = ["cpu", "system", "gpu"] as const;
 
@@ -17,6 +18,9 @@ const writeEnabled = ref(false);
 const deleteEnable = ref(false);
 const readTargets = ref<string[]>([]);
 const hydrating = ref(false);
+const { isOpen, handleToggle } = usePermissionModuleOpen(
+  () => props.modelValue,
+);
 
 const toggleReadTarget = (target: string) => {
   const index = readTargets.value.indexOf(target);
@@ -93,7 +97,7 @@ watch(
 </script>
 
 <template>
-  <details class="rounded-md border p-3" open>
+  <details class="rounded-md border p-3" :open="isOpen" @toggle="handleToggle">
     <summary class="cursor-pointer select-none text-sm font-medium">
       {{
         t(

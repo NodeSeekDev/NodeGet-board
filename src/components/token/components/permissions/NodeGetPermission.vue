@@ -4,6 +4,7 @@ import { useI18n } from "vue-i18n";
 import type { PermissionEntry } from "../../type";
 import { Button } from "@/components/ui/button";
 import { arePermissionEntriesEqual } from "./permissionsState";
+import { usePermissionModuleOpen } from "./usePermissionModuleOpen";
 
 const props = defineProps<{ modelValue: PermissionEntry[] }>();
 const emits = defineEmits<{
@@ -13,6 +14,9 @@ const { t } = useI18n();
 
 const listAllAgentUuid = ref(false);
 const hydrating = ref(false);
+const { isOpen, handleToggle } = usePermissionModuleOpen(
+  () => props.modelValue,
+);
 
 const build = (): PermissionEntry[] =>
   listAllAgentUuid.value ? [{ node_get: "list_all_agent_uuid" }] : [];
@@ -47,7 +51,7 @@ watch(listAllAgentUuid, () => {
 </script>
 
 <template>
-  <details class="rounded-md border p-3" open>
+  <details class="rounded-md border p-3" :open="isOpen" @toggle="handleToggle">
     <summary class="cursor-pointer select-none text-sm font-medium">
       NodeGet
       {{
