@@ -2,6 +2,7 @@
 import { ref, onMounted } from "vue";
 import { toast } from "vue-sonner";
 import { Loader2 } from "lucide-vue-next";
+import { parse as parseToml, stringify as stringifyToml } from "smol-toml";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -74,7 +75,11 @@ async function pollTaskResult(
       });
       if (Array.isArray(result) && result.length > 0) {
         const entry = result[0]!;
-        if (entry.success !== false && entry.task_event_result) {
+        if (entry.success === false) {
+          // task 执行失败，立即返回而不是继续轮询
+          return null;
+        }
+        if (entry.task_event_result) {
           return entry.task_event_result;
         }
       }
@@ -117,100 +122,76 @@ onMounted(async () => {
   }
 });
 
-// 简易 TOML 解析（仅处理扁平 key = value）
-function parseConfig(toml: string) {
-  const lines = toml.split("\n");
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-    const eqIdx = trimmed.indexOf("=");
-    if (eqIdx === -1) continue;
-    const key = trimmed.slice(0, eqIdx).trim();
-    const rawValue = trimmed.slice(eqIdx + 1).trim();
-    const value = rawValue.replace(/^"|"$/g, "");
+// 原始 TOML JSON，用于保留未知字段
+const rawConfig = ref<Record<string, unknown>>({});
 
-    switch (key) {
-      case "log_level":
-        configLogLevel.value = value;
-        break;
-      case "ip_info_source":
-        configIpInfoSource.value = value;
-        break;
-      case "report_interval":
-        configReportInterval.value = Number(value);
-        break;
-      case "terminal_shell":
-        configTerminalShell.value = value;
-        break;
-      case "exec_max_length":
-        configExecMaxLength.value = Number(value);
-        break;
-      case "connection_timeout":
-        configConnectionTimeout.value = Number(value);
-        break;
-      case "allow_icmp_ping":
-        featureIcmpPing.value = value === "true";
-        break;
-      case "allow_tcp_ping":
-        featureTcpPing.value = value === "true";
-        break;
-      case "allow_http_ping":
-        featureHttpPing.value = value === "true";
-        break;
-      case "allow_http_request":
-        featureHttpRequest.value = value === "true";
-        break;
-      case "allow_web_shell":
-        featureWebShell.value = value === "true";
-        break;
-      case "allow_execute":
-        featureExecute.value = value === "true";
-        break;
-      case "allow_read_config":
-        featureReadConfig.value = value === "true";
-        break;
-      case "allow_edit_config":
-        featureEditConfig.value = value === "true";
-        break;
-      case "allow_task":
-        featureTask.value = value === "true";
-        break;
-      case "allow_ip":
-        allowIp.value = value;
-        break;
-    }
-  }
+function parseConfig(tomlStr: string) {
+  const parsed = parseToml(tomlStr) as Record<string, unknown>;
+  rawConfig.value = { ...parsed };
+
+  const getStr = (key: string, fallback: string) =>
+    typeof parsed[key] === "string" ? (parsed[key] as string) : fallback;
+  const getNum = (key: string, fallback: number) =>
+    typeof parsed[key] === "number" ? (parsed[key] as number) : fallback;
+  const getBool = (key: string, fallback: boolean) =>
+    typeof parsed[key] === "boolean" ? (parsed[key] as boolean) : fallback;
+
+  configLogLevel.value = getStr("log_level", "info");
+  configIpInfoSource.value = getStr("ip_info_source", "ipinfo");
+  configReportInterval.value = getNum("report_interval", 60);
+  configTerminalShell.value = getStr("terminal_shell", "bash");
+  configExecMaxLength.value =
+    parsed["exec_max_length"] != null
+      ? getNum("exec_max_length", 0)
+      : undefined;
+  configConnectionTimeout.value =
+    parsed["connection_timeout"] != null
+      ? getNum("connection_timeout", 0)
+      : undefined;
+
+  featureIcmpPing.value = getBool("allow_icmp_ping", true);
+  featureTcpPing.value = getBool("allow_tcp_ping", true);
+  featureHttpPing.value = getBool("allow_http_ping", true);
+  featureHttpRequest.value = getBool("allow_http_request", true);
+  featureWebShell.value = getBool("allow_web_shell", true);
+  featureExecute.value = getBool("allow_execute", true);
+  featureReadConfig.value = getBool("allow_read_config", true);
+  featureEditConfig.value = getBool("allow_edit_config", true);
+  featureTask.value = getBool("allow_task", true);
+  allowIp.value = getStr("allow_ip", "");
 }
 
-// 构建 TOML 字符串
+// 基于原始 JSON 修改已知字段，保留未知字段，再序列化
 function buildConfigToml(): string {
-  const lines = [
-    `log_level = "${configLogLevel.value}"`,
-    `ip_info_source = "${configIpInfoSource.value}"`,
-    `report_interval = ${configReportInterval.value}`,
-    `terminal_shell = "${configTerminalShell.value}"`,
-  ];
+  const config = { ...rawConfig.value };
+
+  config["log_level"] = configLogLevel.value;
+  config["ip_info_source"] = configIpInfoSource.value;
+  config["report_interval"] = configReportInterval.value;
+  config["terminal_shell"] = configTerminalShell.value;
+
   if (configExecMaxLength.value !== undefined) {
-    lines.push(`exec_max_length = ${configExecMaxLength.value}`);
+    config["exec_max_length"] = configExecMaxLength.value;
   }
   if (configConnectionTimeout.value !== undefined) {
-    lines.push(`connection_timeout = ${configConnectionTimeout.value}`);
+    config["connection_timeout"] = configConnectionTimeout.value;
   }
-  lines.push(
-    `allow_icmp_ping = ${featureIcmpPing.value}`,
-    `allow_tcp_ping = ${featureTcpPing.value}`,
-    `allow_http_ping = ${featureHttpPing.value}`,
-    `allow_http_request = ${featureHttpRequest.value}`,
-    `allow_web_shell = ${featureWebShell.value}`,
-    `allow_execute = ${featureExecute.value}`,
-    `allow_read_config = ${featureReadConfig.value}`,
-    `allow_edit_config = ${featureEditConfig.value}`,
-    `allow_task = ${featureTask.value}`,
-  );
+
+  config["allow_icmp_ping"] = featureIcmpPing.value;
+  config["allow_tcp_ping"] = featureTcpPing.value;
+  config["allow_http_ping"] = featureHttpPing.value;
+  config["allow_http_request"] = featureHttpRequest.value;
+  config["allow_web_shell"] = featureWebShell.value;
+  config["allow_execute"] = featureExecute.value;
+  config["allow_read_config"] = featureReadConfig.value;
+  config["allow_edit_config"] = featureEditConfig.value;
+  config["allow_task"] = featureTask.value;
+
   if (allowIp.value) {
-    lines.push(`allow_ip = "${allowIp.value}"`);
+    config["allow_ip"] = allowIp.value;
   }
-  return lines.join("\n");
+
+  return stringifyToml(config);
 }
 
 async function handleSave() {

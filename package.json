@@ -36,6 +36,7 @@
     "pinia": "^3.0.4",
     "pinia-plugin-persistedstate": "^4.7.1",
     "reka-ui": "^2.9.2",
+    "smol-toml": "^1.6.1",
     "tailwind-merge": "^3.4.0",
     "tailwindcss": "^4.1.18",
     "three": "^0.183.2",
