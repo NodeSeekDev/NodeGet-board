@@ -1,24 +1,24 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
-import { toast } from "vue-sonner";
-import { Loader2 } from "lucide-vue-next";
-import { parse as parseToml, stringify as stringifyToml } from "smol-toml";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { NumberField } from "@/components/ui/number-field";
-import { Switch } from "@/components/ui/switch";
-import { PopConfirm } from "@/components/ui/pop-confirm";
+import { ref, onMounted } from 'vue';
+import { toast } from 'vue-sonner';
+import { Loader2 } from 'lucide-vue-next';
+import { parse as parseToml, stringify as stringifyToml } from 'smol-toml';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { NumberField } from '@/components/ui/number-field';
+import { Switch } from '@/components/ui/switch';
+import { PopConfirm } from '@/components/ui/pop-confirm';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { useBackendStore } from "@/composables/useBackendStore";
-import { getWsConnection } from "@/composables/useWsConnection";
-import { useI18n } from "vue-i18n";
+} from '@/components/ui/select';
+import { useBackendStore } from '@/composables/useBackendStore';
+import { getWsConnection } from '@/composables/useWsConnection';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps<{ uuid: string }>();
 
@@ -29,10 +29,10 @@ const loading = ref(false);
 const saveLoading = ref(false);
 
 // 基本配置
-const configLogLevel = ref("info");
-const configIpInfoSource = ref("ipinfo");
+const configLogLevel = ref('info');
+const configIpInfoSource = ref('ipinfo');
 const configReportInterval = ref(60);
-const configTerminalShell = ref("bash");
+const configTerminalShell = ref('bash');
 const configExecMaxLength = ref<number | undefined>(undefined);
 const configConnectionTimeout = ref<number | undefined>(undefined);
 
@@ -48,7 +48,10 @@ const featureEditConfig = ref(true);
 const featureTask = ref(true);
 
 // IP 信息来源
-const allowIp = ref("");
+const allowIp = ref('');
+
+// 原始 TOML JSON，用于保留未知字段
+const rawConfig = ref<Record<string, unknown>>({});
 
 // task 轮询
 async function pollTaskResult(
@@ -67,10 +70,10 @@ async function pollTaskResult(
           task_event_result: Record<string, unknown>;
           task_event_type: Record<string, unknown>;
         }>
-      >("task_query", {
+      >('task_query', {
         token: currentBackend.value.token,
         task_data_query: {
-          condition: [{ task_id: taskId }, "last"],
+          condition: [{ task_id: taskId }, 'last'],
         },
       });
       if (Array.isArray(result) && result.length > 0) {
@@ -97,10 +100,10 @@ onMounted(async () => {
     const conn = getWsConnection(currentBackend.value.url);
 
     // 创建 read_config task
-    const createResult = await conn.call<{ id: number }>("task_create_task", {
+    const createResult = await conn.call<{ id: number }>('task_create_task', {
       token: currentBackend.value.token,
       target_uuid: props.uuid,
-      task_type: "read_config",
+      task_type: 'read_config',
     });
 
     const taskId = createResult?.id;
@@ -111,8 +114,8 @@ onMounted(async () => {
 
     // 轮询获取结果
     const taskResult = await pollTaskResult(taskId);
-    const configStr = taskResult?.["read_config"];
-    if (typeof configStr === "string") {
+    const configStr = taskResult?.['read_config'];
+    if (typeof configStr === 'string') {
       parseConfig(configStr);
     }
   } catch {
@@ -122,73 +125,70 @@ onMounted(async () => {
   }
 });
 
-// 原始 TOML JSON，用于保留未知字段
-const rawConfig = ref<Record<string, unknown>>({});
-
 function parseConfig(tomlStr: string) {
   const parsed = parseToml(tomlStr) as Record<string, unknown>;
   rawConfig.value = { ...parsed };
 
   const getStr = (key: string, fallback: string) =>
-    typeof parsed[key] === "string" ? (parsed[key] as string) : fallback;
+    typeof parsed[key] === 'string' ? (parsed[key] as string) : fallback;
   const getNum = (key: string, fallback: number) =>
-    typeof parsed[key] === "number" ? (parsed[key] as number) : fallback;
+    typeof parsed[key] === 'number' ? (parsed[key] as number) : fallback;
   const getBool = (key: string, fallback: boolean) =>
-    typeof parsed[key] === "boolean" ? (parsed[key] as boolean) : fallback;
+    typeof parsed[key] === 'boolean' ? (parsed[key] as boolean) : fallback;
 
-  configLogLevel.value = getStr("log_level", "info");
-  configIpInfoSource.value = getStr("ip_info_source", "ipinfo");
-  configReportInterval.value = getNum("report_interval", 60);
-  configTerminalShell.value = getStr("terminal_shell", "bash");
+  configLogLevel.value = getStr('log_level', 'info');
+  configIpInfoSource.value = getStr('ip_info_source', 'ipinfo');
+  configReportInterval.value = getNum('report_interval', 60);
+  configTerminalShell.value = getStr('terminal_shell', 'bash');
   configExecMaxLength.value =
-    parsed["exec_max_length"] != null
-      ? getNum("exec_max_length", 0)
+    parsed['exec_max_length'] != null
+      ? getNum('exec_max_length', 0)
       : undefined;
   configConnectionTimeout.value =
-    parsed["connection_timeout"] != null
-      ? getNum("connection_timeout", 0)
+    parsed['connection_timeout'] != null
+      ? getNum('connection_timeout', 0)
       : undefined;
 
-  featureIcmpPing.value = getBool("allow_icmp_ping", true);
-  featureTcpPing.value = getBool("allow_tcp_ping", true);
-  featureHttpPing.value = getBool("allow_http_ping", true);
-  featureHttpRequest.value = getBool("allow_http_request", true);
-  featureWebShell.value = getBool("allow_web_shell", true);
-  featureExecute.value = getBool("allow_execute", true);
-  featureReadConfig.value = getBool("allow_read_config", true);
-  featureEditConfig.value = getBool("allow_edit_config", true);
-  featureTask.value = getBool("allow_task", true);
-  allowIp.value = getStr("allow_ip", "");
+  featureIcmpPing.value = getBool('allow_icmp_ping', true);
+  featureTcpPing.value = getBool('allow_tcp_ping', true);
+  featureHttpPing.value = getBool('allow_http_ping', true);
+  featureHttpRequest.value = getBool('allow_http_request', true);
+  featureWebShell.value = getBool('allow_web_shell', true);
+  featureExecute.value = getBool('allow_execute', true);
+  featureReadConfig.value = getBool('allow_read_config', true);
+  featureEditConfig.value = getBool('allow_edit_config', true);
+  featureTask.value = getBool('allow_task', true);
+  allowIp.value = getStr('allow_ip', '');
 }
 
 // 基于原始 JSON 修改已知字段，保留未知字段，再序列化
 function buildConfigToml(): string {
   const config = { ...rawConfig.value };
 
-  config["log_level"] = configLogLevel.value;
-  config["ip_info_source"] = configIpInfoSource.value;
-  config["report_interval"] = configReportInterval.value;
-  config["terminal_shell"] = configTerminalShell.value;
+  config['log_level'] = configLogLevel.value;
+  config['ip_info_source'] = configIpInfoSource.value;
+  config['report_interval'] = configReportInterval.value;
+  config['terminal_shell'] = configTerminalShell.value;
 
   if (configExecMaxLength.value !== undefined) {
-    config["exec_max_length"] = configExecMaxLength.value;
+    config['exec_max_length'] = configExecMaxLength.value;
   }
   if (configConnectionTimeout.value !== undefined) {
-    config["connection_timeout"] = configConnectionTimeout.value;
+    config['connection_timeout'] = configConnectionTimeout.value;
   }
 
-  config["allow_icmp_ping"] = featureIcmpPing.value;
-  config["allow_tcp_ping"] = featureTcpPing.value;
-  config["allow_http_ping"] = featureHttpPing.value;
-  config["allow_http_request"] = featureHttpRequest.value;
-  config["allow_web_shell"] = featureWebShell.value;
-  config["allow_execute"] = featureExecute.value;
-  config["allow_read_config"] = featureReadConfig.value;
-  config["allow_edit_config"] = featureEditConfig.value;
-  config["allow_task"] = featureTask.value;
+  config['allow_icmp_ping'] = featureIcmpPing.value;
+  config['allow_tcp_ping'] = featureTcpPing.value;
+  config['allow_http_ping'] = featureHttpPing.value;
+  config['allow_http_request'] = featureHttpRequest.value;
+  config['allow_web_shell'] = featureWebShell.value;
+  config['allow_execute'] = featureExecute.value;
+  config['allow_read_config'] = featureReadConfig.value;
+  config['allow_edit_config'] = featureEditConfig.value;
+  config['allow_task'] = featureTask.value;
 
   if (allowIp.value) {
-    config["allow_ip"] = allowIp.value;
+    config['allow_ip'] = allowIp.value;
   }
 
   return stringifyToml(config);
@@ -202,7 +202,7 @@ async function handleSave() {
     const configToml = buildConfigToml();
 
     // 创建 edit_config task
-    const createResult = await conn.call<{ id: number }>("task_create_task", {
+    const createResult = await conn.call<{ id: number }>('task_create_task', {
       token: currentBackend.value.token,
       target_uuid: props.uuid,
       task_type: { edit_config: configToml },
@@ -210,21 +210,21 @@ async function handleSave() {
 
     const taskId = createResult?.id;
     if (!taskId) {
-      toast.error(t("dashboard.saveFailed"));
+      toast.error(t('dashboard.saveFailed'));
       saveLoading.value = false;
       return;
     }
 
     // 轮询获取结果
     const taskResult = await pollTaskResult(taskId);
-    const editResult = taskResult?.["edit_config"];
+    const editResult = taskResult?.['edit_config'];
     if (editResult === true) {
-      toast.success(t("dashboard.saveSuccess"));
+      toast.success(t('dashboard.saveSuccess'));
     } else {
-      toast.error(t("dashboard.saveFailed"));
+      toast.error(t('dashboard.saveFailed'));
     }
   } catch (e: unknown) {
-    toast.error(e instanceof Error ? e.message : t("dashboard.saveFailed"));
+    toast.error(e instanceof Error ? e.message : t('dashboard.saveFailed'));
   } finally {
     saveLoading.value = false;
   }
@@ -252,13 +252,13 @@ function confirmDisableEditConfig() {
       class="flex items-center gap-2 text-muted-foreground text-sm py-4"
     >
       <Loader2 class="h-4 w-4 animate-spin" />
-      {{ $t("common.loading") }}
+      {{ $t('common.loading') }}
     </div>
 
     <template v-else>
       <!-- 日志等级 -->
       <div class="space-y-1.5">
-        <Label>{{ $t("dashboard.node.config.logLevel") }}</Label>
+        <Label>{{ $t('dashboard.node.config.logLevel') }}</Label>
         <Select v-model="configLogLevel">
           <SelectTrigger class="w-48">
             <SelectValue />
@@ -274,7 +274,7 @@ function confirmDisableEditConfig() {
 
       <!-- IP 信息来源 -->
       <div class="space-y-1.5">
-        <Label>{{ $t("dashboard.node.config.ipInfoSource") }}</Label>
+        <Label>{{ $t('dashboard.node.config.ipInfoSource') }}</Label>
         <Select v-model="configIpInfoSource">
           <SelectTrigger class="w-48">
             <SelectValue />
@@ -288,72 +288,72 @@ function confirmDisableEditConfig() {
 
       <!-- 上报间隔 -->
       <div class="space-y-1.5">
-        <Label>{{ $t("dashboard.node.config.reportInterval") }}</Label>
+        <Label>{{ $t('dashboard.node.config.reportInterval') }}</Label>
         <div class="flex items-center gap-2">
           <NumberField v-model="configReportInterval" :min="1" class="w-32" />
           <span class="text-sm text-muted-foreground">
-            {{ $t("dashboard.node.config.reportIntervalUnit") }}
+            {{ $t('dashboard.node.config.reportIntervalUnit') }}
           </span>
         </div>
       </div>
 
       <!-- 启用特性 -->
       <div class="space-y-2">
-        <Label>{{ $t("dashboard.node.config.enabledFeatures") }}</Label>
+        <Label>{{ $t('dashboard.node.config.enabledFeatures') }}</Label>
 
         <!-- 当 allow_task 开启时显示其他特性 -->
         <div v-if="featureTask" class="space-y-2">
           <div class="flex items-center justify-between">
             <span class="text-sm">{{
-              $t("dashboard.node.config.featureIcmpPing")
+              $t('dashboard.node.config.featureIcmpPing')
             }}</span>
             <Switch v-model:checked="featureIcmpPing" />
           </div>
           <div class="flex items-center justify-between">
             <span class="text-sm">{{
-              $t("dashboard.node.config.featureTcpPing")
+              $t('dashboard.node.config.featureTcpPing')
             }}</span>
             <Switch v-model:checked="featureTcpPing" />
           </div>
           <div class="flex items-center justify-between">
             <span class="text-sm">{{
-              $t("dashboard.node.config.featureHttpPing")
+              $t('dashboard.node.config.featureHttpPing')
             }}</span>
             <Switch v-model:checked="featureHttpPing" />
           </div>
           <div class="flex items-center justify-between">
             <span class="text-sm">{{
-              $t("dashboard.node.config.featureHttpRequest")
+              $t('dashboard.node.config.featureHttpRequest')
             }}</span>
             <Switch v-model:checked="featureHttpRequest" />
           </div>
           <div class="flex items-center justify-between">
             <span class="text-sm">{{
-              $t("dashboard.node.config.featureWebShell")
+              $t('dashboard.node.config.featureWebShell')
             }}</span>
             <Switch v-model:checked="featureWebShell" />
           </div>
           <div class="flex items-center justify-between">
             <span class="text-sm">{{
-              $t("dashboard.node.config.featureExecute")
+              $t('dashboard.node.config.featureExecute')
             }}</span>
             <Switch v-model:checked="featureExecute" />
           </div>
           <div class="flex items-center justify-between gap-4">
             <span class="text-sm">{{
-              $t("dashboard.node.config.featureIp")
+              $t('dashboard.node.config.featureIp')
             }}</span>
             <Input v-model="allowIp" placeholder="auto" class="w-32 h-8" />
           </div>
           <div class="flex items-center justify-between">
             <span class="text-sm">{{
-              $t("dashboard.node.config.featureReadConfig")
+              $t('dashboard.node.config.featureReadConfig')
             }}</span>
             <Switch v-model:checked="featureReadConfig" />
           </div>
           <div class="flex items-center justify-between">
             <span class="text-sm">{{
-              $t("dashboard.node.config.featureEditConfig")
+              $t('dashboard.node.config.featureEditConfig')
             }}</span>
             <PopConfirm
               :title="$t('dashboard.node.config.featureEditConfigConfirmTitle')"
@@ -373,7 +373,7 @@ function confirmDisableEditConfig() {
         <!-- allow_task 放在最后 -->
         <div class="flex items-center justify-between pt-1 border-t">
           <span class="text-sm font-medium">{{
-            $t("dashboard.node.config.featureTask")
+            $t('dashboard.node.config.featureTask')
           }}</span>
           <Switch v-model:checked="featureTask" />
         </div>
@@ -381,7 +381,7 @@ function confirmDisableEditConfig() {
 
       <!-- Terminal Shell -->
       <div class="space-y-1.5">
-        <Label>{{ $t("dashboard.node.config.terminalShell") }}</Label>
+        <Label>{{ $t('dashboard.node.config.terminalShell') }}</Label>
         <Select v-model="configTerminalShell">
           <SelectTrigger class="w-48">
             <SelectValue />
@@ -397,7 +397,7 @@ function confirmDisableEditConfig() {
 
       <!-- exec 最大返回长度 -->
       <div class="space-y-1.5">
-        <Label>{{ $t("dashboard.node.config.execMaxLength") }}</Label>
+        <Label>{{ $t('dashboard.node.config.execMaxLength') }}</Label>
         <NumberField
           :model-value="configExecMaxLength"
           :min="0"
@@ -408,7 +408,7 @@ function confirmDisableEditConfig() {
 
       <!-- 连接超时 -->
       <div class="space-y-1.5">
-        <Label>{{ $t("dashboard.node.config.connectionTimeout") }}</Label>
+        <Label>{{ $t('dashboard.node.config.connectionTimeout') }}</Label>
         <div class="flex items-center gap-2">
           <NumberField
             :model-value="configConnectionTimeout"
@@ -417,7 +417,7 @@ function confirmDisableEditConfig() {
             @update:model-value="configConnectionTimeout = $event"
           />
           <span class="text-sm text-muted-foreground">
-            {{ $t("dashboard.node.config.reportIntervalUnit") }}
+            {{ $t('dashboard.node.config.reportIntervalUnit') }}
           </span>
         </div>
       </div>
@@ -428,7 +428,7 @@ function confirmDisableEditConfig() {
           @click="handleSave"
         >
           <Loader2 v-if="saveLoading" class="h-4 w-4 animate-spin mr-2" />
-          {{ saveLoading ? $t("dashboard.saving") : $t("dashboard.save") }}
+          {{ saveLoading ? $t('dashboard.saving') : $t('dashboard.save') }}
         </Button>
       </div>
     </template>
