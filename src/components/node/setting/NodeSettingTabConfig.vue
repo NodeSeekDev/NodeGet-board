@@ -29,7 +29,7 @@ const saveLoading = ref(false);
 
 // 基本配置
 const configLogLevel = ref("info");
-const configIpInfoSource = ref("Ipinfo");
+const configIpInfoSource = ref("ipinfo");
 const configReportInterval = ref(60);
 const configTerminalShell = ref("bash");
 const configExecMaxLength = ref<number | undefined>(undefined);
@@ -299,8 +299,8 @@ function confirmDisableEditConfig() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="Ipinfo">Ipinfo</SelectItem>
-            <SelectItem value="Cloudflare">Cloudflare</SelectItem>
+            <SelectItem value="ipinfo">Ipinfo</SelectItem>
+            <SelectItem value="cloudflare">Cloudflare</SelectItem>
           </SelectContent>
         </Select>
       </div>
