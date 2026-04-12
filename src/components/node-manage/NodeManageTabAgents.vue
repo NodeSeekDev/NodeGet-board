@@ -3,14 +3,13 @@ import { ref, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import {
-  HardDriveUpload,
-  Plus,
   Search,
   Settings,
   ArrowUpFromLine,
   FolderInput,
   Copy,
   Loader2,
+  RefreshCw,
 } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,21 +32,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useBackendStore } from "@/composables/useBackendStore";
 import { getWsConnection } from "@/composables/useWsConnection";
-import AddAgentDialog from "@/components/agents/AddAgentDialog.vue";
-
-definePage({
-  meta: {
-    title: "router.agents",
-    icon: HardDriveUpload,
-    order: 7,
-    group: "router.group.monitor",
-    hidden: true,
-  },
-});
 
 const { t } = useI18n();
 const router = useRouter();
-const { backends } = useBackendStore();
+const { backends, currentBackend } = useBackendStore();
 
 interface AgentInfo {
   uuid: string;
@@ -59,34 +47,25 @@ const agents = ref<AgentInfo[]>([]);
 const loading = ref(true);
 const searchQuery = ref("");
 const selectedUuids = ref<Set<string>>(new Set());
-const addOpen = ref(false);
 
 const fetchAgents = async () => {
   loading.value = true;
-  const agentMap = new Map<string, { serverCount: number }>();
 
-  // 遍历所有主控获取 agent UUID 列表
-  const results = await Promise.allSettled(
-    backends.value.map(async (backend) => {
-      const conn = getWsConnection(backend.url);
-      const result = await conn.call<{ uuids: string[] }>(
-        "nodeget-server_list_all_agent_uuid",
-        { token: backend.token },
-      );
-      return result?.uuids ?? [];
-    }),
-  );
-
-  for (const result of results) {
-    if (result.status !== "fulfilled") continue;
-    for (const uuid of result.value) {
-      const existing = agentMap.get(uuid);
-      agentMap.set(uuid, { serverCount: (existing?.serverCount ?? 0) + 1 });
-    }
+  if (!currentBackend.value) {
+    agents.value = [];
+    loading.value = false;
+    return;
   }
 
-  // 批量读取 metadata_name
-  const uuids = Array.from(agentMap.keys());
+  // 只从当前主控获取 agent UUID 列表
+  const conn = getWsConnection(currentBackend.value.url);
+  const result = await conn.call<{ uuids: string[] }>(
+    "nodeget-server_list_all_agent_uuid",
+    { token: currentBackend.value.token },
+  );
+  const uuids = result?.uuids ?? [];
+
+  // 仍然从所有主控获取 metadata_name
   const nameMap = new Map<string, string>();
 
   if (uuids.length > 0) {
@@ -112,9 +91,9 @@ const fetchAgents = async () => {
       }),
     );
 
-    for (const result of nameResults) {
-      if (result.status !== "fulfilled") continue;
-      for (const entry of result.value) {
+    for (const res of nameResults) {
+      if (res.status !== "fulfilled") continue;
+      for (const entry of res.value) {
         if (
           entry.key === "metadata_name" &&
           entry.value &&
@@ -129,13 +108,13 @@ const fetchAgents = async () => {
   agents.value = uuids.map((uuid) => ({
     uuid,
     customName: nameMap.get(uuid) ?? uuid.slice(0, 8),
-    serverCount: agentMap.get(uuid)?.serverCount ?? 0,
+    serverCount: 1,
   }));
 
   loading.value = false;
 };
 
-watch(backends, fetchAgents, { immediate: true });
+watch(currentBackend, fetchAgents, { immediate: true });
 
 const filteredAgents = computed(() => {
   const q = searchQuery.value.toLowerCase();
@@ -174,32 +153,19 @@ const toggleSelect = (uuid: string, checked: boolean) => {
 
 const hasSelection = computed(() => selectedUuids.value.size > 0);
 
-const handleBatchAction = (action: string) => {
+const handleBatchAction = (_action: string) => {
   toast.info(t("dashboard.agents.devInProgress"));
 };
 
 const handleSettings = (uuid: string) => {
   router.push(`/dashboard/node/${uuid}/setting`);
 };
+
+defineExpose({ fetchAgents });
 </script>
 
 <template>
   <div class="space-y-4">
-    <div class="flex items-start justify-between">
-      <div>
-        <h1 class="text-2xl font-semibold">
-          {{ t("dashboard.agents.title") }}
-        </h1>
-        <p class="text-sm text-muted-foreground mt-1">
-          {{ t("dashboard.agents.desc") }}
-        </p>
-      </div>
-      <Button @click="addOpen = true">
-        <Plus class="h-4 w-4 mr-1.5" />
-        {{ t("dashboard.agents.addAgent") }}
-      </Button>
-    </div>
-
     <div class="flex items-center gap-3">
       <div class="relative flex-1 max-w-sm">
         <Search
@@ -211,6 +177,14 @@ const handleSettings = (uuid: string) => {
           class="pl-8"
         />
       </div>
+      <Button
+        variant="outline"
+        size="sm"
+        :disabled="loading"
+        @click="fetchAgents"
+      >
+        <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': loading }" />
+      </Button>
       <div v-if="hasSelection" class="flex items-center gap-2">
         <Button
           size="sm"
@@ -271,7 +245,6 @@ const handleSettings = (uuid: string) => {
             </TableHead>
             <TableHead>{{ t("dashboard.agents.colId") }}</TableHead>
             <TableHead>{{ t("dashboard.agents.colName") }}</TableHead>
-            <TableHead>{{ t("dashboard.agents.colServerCount") }}</TableHead>
             <TableHead>{{ t("dashboard.agents.colVersion") }}</TableHead>
             <TableHead class="text-right">{{
               t("dashboard.agents.colActions")
@@ -279,7 +252,7 @@ const handleSettings = (uuid: string) => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableEmpty v-if="filteredAgents.length === 0" :colspan="6">
+          <TableEmpty v-if="filteredAgents.length === 0" :colspan="5">
             {{ t("dashboard.agents.noAgents") }}
           </TableEmpty>
           <TableRow v-for="agent in filteredAgents" :key="agent.uuid">
@@ -293,7 +266,6 @@ const handleSettings = (uuid: string) => {
               {{ agent.uuid.slice(0, 8) }}
             </TableCell>
             <TableCell class="font-medium">{{ agent.customName }}</TableCell>
-            <TableCell>{{ agent.serverCount }}</TableCell>
             <TableCell class="text-muted-foreground">--</TableCell>
             <TableCell class="text-right">
               <Button
@@ -309,7 +281,5 @@ const handleSettings = (uuid: string) => {
         </TableBody>
       </Table>
     </div>
-
-    <AddAgentDialog v-model:open="addOpen" @added="fetchAgents" />
   </div>
 </template>

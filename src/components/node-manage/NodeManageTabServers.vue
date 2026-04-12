@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from "vue";
+import { ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { Router, Wrench, Plus, Trash2 } from "lucide-vue-next";
+import { Wrench, Plus, Trash2, RefreshCw } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PopConfirm } from "@/components/ui/pop-confirm";
@@ -18,16 +18,6 @@ import {
 import { useBackendStore, type Backend } from "@/composables/useBackendStore";
 import BackendSwitcher from "@/components/BackendSwitcher.vue";
 import { getWsConnection } from "@/composables/useWsConnection";
-
-definePage({
-  meta: {
-    title: "router.servers",
-    icon: Router,
-    order: 6,
-    group: "router.group.monitor",
-    hidden: true,
-  },
-});
 
 const { t } = useI18n();
 const route = useRoute();
@@ -67,6 +57,10 @@ const fetchServerInfo = (backend: Backend) => {
     });
 };
 
+const refreshAll = () => {
+  backends.value.forEach(fetchServerInfo);
+};
+
 watch(backends, (list) => list.forEach(fetchServerInfo), { immediate: true });
 
 const isActive = (backend: Backend) =>
@@ -79,43 +73,45 @@ const handleManage = (backend: Backend) => {
   );
 };
 
-onMounted(() => {
-  const raw = route.query.add;
-  if (!raw || typeof raw !== "string") return;
+// 修复: 用 watch 替代 onMounted，支持路由内动态修改 query
+watch(
+  () => route.query.add,
+  (raw) => {
+    if (!raw || typeof raw !== "string") return;
 
-  try {
-    const decoded = JSON.parse(atob(raw)) as Backend;
-    if (!decoded.url || !decoded.token || !decoded.name) return;
+    try {
+      const decoded = JSON.parse(atob(raw)) as Backend;
+      if (!decoded.url || !decoded.token || !decoded.name) return;
 
-    const exists = backends.value.some(
-      (b) => b.url === decoded.url && b.token === decoded.token,
-    );
-    if (!exists) {
-      addBackend(decoded);
-      if (backends.value.length === 1) {
-        selectBackend(decoded);
+      const exists = backends.value.some(
+        (b) => b.url === decoded.url && b.token === decoded.token,
+      );
+      if (!exists) {
+        addBackend(decoded);
+        if (backends.value.length === 1) {
+          selectBackend(decoded);
+        }
       }
+    } catch {
+      // 解码或解析失败时静默忽略
     }
-  } catch {
-    // 解码或解析失败时静默忽略
-  }
 
-  router.replace({ query: { ...route.query, add: undefined } });
-});
+    router.replace({ query: { ...route.query, add: undefined } });
+  },
+  { immediate: true },
+);
+
+defineExpose({ refreshAll });
 </script>
 
 <template>
   <div class="space-y-4">
-    <div class="flex items-start justify-between">
-      <div>
-        <h1 class="text-2xl font-semibold">
-          {{ t("dashboard.servers.title") }}
-        </h1>
-        <p class="text-sm text-muted-foreground mt-1">
-          {{ t("dashboard.servers.desc") }}
-        </p>
-      </div>
-      <Button @click="addOpen = true">
+    <div class="flex items-center justify-end gap-2">
+      <Button variant="outline" size="sm" @click="refreshAll">
+        <RefreshCw class="h-4 w-4 mr-1.5" />
+        {{ t("common.refresh") }}
+      </Button>
+      <Button size="sm" @click="addOpen = true">
         <Plus class="h-4 w-4 mr-1.5" />
         {{ t("dashboard.servers.addServer") }}
       </Button>

@@ -2,8 +2,16 @@
 import { ref, computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { Loader2, PackageOpen, ArrowLeft, Copy, Check } from "lucide-vue-next";
+import {
+  Loader2,
+  PackageOpen,
+  ArrowLeft,
+  Copy,
+  Check,
+  Pencil,
+} from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useBackendStore } from "@/composables/useBackendStore";
@@ -28,7 +36,6 @@ const backend = computed(() => {
   const raw = (route.params as { backendId: string }).backendId;
   const sep = raw.indexOf(":::");
   if (sep === -1) {
-    // 向后兼容：旧格式只含 token
     const token = decodeURIComponent(raw);
     return backends.value.find((b) => b.token === token) ?? null;
   }
@@ -129,6 +136,37 @@ const editorExtensions = computed(() => [
   StreamLanguage.define(toml),
   ...(themeStore.isDark ? [oneDark] : []),
 ]);
+
+// --- Edit state ---
+const editingField = ref<string | null>(null);
+const editValue = ref("");
+
+function startEdit(field: string, currentValue: string | undefined) {
+  editingField.value = field;
+  editValue.value = currentValue ?? "";
+}
+
+function cancelEdit() {
+  editingField.value = null;
+  editValue.value = "";
+}
+
+function saveEdit(field: string) {
+  if (!backend.value) return;
+  const idx = backends.value.findIndex(
+    (b) => b.url === backend.value!.url && b.token === backend.value!.token,
+  );
+  if (idx === -1) return;
+
+  if (field === "name") {
+    backends.value[idx]!.name = editValue.value;
+  } else if (field === "url") {
+    backends.value[idx]!.url = editValue.value;
+  } else if (field === "token") {
+    backends.value[idx]!.token = editValue.value;
+  }
+  editingField.value = null;
+}
 </script>
 
 <template>
@@ -168,12 +206,47 @@ const editorExtensions = computed(() => [
       <!-- Tab: 基本信息 -->
       <TabsContent value="info" class="mt-4">
         <div class="rounded-md border divide-y">
+          <!-- 名称 -->
           <div class="flex items-center px-4 py-3 gap-4">
             <span class="text-sm text-muted-foreground w-28 shrink-0">
               {{ t("dashboard.servers.detail.infoName") }}
             </span>
-            <span class="text-sm font-medium">{{ backend?.name ?? "--" }}</span>
+            <template v-if="editingField === 'name'">
+              <Input v-model="editValue" class="h-8 w-48" />
+              <Button size="sm" variant="outline" @click="saveEdit('name')">
+                {{ t("dashboard.servers.detail.infoSave") }}
+              </Button>
+              <Button size="sm" variant="ghost" @click="cancelEdit">
+                {{ t("dashboard.servers.detail.infoCancel") }}
+              </Button>
+            </template>
+            <template v-else>
+              <span class="text-sm font-medium">{{
+                backend?.name ?? "--"
+              }}</span>
+              <Button
+                size="icon"
+                variant="ghost"
+                class="h-6 w-6 shrink-0"
+                @click="copyText('name', backend?.name)"
+              >
+                <Check
+                  v-if="copiedKey === 'name'"
+                  class="h-3.5 w-3.5 text-green-500"
+                />
+                <Copy v-else class="h-3.5 w-3.5 text-muted-foreground" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                class="h-6 w-6 shrink-0"
+                @click="startEdit('name', backend?.name)"
+              >
+                <Pencil class="h-3.5 w-3.5 text-muted-foreground" />
+              </Button>
+            </template>
           </div>
+          <!-- UUID -->
           <div class="flex items-center px-4 py-3 gap-4">
             <span class="text-sm text-muted-foreground w-28 shrink-0">
               {{ t("dashboard.servers.detail.infoId") }}
@@ -195,33 +268,57 @@ const editorExtensions = computed(() => [
               </Button>
             </div>
           </div>
+          <!-- API 地址 -->
           <div class="flex items-center px-4 py-3 gap-4">
             <span class="text-sm text-muted-foreground w-28 shrink-0">
               {{ t("dashboard.servers.detail.infoEndpoint") }}
             </span>
-            <div class="flex items-center gap-1.5 min-w-0">
-              <span class="text-sm font-mono">{{ backend?.url ?? "--" }}</span>
-              <Button
-                v-if="backend?.url"
-                size="icon"
-                variant="ghost"
-                class="h-6 w-6 shrink-0"
-                @click="copyText('url', backend?.url)"
-              >
-                <Check
-                  v-if="copiedKey === 'url'"
-                  class="h-3.5 w-3.5 text-green-500"
-                />
-                <Copy v-else class="h-3.5 w-3.5 text-muted-foreground" />
+            <template v-if="editingField === 'url'">
+              <Input v-model="editValue" class="h-8 w-64" />
+              <Button size="sm" variant="outline" @click="saveEdit('url')">
+                {{ t("dashboard.servers.detail.infoSave") }}
               </Button>
-            </div>
+              <Button size="sm" variant="ghost" @click="cancelEdit">
+                {{ t("dashboard.servers.detail.infoCancel") }}
+              </Button>
+            </template>
+            <template v-else>
+              <div class="flex items-center gap-1.5 min-w-0">
+                <span class="text-sm font-mono">{{
+                  backend?.url ?? "--"
+                }}</span>
+                <Button
+                  v-if="backend?.url"
+                  size="icon"
+                  variant="ghost"
+                  class="h-6 w-6 shrink-0"
+                  @click="copyText('url', backend?.url)"
+                >
+                  <Check
+                    v-if="copiedKey === 'url'"
+                    class="h-3.5 w-3.5 text-green-500"
+                  />
+                  <Copy v-else class="h-3.5 w-3.5 text-muted-foreground" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  class="h-6 w-6 shrink-0"
+                  @click="startEdit('url', backend?.url)"
+                >
+                  <Pencil class="h-3.5 w-3.5 text-muted-foreground" />
+                </Button>
+              </div>
+            </template>
           </div>
+          <!-- 版本号 -->
           <div class="flex items-center px-4 py-3 gap-4">
             <span class="text-sm text-muted-foreground w-28 shrink-0">
               {{ t("dashboard.servers.detail.infoVersion") }}
             </span>
             <span class="text-sm font-mono">{{ serverVersion ?? "--" }}</span>
           </div>
+          <!-- 状态 -->
           <div class="flex items-center px-4 py-3 gap-4">
             <span class="text-sm text-muted-foreground w-28 shrink-0">
               {{ t("dashboard.servers.detail.infoStatus") }}
@@ -233,28 +330,56 @@ const editorExtensions = computed(() => [
               {{ t("dashboard.servers.detail.infoInactive") }}
             </Badge>
           </div>
+          <!-- Token -->
           <div class="flex items-start px-4 py-3 gap-4">
             <span class="text-sm text-muted-foreground w-28 shrink-0 pt-0.5">
               {{ t("dashboard.servers.detail.infoToken") }}
             </span>
-            <div class="flex items-start gap-1.5 min-w-0">
-              <span class="text-sm font-mono break-all">{{
-                backend?.token ?? "--"
-              }}</span>
-              <Button
-                v-if="backend?.token"
-                size="icon"
-                variant="ghost"
-                class="h-6 w-6 shrink-0 mt-0.5"
-                @click="copyText('token', backend?.token)"
-              >
-                <Check
-                  v-if="copiedKey === 'token'"
-                  class="h-3.5 w-3.5 text-green-500"
-                />
-                <Copy v-else class="h-3.5 w-3.5 text-muted-foreground" />
-              </Button>
-            </div>
+            <template v-if="editingField === 'token'">
+              <div class="flex flex-col gap-2 min-w-0">
+                <Input v-model="editValue" class="h-8 w-64 font-mono text-xs" />
+                <div class="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    @click="saveEdit('token')"
+                  >
+                    {{ t("dashboard.servers.detail.infoSave") }}
+                  </Button>
+                  <Button size="sm" variant="ghost" @click="cancelEdit">
+                    {{ t("dashboard.servers.detail.infoCancel") }}
+                  </Button>
+                </div>
+              </div>
+            </template>
+            <template v-else>
+              <div class="flex items-start gap-1.5 min-w-0">
+                <span class="text-sm font-mono break-all">{{
+                  backend?.token ?? "--"
+                }}</span>
+                <Button
+                  v-if="backend?.token"
+                  size="icon"
+                  variant="ghost"
+                  class="h-6 w-6 shrink-0 mt-0.5"
+                  @click="copyText('token', backend?.token)"
+                >
+                  <Check
+                    v-if="copiedKey === 'token'"
+                    class="h-3.5 w-3.5 text-green-500"
+                  />
+                  <Copy v-else class="h-3.5 w-3.5 text-muted-foreground" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  class="h-6 w-6 shrink-0 mt-0.5"
+                  @click="startEdit('token', backend?.token)"
+                >
+                  <Pencil class="h-3.5 w-3.5 text-muted-foreground" />
+                </Button>
+              </div>
+            </template>
           </div>
         </div>
       </TabsContent>

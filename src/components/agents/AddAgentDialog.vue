@@ -23,6 +23,7 @@ import { oneDark } from "@codemirror/theme-one-dark";
 import { useThemeStore } from "@/stores/theme";
 import { useBackendStore } from "@/composables/useBackendStore";
 import { getWsConnection } from "@/composables/useWsConnection";
+import { wsRpcCall } from "@/composables/useWsRpc";
 import { useCron, type BackendCron } from "@/composables/useCron";
 
 const open = defineModel<boolean>("open", { required: true });
@@ -33,7 +34,7 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const router = useRouter();
 const themeStore = useThemeStore();
-const { backends, currentBackend } = useBackendStore();
+const { currentBackend } = useBackendStore();
 const { list: listCrons } = useCron();
 
 const step = ref(1);
@@ -41,17 +42,19 @@ const step = ref(1);
 // Step 1: 基础信息
 const nodeName = ref("");
 const nodeUuid = ref("");
-const serverUrl = ref("");
 
 const generateUuid = () => {
   nodeUuid.value = crypto.randomUUID();
 };
 
+// 预生成的 token
+const generatedToken = ref("");
+
 const resetForm = () => {
   step.value = 1;
   nodeName.value = "";
   nodeUuid.value = "";
-  serverUrl.value = "";
+  generatedToken.value = "";
   selectedCronIds.value = new Set();
   staticRetention.value = undefined;
   dynamicRetention.value = undefined;
@@ -112,15 +115,51 @@ const stopPolling = () => {
 
 onUnmounted(stopPolling);
 
-// 安装脚本内容
+// 预生成 token
+const preGenerateToken = async () => {
+  if (!currentBackend.value) return;
+  try {
+    const result = await wsRpcCall<{ key?: string; secret?: string }>(
+      currentBackend.value.url,
+      "token_create",
+      {
+        father_token: currentBackend.value.token,
+        token_creation: {
+          username: null,
+          password: null,
+          timestamp_from: null,
+          timestamp_to: null,
+          version: 1,
+          token_limit: [
+            {
+              scopes: [{ global: null }],
+              permissions: [
+                { static_monitoring: "write" },
+                { dynamic_monitoring: "write" },
+                { task: "listen" },
+              ],
+            },
+          ],
+        },
+      },
+    );
+    if (result?.key && result?.secret) {
+      generatedToken.value = `${result.key}:${result.secret}`;
+    }
+  } catch (e) {
+    console.error("Token pre-generation failed:", e);
+  }
+};
+
+// 安装脚本内容 (4 参数)
 const installScript = computed(() => {
   const uuid = nodeUuid.value || "{AGENT_UUID}";
-  const serverUuid = currentBackend.value ? "..." : "{Server_UUID}";
-  const serverWs = serverUrl.value || "{Server_WS}";
+  const token = generatedToken.value || "{TOKEN}";
+  const serverWs = currentBackend.value?.url || "{Server_WS}";
   const serverName = currentBackend.value?.name || "{Server_NAME}";
   return `bash <(curl https://install.nodeget.com) \\
   --agent-id ${uuid} \\
-  --server-id ${serverUuid} \\
+  --token ${token} \\
   --server-ws ${serverWs} \\
   --server-name ${serverName}`;
 });
@@ -138,8 +177,9 @@ const canNext = computed(() => {
   return true;
 });
 
-const handleNext = () => {
+const handleNext = async () => {
   if (step.value === 1) {
+    await preGenerateToken();
     step.value = 2;
     loadCrons();
   } else if (step.value === 2) {
@@ -236,6 +276,22 @@ const steps = [
         <!-- Step 1: 基础信息 -->
         <div v-if="step === 1" class="space-y-4 py-2">
           <div class="space-y-2">
+            <Label>{{ t("dashboard.agents.fieldServerUrl") }}</Label>
+            <Input
+              :model-value="currentBackend?.url ?? '--'"
+              readonly
+              class="text-muted-foreground"
+            />
+          </div>
+          <div class="space-y-2">
+            <Label>{{ t("dashboard.agents.fieldServerName") }}</Label>
+            <Input
+              :model-value="currentBackend?.name ?? '--'"
+              readonly
+              class="text-muted-foreground"
+            />
+          </div>
+          <div class="space-y-2">
             <Label>{{ t("dashboard.agents.fieldName") }}</Label>
             <Input v-model="nodeName" />
           </div>
@@ -248,10 +304,6 @@ const steps = [
                 {{ t("dashboard.agents.generateUuid") }}
               </Button>
             </div>
-          </div>
-          <div class="space-y-2">
-            <Label>{{ t("dashboard.agents.fieldServerUrl") }}</Label>
-            <Input v-model="serverUrl" />
           </div>
         </div>
 

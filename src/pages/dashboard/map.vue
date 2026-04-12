@@ -17,8 +17,8 @@ definePage({
   meta: {
     title: "router.map",
     icon: Earth,
-    order: 5,
-    group: "router.group.nodeManage",
+    order: 8,
+    group: "router.group.monitor",
   },
 });
 

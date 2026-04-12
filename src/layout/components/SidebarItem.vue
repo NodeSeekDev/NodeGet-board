@@ -60,9 +60,14 @@ const routeTo = computed<RouteLocationRaw>(() =>
       } as RouteLocationRaw)
     : props.route.path,
 );
-const { t } = useI18n();
+const { t, te } = useI18n();
 
 const isIconUrl = computed(() => typeof props.route.meta?.icon === "string");
+
+function translateTitle(title: unknown): string {
+  if (typeof title !== "string" || !title) return "";
+  return te(title) ? t(title) : title;
+}
 </script>
 
 <template>
@@ -89,7 +94,7 @@ const isIconUrl = computed(() => typeof props.route.meta?.icon === "string");
             class="h-4 w-4 shrink-0"
           />
           <span class="flex-1 truncate text-left">{{
-            route.meta?.title ? t(route.meta.title as string) : ""
+            translateTitle(route.meta?.title)
           }}</span>
           <ChevronDown
             class="h-3.5 w-3.5 shrink-0 transition-transform duration-200"
@@ -153,7 +158,7 @@ const isIconUrl = computed(() => typeof props.route.meta?.icon === "string");
         </RouterLink>
       </TooltipTrigger>
       <TooltipContent side="right">{{
-        route.meta?.title ? t(route.meta.title as string) : ""
+        translateTitle(route.meta?.title)
       }}</TooltipContent>
     </Tooltip>
     <RouterLink
@@ -176,9 +181,7 @@ const isIconUrl = computed(() => typeof props.route.meta?.icon === "string");
         v-else-if="route.meta?.icon && level === 0"
         class="h-4 w-4 shrink-0"
       />
-      <span class="truncate">{{
-        route.meta?.title ? t(route.meta.title as string) : ""
-      }}</span>
+      <span class="truncate">{{ translateTitle(route.meta?.title) }}</span>
     </RouterLink>
   </template>
 </template>

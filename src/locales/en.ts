@@ -488,6 +488,15 @@ export default {
         featureIcmpPing: "icmp_ping",
         featureTcpPing: "tcp_ping",
         featureHttpPing: "http_ping",
+        featureHttpRequest: "http_request",
+        featureWebShell: "web_shell",
+        featureExecute: "execute",
+        featureIp: "IP Info",
+        featureReadConfig: "read_config",
+        featureEditConfig: "edit_config",
+        featureEditConfigConfirmTitle: "Disable config editing?",
+        featureEditConfigConfirmDesc:
+          "Once disabled, you will not be able to edit this node's config from the panel.",
       },
       storage: {
         title: "Storage Retention",
@@ -552,6 +561,9 @@ export default {
         infoVersion: "Version",
         infoStatus: "Status",
         infoToken: "Token",
+        infoEdit: "Edit",
+        infoSave: "Save",
+        infoCancel: "Cancel",
         infoActive: "Active",
         infoInactive: "Inactive",
         configSave: "Save Config",
@@ -585,6 +597,7 @@ export default {
       fieldUuid: "Node UUID",
       generateUuid: "Generate",
       fieldServerUrl: "Server URL",
+      fieldServerName: "Server Name",
       next: "Next",
       prev: "Previous",
       cronSection: "Enable Cron",
@@ -603,6 +616,10 @@ export default {
       completed: "Completed",
       continueAdding: "Continue Adding",
       adjustNode: "Adjust Node",
+    },
+    nodeManage: {
+      title: "Node Management",
+      desc: "Manage agent and server nodes.",
     },
     cron: {
       title: "Cron Jobs",
@@ -829,6 +846,7 @@ export default {
     traffic: "Traffic",
     updateAgent: "Update Agent",
     backToServers: "Back to Servers",
+    nodeManage: "Node Management",
     node: {
       detail: "Node Detail",
       backToServers: "Back to Servers",

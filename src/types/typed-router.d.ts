@@ -57,6 +57,7 @@ declare module 'vue-router/auto-routes' {
       | '/dashboard/loadbalance'
       | '/dashboard/logs'
       | '/dashboard/map'
+      | '/dashboard/node-manage'
       | '/dashboard/node/[uuid]'
       | '/dashboard/node/[uuid]/LatencyView'
       | '/dashboard/node/[uuid]/[extensionRoute]'
@@ -356,6 +357,13 @@ declare module 'vue-router/auto-routes' {
       { uuid: ParamValue<false> },
       | never
     >,
+    '/dashboard/node-manage': RouteRecordInfo<
+      '/dashboard/node-manage',
+      '/dashboard/node-manage',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/dashboard/overview': RouteRecordInfo<
       '/dashboard/overview',
       '/dashboard/overview',
@@ -515,6 +523,7 @@ declare module 'vue-router/auto-routes' {
         | '/dashboard/loadbalance'
         | '/dashboard/logs'
         | '/dashboard/map'
+        | '/dashboard/node-manage'
         | '/dashboard/node/[uuid]'
         | '/dashboard/node/[uuid]/LatencyView'
         | '/dashboard/node/[uuid]/[extensionRoute]'
@@ -780,6 +789,12 @@ declare module 'vue-router/auto-routes' {
     'src/pages/dashboard/node/[uuid]/webshell.vue': {
       routes:
         | '/dashboard/node/[uuid]/webshell'
+      views:
+        | never
+    }
+    'src/pages/dashboard/node-manage.vue': {
+      routes:
+        | '/dashboard/node-manage'
       views:
         | never
     }
