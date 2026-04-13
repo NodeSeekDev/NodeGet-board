@@ -82,13 +82,6 @@ const arePermissionSetsEqual = (
   );
 };
 
-const normalizeAgentTemplateScopes = (
-  scopes: TokenLimitScope,
-): TokenLimitScope => {
-  const agentScopes = (scopes ?? []).filter((item) => "agent_uuid" in item);
-  return agentScopes.length > 0 ? agentScopes : [];
-};
-
 const normalizeGlobalTemplateScopes = (): TokenLimitScope => [...DEFAULT_SCOPE];
 
 export const getTokenPermissionTemplateOptions = (
@@ -150,7 +143,7 @@ const TEMPLATE_CONFIGS: Record<
     value: "visitor",
     buildPermissions: () => VISITOR_PERMISSIONS.map((item) => ({ ...item })),
     matches: (tokenLimit, currentScopeTab) => {
-      if (currentScopeTab !== "AgentUuid") return false;
+      if (currentScopeTab !== "Global") return false;
       return arePermissionSetsEqual(
         tokenLimit.permissions ?? [],
         VISITOR_PERMISSIONS,
@@ -159,10 +152,10 @@ const TEMPLATE_CONFIGS: Record<
     apply: (tokenLimit) => ({
       tokenLimit: {
         ...tokenLimit,
-        scopes: normalizeAgentTemplateScopes(tokenLimit.scopes),
+        scopes: normalizeGlobalTemplateScopes(),
         permissions: VISITOR_PERMISSIONS.map((item) => ({ ...item })),
       },
-      scopeTab: "AgentUuid",
+      scopeTab: "Global",
     }),
   },
 };
