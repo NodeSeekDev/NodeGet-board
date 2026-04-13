@@ -326,10 +326,6 @@ const validateForm = (): boolean => {
   }
 
   if (form.value.taskKind === "agent") {
-    if (!form.value.agentIds.length) {
-      errors.value.agentIds = t("dashboard.cron.nodesRequired");
-    }
-
     if (form.value.agentTaskType === "execute") {
       if (!form.value.agentExecuteCommand.trim()) {
         errors.value.agentExecuteCommand = t(
