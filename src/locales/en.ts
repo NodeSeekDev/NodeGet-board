@@ -742,12 +742,22 @@ export default {
       editor: {
         runCall: "Call",
         runCron: "Cron",
+        http: "Http",
         preview: "Preview",
-        save: "Save",
+        save: "Save Code",
+        saveEnv: "Code + Env",
         params: "Params (JSON)",
-        env: "Env Vars",
+        env: "Env (Temporary)",
         result: "Result",
         placeholder: "Enter code here...",
+        run: "Execute",
+        saveAndRun: "Save & Execute",
+        saveAndPreview: "Save & Preview",
+        noRoute: "Route not bound, please bind it first",
+        method: "Method",
+        header: "Header",
+        body: "Body",
+        addHeader: "Add Header",
       },
       settings: {
         envVars: "Environment Variables",
@@ -834,7 +844,6 @@ export default {
         copy: "copy script snippet content",
       },
     },
-
   },
   router: {
     overview: "Overview",

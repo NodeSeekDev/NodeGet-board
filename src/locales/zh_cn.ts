@@ -732,12 +732,22 @@ export default {
       editor: {
         runCall: "Call",
         runCron: "Cron",
+        http: "Http",
         preview: "预览",
-        save: "保存",
+        save: "保存代码",
+        saveEnv: "代码 + 环境",
         params: "参数 (JSON)",
-        env: "环境变量",
+        env: "环境变量 (临时)",
         result: "执行结果",
         placeholder: "请输入代码...",
+        run: "执行",
+        saveAndRun: "保存并执行",
+        saveAndPreview: "保存并预览",
+        noRoute: "未绑定路由，请先绑定路由后操作",
+        method: "方法",
+        header: "Header",
+        body: "Body",
+        addHeader: "添加 Header",
       },
       settings: {
         envVars: "环境变量",
@@ -830,7 +840,6 @@ export default {
         copy: "复制代码",
       },
     },
-
   },
   router: {
     overview: "服务概览",

@@ -154,15 +154,21 @@ export function useJsRuntime() {
    * API: js-worker_run
    *
    * @param {string} name 脚本名 (js_script_name)
-   * @param {"call"|"cron"} runType 运行类型：call / cron
+   * @param {"call"|"cron"|"route"} runType 运行类型：call / cron / route
    * @param {any} params 任意 JSON，传给脚本入口函数第一个参数
-   * @param {any} [env] 传入时使用请求里的 env；不传则使用数据库中保存的 env
+   * @param {any} [options] 额外选项，包括 env, compile_mode 以及 HTTP 模拟参数
    */
   const runWorker = async (
     name: string,
-    runType: "call" | "cron",
+    runType: "call" | "cron" | "route",
     params: any,
-    env?: any,
+    options: {
+      env?: any;
+      compile_mode?: string;
+      method?: string;
+      headers?: Record<string, string>;
+      body?: string;
+    } = {},
   ) => {
     if (!backendUrl.value) return;
 
@@ -171,7 +177,7 @@ export function useJsRuntime() {
       js_script_name: name,
       run_type: runType,
       params,
-      env,
+      ...options,
     });
   };
 
@@ -214,5 +220,6 @@ export function useJsRuntime() {
     runWorker,
     getWorkerLogs,
     deleteWorkerLog,
+    backendUrl,
   };
 }

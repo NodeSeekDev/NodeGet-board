@@ -16,6 +16,10 @@ import {
   FileText,
   ChevronRight,
   Inbox,
+  Globe,
+  Plus,
+  ChevronDown,
+  ExternalLink,
 } from "lucide-vue-next";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -49,6 +53,17 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   useJsRuntime,
   type JsWorker,
@@ -87,6 +102,58 @@ const saveLoading = ref(false);
 const isPreviewMode = ref(false);
 const activeEditorTab = ref("params");
 const iframeKey = ref(0);
+
+const activeRunMode = ref<"call" | "cron" | "http" | "preview">("call");
+const httpSimulation = ref({
+  method: "POST",
+  suffix: "",
+  headers: [{ key: "Accept", value: "*/*" }],
+  body: "",
+});
+const httpResultOpen = ref(true);
+const activeHttpTab = ref("headers");
+
+const tempEnvVars = ref<{ key: string; value: string }[]>([]);
+const isConfigOpen = ref(true);
+const isEnvDirty = computed(() => {
+  if (!worker.value) return false;
+  const currentEnv = worker.value.env || {};
+  const activeTemp = tempEnvVars.value.filter((e) => e.key.trim() !== "");
+
+  if (Object.keys(currentEnv).length !== activeTemp.length) return true;
+
+  for (const item of activeTemp) {
+    if (currentEnv[item.key] !== item.value) return true;
+  }
+  return false;
+});
+
+const ensureEmptyTempEnvRow = () => {
+  if (
+    tempEnvVars.value.length === 0 ||
+    tempEnvVars.value[tempEnvVars.value.length - 1]!.key !== "" ||
+    tempEnvVars.value[tempEnvVars.value.length - 1]!.value !== ""
+  ) {
+    tempEnvVars.value.push({ key: "", value: "" });
+  }
+};
+
+watch(
+  tempEnvVars,
+  () => {
+    ensureEmptyTempEnvRow();
+  },
+  { deep: true },
+);
+
+const wsHost = computed(() => {
+  try {
+    const url = new URL(runtime.backendUrl.value);
+    return url.host;
+  } catch {
+    return "WS_HOST";
+  }
+});
 
 // Settings Tab State
 const envVars = ref<{ key: string; value: string }[]>([]);
@@ -223,8 +290,15 @@ const getWorkerFun = async () => {
         key,
         value: String(value),
       }));
+      tempEnvVars.value = Object.entries(data.env || {}).map(
+        ([key, value]) => ({
+          key,
+          value: String(value),
+        }),
+      );
       // Always keep one empty row for new env var
       ensureEmptyEnvRow();
+      ensureEmptyTempEnvRow();
     } else {
       toast.error("Worker not found");
       router.push("/dashboard/js-runtime");
@@ -264,21 +338,35 @@ const syncLatestWorkerState = async (): Promise<JsWorker> => {
   return data;
 };
 
-const updateWorkerContentFun = async () => {
+const updateWorkerContentFun = async (withEnv = false) => {
   if (!worker.value) return;
   saveLoading.value = true;
   try {
     const latest = await syncLatestWorkerState();
+    const envObj = withEnv ? JSON.parse(runEnv.value) : latest.env || {};
 
     await runtime.updateWorker(latest.name, {
       content: content.value,
-      route: latest.route || "",
+      route: latest.route || undefined,
       runtime_clean_time: latest.runtime_clean_time,
-      env: latest.env || {},
+      env: envObj,
       description: latest.description || "",
     });
     toast.success(t("dashboard.jsRuntime.updateSuccess"));
     worker.value.content = content.value;
+    if (withEnv) {
+      worker.value.env = envObj;
+      envVars.value = Object.entries(envObj).map(([key, value]) => ({
+        key,
+        value: String(value),
+      }));
+      tempEnvVars.value = Object.entries(envObj).map(([key, value]) => ({
+        key,
+        value: String(value),
+      }));
+      ensureEmptyEnvRow();
+      ensureEmptyTempEnvRow();
+    }
   } catch (e: any) {
     toast.error(e.message || "Save failed");
   } finally {
@@ -292,56 +380,164 @@ const handleJsonParseError = (errorMessage: string): boolean => {
   return false;
 };
 
-const runWorkerFun = async (runType: "call" | "cron") => {
+const runWorkerFun = async (saveFirst = false) => {
   if (!worker.value) return;
-  isPreviewMode.value = false;
+
+  if (saveFirst) {
+    await updateWorkerContentFun(
+      activeRunMode.value === "call" || activeRunMode.value === "cron",
+    );
+  } else if (activeRunMode.value === "call" || activeRunMode.value === "cron") {
+    // If not saving first, we still want to use the temp env for execution
+    const envObj: Record<string, string> = {};
+    tempEnvVars.value.forEach((item) => {
+      if (item.key.trim()) {
+        envObj[item.key.trim()] = item.value;
+      }
+    });
+    runEnv.value = JSON.stringify(envObj);
+  }
+
+  if (activeRunMode.value === "preview") {
+    iframeKey.value++;
+    return;
+  }
+
   runLoading.value = true;
   runResult.value = null;
   try {
     let paramsObj = {};
     let envObj = {};
-    try {
-      paramsObj = JSON.parse(runParams.value);
-    } catch {
-      if (!handleJsonParseError("Invalid Params JSON")) return;
-    }
-    try {
-      envObj = JSON.parse(runEnv.value);
-    } catch {
-      if (!handleJsonParseError("Invalid Env JSON")) return;
-    }
 
-    const result = await runtime.runWorker(
-      worker.value.name,
-      runType,
-      paramsObj,
-      envObj,
-    );
+    // Determine which mode we're in
+    const mode = activeRunMode.value;
 
-    runResult.value = result;
-
-    // JS execution is asynchronous, poll for the actual result using the returned ID
-    if (result && result.id) {
-      for (let i = 0; i < 10; i++) {
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        const logs = await runtime.getWorkerLogs([{ id: Number(result.id) }]);
-        if (logs && logs.length > 0) {
-          const log = logs[0];
-          if (log) {
-            runResult.value = log;
-            // If finish_time is present, the script has completed execution
-            if (log.finish_time) {
-              break;
-            }
-          }
-        }
+    if (mode === "call" || mode === "cron") {
+      try {
+        paramsObj = JSON.parse(runParams.value);
+      } catch {
+        if (!handleJsonParseError("Invalid Params JSON")) return;
       }
+      try {
+        envObj = JSON.parse(runEnv.value);
+      } catch {
+        if (!handleJsonParseError("Invalid Env JSON")) return;
+      }
+
+      const result = await runtime.runWorker(
+        worker.value.name,
+        mode,
+        paramsObj,
+        {
+          env: envObj,
+          compile_mode: "source",
+        },
+      );
+      runResult.value = result;
+      await pollResult(result);
+    } else if (mode === "http") {
+      // HTTP simulation
+      const headers: Record<string, string> = {};
+      httpSimulation.value.headers.forEach((h) => {
+        if (h.key.trim()) headers[h.key.trim()] = h.value;
+      });
+
+      const result = await runtime.runWorker(
+        worker.value.name,
+        "route",
+        {}, // params empty for route run
+        {
+          method: httpSimulation.value.method,
+          headers,
+          body: httpSimulation.value.body,
+          compile_mode: "source", // Always source as per requirement for testing
+        },
+      );
+      runResult.value = result;
+      await pollResult(result);
     }
   } catch (e: any) {
     runResult.value = { error: e.message || "Run failed" };
   } finally {
     runLoading.value = false;
   }
+};
+
+const pollResult = async (result: any) => {
+  if (result && result.id) {
+    for (let i = 0; i < 10; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      const logs = await runtime.getWorkerLogs([{ id: Number(result.id) }]);
+      if (logs && logs.length > 0) {
+        const log = logs[0];
+        if (log) {
+          runResult.value = log;
+          if (log.finish_time) break;
+        }
+      }
+    }
+  }
+};
+
+const addHttpHeaderFun = () => {
+  httpSimulation.value.headers.push({ key: "", value: "" });
+};
+
+const removeHttpHeaderFun = (index: number) => {
+  httpSimulation.value.headers.splice(index, 1);
+};
+
+watch(activeRunMode, (newMode) => {
+  if ((newMode === "call" || newMode === "cron") && worker.value?.env) {
+    const envObj = worker.value.env;
+    runEnv.value = JSON.stringify(envObj, null, 2);
+    tempEnvVars.value = Object.entries(envObj).map(([key, value]) => ({
+      key,
+      value: String(value),
+    }));
+    ensureEmptyTempEnvRow();
+  }
+});
+
+const saveTempEnvFun = async () => {
+  if (!worker.value) return;
+  const envObj: Record<string, string> = {};
+  tempEnvVars.value.forEach((item) => {
+    if (item.key.trim()) {
+      envObj[item.key.trim()] = item.value;
+    }
+  });
+
+  saveLoading.value = true;
+  try {
+    const latest = await syncLatestWorkerState();
+    await runtime.updateWorker(latest.name, {
+      env: envObj,
+      content: latest.content,
+      route: latest.route || undefined,
+      runtime_clean_time: latest.runtime_clean_time,
+      description: latest.description || "",
+    });
+    toast.success(t("dashboard.jsRuntime.updateSuccess"));
+    worker.value.env = envObj;
+    runEnv.value = JSON.stringify(envObj, null, 2);
+    envVars.value = Object.entries(envObj).map(([key, value]) => ({
+      key,
+      value: String(value),
+    }));
+    ensureEmptyEnvRow();
+  } catch (e: any) {
+    toast.error(e.message || "Save failed");
+  } finally {
+    saveLoading.value = false;
+  }
+};
+
+const openPreviewNewWindowFun = () => {
+  if (!worker.value?.route) return;
+  const suffix = httpSimulation.value.suffix;
+  const path = `/worker-route/${worker.value.route}/${suffix}`;
+  window.open(path, "_blank");
 };
 
 const updateWorkerSettingsFun = async () => {
@@ -358,7 +554,7 @@ const updateWorkerSettingsFun = async () => {
     const latest = await syncLatestWorkerState();
 
     await runtime.updateWorker(latest.name, {
-      route: workerRoute.value,
+      route: workerRoute.value || undefined,
       runtime_clean_time: cleanTime.value ? Number(cleanTime.value) : null,
       env: envObj,
       content: latest.content,
@@ -381,7 +577,7 @@ const updateWorkerDescriptionFun = async () => {
 
     await runtime.updateWorker(latest.name, {
       content: latest.content,
-      route: latest.route || "",
+      route: latest.route || undefined,
       runtime_clean_time: latest.runtime_clean_time,
       env: latest.env || {},
       description: descriptionEditText.value,
@@ -531,141 +727,460 @@ const formatTime = (ts: number | null) => {
             </div>
 
             <!-- Right: Controls & Result -->
-            <div class="flex flex-col gap-4 min-h-0">
-              <div class="p-4 border rounded-lg bg-card space-y-4">
-                <div class="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    @click="runWorkerFun('call')"
-                    :disabled="runLoading"
-                  >
-                    <Play class="mr-2 h-3 w-3" />
-                    {{ t("dashboard.jsRuntime.editor.runCall") }}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    @click="runWorkerFun('cron')"
-                    :disabled="runLoading"
-                  >
-                    <Clock class="mr-2 h-3 w-3" />
-                    {{ t("dashboard.jsRuntime.editor.runCron") }}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    @click="isPreviewMode = true"
-                  >
-                    <Eye class="mr-2 h-3 w-3" />
-                    {{ t("dashboard.jsRuntime.editor.preview") }}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="default"
-                    @click="updateWorkerContentFun"
-                    :disabled="saveLoading"
-                  >
-                    <Loader2
-                      v-if="saveLoading"
-                      class="mr-2 h-3 w-3 animate-spin"
-                    />
-                    <Save class="mr-2 h-3 w-3" v-else />
-                    {{ t("dashboard.jsRuntime.editor.save") }}
-                  </Button>
-                </div>
-
-                <Tabs v-model="activeEditorTab" class="w-full">
-                  <TabsList class="grid w-full grid-cols-2">
-                    <TabsTrigger value="params">
-                      {{ t("dashboard.jsRuntime.editor.params") }}
+            <div class="flex flex-col gap-4 min-h-0 relative">
+              <!-- Mode Tabs & Top Actions -->
+              <div class="flex items-center justify-between gap-4">
+                <Tabs v-model="activeRunMode" class="w-fit">
+                  <TabsList>
+                    <TabsTrigger value="call">
+                      {{ t("dashboard.jsRuntime.editor.runCall") }}
                     </TabsTrigger>
-                    <TabsTrigger value="env">
-                      {{ t("dashboard.jsRuntime.editor.env") }}
+                    <TabsTrigger value="cron">
+                      {{ t("dashboard.jsRuntime.editor.runCron") }}
+                    </TabsTrigger>
+                    <TabsTrigger value="http">
+                      {{ t("dashboard.jsRuntime.editor.http") }}
+                    </TabsTrigger>
+                    <TabsTrigger value="preview">
+                      {{ t("dashboard.jsRuntime.editor.preview") }}
                     </TabsTrigger>
                   </TabsList>
-                  <TabsContent
-                    value="params"
-                    class="mt-2 h-24 border rounded-md overflow-hidden"
-                  >
-                    <Codemirror
-                      v-model="runParams"
-                      :extensions="jsonExtensions"
-                      class="h-full text-[12px]"
-                      :style="{ height: '100%' }"
-                    />
-                  </TabsContent>
-                  <TabsContent
-                    value="env"
-                    class="mt-2 h-24 border rounded-md overflow-hidden"
-                  >
-                    <Codemirror
-                      v-model="runEnv"
-                      :extensions="jsonExtensions"
-                      class="h-full text-[12px]"
-                      :style="{ height: '100%' }"
-                    />
-                  </TabsContent>
                 </Tabs>
+
+                <div class="flex items-center gap-2">
+                  <DropdownMenu>
+                    <div class="flex items-center -space-x-px">
+                      <Button
+                        size="sm"
+                        variant="default"
+                        class="h-8 rounded-r-none border-r border-primary-foreground/20"
+                        @click="runWorkerFun(true)"
+                        :disabled="saveLoading || runLoading"
+                      >
+                        <Loader2
+                          v-if="saveLoading"
+                          class="mr-2 h-3 w-3 animate-spin"
+                        />
+                        <Play v-else class="mr-2 h-3 w-3" />
+                        {{ t("dashboard.jsRuntime.editor.saveAndRun") }}
+                      </Button>
+                      <DropdownMenuTrigger as-child>
+                        <Button
+                          size="sm"
+                          variant="default"
+                          class="h-8 w-7 p-0 rounded-l-none"
+                          :disabled="saveLoading"
+                        >
+                          <ChevronDown class="h-3 w-3" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                    </div>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem @click="updateWorkerContentFun(false)">
+                        <Save class="mr-2 h-4 w-4" />
+                        {{ t("dashboard.jsRuntime.editor.save") }}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
 
+              <!-- Content Area based on activeRunMode -->
               <div
-                class="flex-1 min-h-0 border rounded-lg overflow-hidden flex flex-col bg-card"
+                class="flex-1 flex flex-col gap-4 min-h-0 overflow-auto pr-1"
               >
-                <div
-                  class="p-2 border-b bg-muted/30 flex items-center justify-between"
+                <!-- Call / Cron Mode UI -->
+                <template
+                  v-if="activeRunMode === 'call' || activeRunMode === 'cron'"
                 >
-                  <span class="text-sm font-medium px-2">{{
-                    isPreviewMode
-                      ? t("dashboard.jsRuntime.editor.preview")
-                      : t("dashboard.jsRuntime.editor.result")
-                  }}</span>
-                  <Button
-                    v-if="isPreviewMode && worker?.route"
-                    variant="ghost"
-                    size="icon"
-                    class="h-6 w-6"
-                    @click="iframeKey++"
-                    :title="t('common.refresh', '刷新')"
-                  >
-                    <RotateCcw class="h-3 w-3" />
-                  </Button>
-                </div>
-                <div class="flex-1 min-h-0 overflow-hidden relative">
-                  <div
-                    v-if="runLoading"
-                    class="absolute inset-0 z-10 bg-background/40 backdrop-blur-[1px] flex items-center justify-center"
-                  >
-                    <Loader2
-                      class="h-8 w-8 animate-spin text-muted-foreground"
-                    />
+                  <Collapsible v-model:open="isConfigOpen">
+                    <Tabs v-model="activeEditorTab" class="space-y-4">
+                      <div class="flex items-center justify-between group">
+                        <div class="flex-1">
+                          <TabsList class="grid w-full grid-cols-2">
+                            <TabsTrigger value="params">
+                              {{ t("dashboard.jsRuntime.editor.params") }}
+                            </TabsTrigger>
+                            <TabsTrigger value="env" class="relative">
+                              {{ t("dashboard.jsRuntime.editor.env") }}
+                              <span
+                                v-if="isEnvDirty"
+                                class="absolute -top-1 -right-1 text-orange-500 font-bold"
+                                >*</span
+                              >
+                            </TabsTrigger>
+                          </TabsList>
+                        </div>
+                        <CollapsibleTrigger as-child>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            class="h-8 w-8 ml-2 shrink-0"
+                          >
+                            <ChevronDown
+                              class="h-4 w-4 transition-transform duration-200"
+                              :class="{ 'rotate-180': isConfigOpen }"
+                            />
+                          </Button>
+                        </CollapsibleTrigger>
+                      </div>
+
+                      <CollapsibleContent class="space-y-4">
+                        <TabsContent
+                          value="params"
+                          class="m-0 h-32 border rounded-md overflow-hidden bg-card"
+                        >
+                          <Codemirror
+                            v-model="runParams"
+                            :extensions="jsonExtensions"
+                            class="h-full text-[12px]"
+                            :style="{ height: '100%' }"
+                          />
+                        </TabsContent>
+                        <TabsContent
+                          value="env"
+                          class="m-0 min-h-32 border rounded-md overflow-hidden bg-card flex flex-col"
+                        >
+                          <div class="flex-1 overflow-auto p-2">
+                            <Table>
+                              <TableHeader>
+                                <TableRow class="hover:bg-transparent">
+                                  <TableHead class="h-8 text-xs">{{
+                                    t("dashboard.jsRuntime.settings.key")
+                                  }}</TableHead>
+                                  <TableHead class="h-8 text-xs">{{
+                                    t("dashboard.jsRuntime.settings.value")
+                                  }}</TableHead>
+                                  <TableHead class="h-8 w-[40px]"></TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                <TableRow
+                                  v-for="(item, index) in tempEnvVars"
+                                  :key="index"
+                                  class="hover:bg-transparent border-none"
+                                >
+                                  <TableCell class="p-1 h-auto">
+                                    <Input
+                                      v-model="item.key"
+                                      class="h-7 text-xs font-mono"
+                                      placeholder="Key"
+                                    />
+                                  </TableCell>
+                                  <TableCell class="p-1 h-auto">
+                                    <Input
+                                      v-model="item.value"
+                                      class="h-7 text-xs font-mono"
+                                      placeholder="Value"
+                                    />
+                                  </TableCell>
+                                  <TableCell class="p-1 h-auto text-center">
+                                    <Button
+                                      v-if="index !== tempEnvVars.length - 1"
+                                      variant="ghost"
+                                      size="icon"
+                                      class="h-7 w-7 text-destructive"
+                                      @click="tempEnvVars.splice(index, 1)"
+                                    >
+                                      <Trash2 class="h-3.5 w-3.5" />
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              </TableBody>
+                            </Table>
+                          </div>
+                          <div
+                            class="p-2 border-t bg-muted/20 flex justify-end"
+                          >
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              class="h-7 text-xs"
+                              @click="saveTempEnvFun"
+                              :disabled="saveLoading"
+                            >
+                              <Loader2
+                                v-if="saveLoading"
+                                class="mr-1 h-3 w-3 animate-spin"
+                              />
+                              <Save v-else class="mr-1 h-3 w-3" />
+                              {{ t("dashboard.jsRuntime.editor.save") }}
+                            </Button>
+                          </div>
+                        </TabsContent>
+                      </CollapsibleContent>
+                    </Tabs>
+                  </Collapsible>
+                </template>
+
+                <!-- Http Mode UI -->
+                <template v-else-if="activeRunMode === 'http'">
+                  <div class="space-y-4">
+                    <!-- URL Display -->
+                    <div
+                      class="p-3 bg-muted/40 rounded-lg flex items-center gap-2 text-[13px] font-mono overflow-hidden"
+                    >
+                      <Select v-model="httpSimulation.method">
+                        <SelectTrigger
+                          class="h-7 w-[90px] text-xs font-mono shrink-0 bg-background"
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="GET">GET</SelectItem>
+                          <SelectItem value="POST">POST</SelectItem>
+                          <SelectItem value="PUT">PUT</SelectItem>
+                          <SelectItem value="DELETE">DELETE</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <span class="truncate text-muted-foreground ml-1"
+                        >https://{{ wsHost }}/worker-route/{{
+                          worker?.route || "{ROUTE}"
+                        }}/</span
+                      >
+                      <Input
+                        v-model="httpSimulation.suffix"
+                        placeholder="path suffix"
+                        class="h-7 px-2 font-mono text-[13px] min-w-[80px]"
+                      />
+                    </div>
+                    <p
+                      v-if="!worker?.route"
+                      class="text-xs text-orange-500 px-1"
+                    >
+                      {{ t("dashboard.jsRuntime.editor.noRoute") }}
+                    </p>
+
+                    <Card class="border shadow-none">
+                      <CardHeader class="p-3 pb-0">
+                        <div class="flex items-center justify-between">
+                          <CardTitle class="text-sm font-medium"
+                            >HTTP 请求配置</CardTitle
+                          >
+                        </div>
+                      </CardHeader>
+                      <CardContent class="p-3">
+                        <Tabs v-model="activeHttpTab" class="w-full">
+                          <TabsList class="h-8 p-1 w-fit">
+                            <TabsTrigger
+                              value="headers"
+                              class="text-xs px-3 h-6"
+                              >{{
+                                t("dashboard.jsRuntime.editor.header")
+                              }}</TabsTrigger
+                            >
+                            <TabsTrigger
+                              value="body"
+                              class="text-xs px-3 h-6"
+                              >{{
+                                t("dashboard.jsRuntime.editor.body")
+                              }}</TabsTrigger
+                            >
+                          </TabsList>
+                          <TabsContent value="headers" class="space-y-2 mt-2">
+                            <div
+                              v-for="(h, i) in httpSimulation.headers"
+                              :key="i"
+                              class="flex items-center gap-2"
+                            >
+                              <Input
+                                v-model="h.key"
+                                placeholder="Header"
+                                class="h-7 text-xs"
+                              />
+                              <Input
+                                v-model="h.value"
+                                placeholder="Value"
+                                class="h-7 text-xs"
+                              />
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                class="h-7 w-7 shrink-0"
+                                @click="removeHttpHeaderFun(i)"
+                              >
+                                <Trash2 class="h-3 w-3" />
+                              </Button>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              class="h-7 text-xs"
+                              @click="addHttpHeaderFun"
+                            >
+                              <Plus class="h-3 w-3 mr-1" />
+                              {{ t("dashboard.jsRuntime.editor.addHeader") }}
+                            </Button>
+                          </TabsContent>
+                          <TabsContent
+                            value="body"
+                            class="mt-2 h-32 border rounded-md overflow-hidden bg-card"
+                          >
+                            <Codemirror
+                              v-model="httpSimulation.body"
+                              :extensions="jsonExtensions"
+                              class="h-full text-[12px]"
+                              :style="{ height: '100%' }"
+                            />
+                          </TabsContent>
+                        </Tabs>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </template>
+
+                <!-- Preview Mode UI -->
+                <template v-else-if="activeRunMode === 'preview'">
+                  <div class="space-y-4 flex flex-col h-full min-h-0">
+                    <div
+                      class="p-3 bg-muted/40 rounded-lg flex items-center gap-2 text-[13px] font-mono overflow-auto"
+                    >
+                      <Globe
+                        class="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+                      />
+                      <span class="truncate"
+                        >https://{{ wsHost }}/worker-route/{{
+                          worker?.route || "{ROUTE}"
+                        }}/</span
+                      >
+                      <Input
+                        v-model="httpSimulation.suffix"
+                        placeholder="path suffix"
+                        class="h-7 px-2 font-mono text-[13px] min-w-[80px]"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        class="h-7 w-7 shrink-0 ml-auto"
+                        @click="openPreviewNewWindowFun"
+                        title="在新窗口打开"
+                      >
+                        <ExternalLink class="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    <div class="flex items-center justify-between px-1 mt-2">
+                      <h3 class="text-sm font-semibold">预览 (Preview)</h3>
+                      <div class="flex items-center gap-2 shrink-0">
+                        <Button size="sm" @click="runWorkerFun(false)">
+                          <Eye class="mr-2 h-3 w-3" />
+                          {{ t("dashboard.jsRuntime.editor.preview") }}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          @click="runWorkerFun(true)"
+                          :disabled="runLoading"
+                        >
+                          <Save class="mr-2 h-3 w-3" />
+                          {{ t("dashboard.jsRuntime.editor.saveAndPreview") }}
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div
+                      class="flex-1 border rounded-lg bg-white min-h-[300px] relative overflow-hidden"
+                    >
+                      <div
+                        v-if="!worker?.route"
+                        class="flex items-center justify-center h-full text-muted-foreground text-sm"
+                      >
+                        {{ t("dashboard.jsRuntime.editor.noRoute") }}
+                      </div>
+                      <iframe
+                        v-else-if="iframeKey > 0"
+                        :key="iframeKey"
+                        :src="`/worker-route/${worker?.route}/${httpSimulation.suffix}`"
+                        sandbox="allow-scripts allow-same-origin"
+                        class="w-full h-full border-0"
+                      ></iframe>
+                    </div>
+                  </div>
+                </template>
+
+                <!-- Common Result Area (for all modes except preview which has iframe) -->
+                <div
+                  v-if="activeRunMode !== 'preview'"
+                  class="flex flex-col gap-2 shrink-0"
+                >
+                  <div class="flex items-center justify-between px-1">
+                    <h3 class="text-sm font-semibold">
+                      {{ t("dashboard.jsRuntime.editor.result") }}
+                    </h3>
+                    <div class="flex items-center gap-2 scale-90 origin-right">
+                      <Button
+                        v-if="activeRunMode === 'http' && runResult"
+                        variant="ghost"
+                        size="sm"
+                        class="h-8 px-3 text-xs border"
+                        @click="httpResultOpen = !httpResultOpen"
+                      >
+                        {{ !httpResultOpen ? "展开结果" : "折叠结果" }}
+                      </Button>
+                      <Button
+                        size="sm"
+                        @click="runWorkerFun(false)"
+                        :disabled="runLoading"
+                      >
+                        <Play class="mr-2 h-3 w-3" />
+                        {{ t("dashboard.jsRuntime.editor.run") }}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        @click="runWorkerFun(true)"
+                        :disabled="runLoading"
+                      >
+                        <Save class="mr-2 h-3 w-3" />
+                        {{ t("dashboard.jsRuntime.editor.saveAndRun") }}
+                      </Button>
+                    </div>
                   </div>
 
-                  <template v-if="isPreviewMode">
+                  <div
+                    class="border rounded-lg bg-card overflow-hidden relative"
+                  >
                     <div
-                      v-if="!worker?.route"
-                      class="flex items-center justify-center h-full text-muted-foreground text-sm"
+                      v-if="runLoading"
+                      class="absolute inset-0 z-10 bg-background/40 backdrop-blur-[1px] flex items-center justify-center"
                     >
-                      未绑定路由，请先绑定路由后操作
+                      <Loader2
+                        class="h-6 w-6 animate-spin text-muted-foreground"
+                      />
                     </div>
-                    <iframe
-                      v-else
-                      :key="iframeKey"
-                      :src="`/worker-route/${worker?.route}`"
-                      sandbox="allow-scripts allow-same-origin"
-                      class="w-full h-full border-0"
-                    ></iframe>
-                  </template>
 
-                  <Codemirror
-                    v-else
-                    :model-value="
-                      runResult ? JSON.stringify(runResult, null, 2) : ''
-                    "
-                    :extensions="jsonExtensions"
-                    class="h-full text-[12px]"
-                    :style="{ height: '100%' }"
-                    disabled
-                  />
+                    <Collapsible v-model:open="httpResultOpen">
+                      <CollapsibleContent
+                        force-mount
+                        class="data-[state=closed]:h-0 overflow-hidden transition-all"
+                      >
+                        <div class="h-[200px]">
+                          <Codemirror
+                            :model-value="
+                              runResult
+                                ? JSON.stringify(runResult, null, 2)
+                                : ''
+                            "
+                            :placeholder="
+                              t('dashboard.jsRuntime.logs.detailTitle')
+                            "
+                            :extensions="jsonExtensions"
+                            class="h-full text-[12px]"
+                            :style="{ height: '100%' }"
+                            disabled
+                          />
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+
+                    <div
+                      v-if="!runResult && !runLoading"
+                      class="h-[200px] flex flex-col items-center justify-center text-muted-foreground bg-muted/10 opacity-60"
+                    >
+                      <Inbox class="h-10 w-10 mb-2 opacity-20" />
+                      <p class="text-xs">未执行，请先执行后查看结果</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
