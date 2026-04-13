@@ -343,7 +343,16 @@ const updateWorkerContentFun = async (withEnv = false) => {
   saveLoading.value = true;
   try {
     const latest = await syncLatestWorkerState();
-    const envObj = withEnv ? JSON.parse(runEnv.value) : latest.env || {};
+    let envObj: Record<string, any> = latest.env || {};
+    if (withEnv) {
+      envObj = {};
+      tempEnvVars.value.forEach((item) => {
+        if (item.key.trim()) {
+          envObj[item.key.trim()] = item.value;
+        }
+      });
+      runEnv.value = JSON.stringify(envObj, null, 2);
+    }
 
     await runtime.updateWorker(latest.name, {
       content: content.value,
@@ -437,19 +446,36 @@ const runWorkerFun = async (saveFirst = false) => {
       await pollResult(result);
     } else if (mode === "http") {
       // HTTP simulation
-      const headers: Record<string, string> = {};
-      httpSimulation.value.headers.forEach((h) => {
-        if (h.key.trim()) headers[h.key.trim()] = h.value;
-      });
+      const headers = httpSimulation.value.headers
+        .filter((h) => h.key.trim())
+        .map((h) => ({ name: h.key.trim(), value: h.value }));
+
+      let body_bytes: number[] = [];
+      if (httpSimulation.value.body) {
+        body_bytes = Array.from(
+          new TextEncoder().encode(httpSimulation.value.body),
+        );
+      }
+
+      const suffix = httpSimulation.value.suffix
+        ? httpSimulation.value.suffix.startsWith("/")
+          ? httpSimulation.value.suffix
+          : "/" + httpSimulation.value.suffix
+        : "";
+      const simulatedUrl = `https://mock.local/worker-route/${worker.value.route || ""}${suffix}`;
+
+      const routeParams = {
+        url: simulatedUrl,
+        method: httpSimulation.value.method,
+        headers,
+        body_bytes: body_bytes,
+      };
 
       const result = await runtime.runWorker(
         worker.value.name,
         "route",
-        {}, // params empty for route run
+        routeParams, // Passed perfectly as JSON Request simulator
         {
-          method: httpSimulation.value.method,
-          headers,
-          body: httpSimulation.value.body,
           compile_mode: "source", // Always source as per requirement for testing
         },
       );
@@ -498,40 +524,6 @@ watch(activeRunMode, (newMode) => {
     ensureEmptyTempEnvRow();
   }
 });
-
-const saveTempEnvFun = async () => {
-  if (!worker.value) return;
-  const envObj: Record<string, string> = {};
-  tempEnvVars.value.forEach((item) => {
-    if (item.key.trim()) {
-      envObj[item.key.trim()] = item.value;
-    }
-  });
-
-  saveLoading.value = true;
-  try {
-    const latest = await syncLatestWorkerState();
-    await runtime.updateWorker(latest.name, {
-      env: envObj,
-      content: latest.content,
-      route: latest.route || undefined,
-      runtime_clean_time: latest.runtime_clean_time,
-      description: latest.description || "",
-    });
-    toast.success(t("dashboard.jsRuntime.updateSuccess"));
-    worker.value.env = envObj;
-    runEnv.value = JSON.stringify(envObj, null, 2);
-    envVars.value = Object.entries(envObj).map(([key, value]) => ({
-      key,
-      value: String(value),
-    }));
-    ensureEmptyEnvRow();
-  } catch (e: any) {
-    toast.error(e.message || "Save failed");
-  } finally {
-    saveLoading.value = false;
-  }
-};
 
 const openPreviewNewWindowFun = () => {
   if (!worker.value?.route) return;
@@ -748,40 +740,20 @@ const formatTime = (ts: number | null) => {
                 </Tabs>
 
                 <div class="flex items-center gap-2">
-                  <DropdownMenu>
-                    <div class="flex items-center -space-x-px">
-                      <Button
-                        size="sm"
-                        variant="default"
-                        class="h-8 rounded-r-none border-r border-primary-foreground/20"
-                        @click="runWorkerFun(true)"
-                        :disabled="saveLoading || runLoading"
-                      >
-                        <Loader2
-                          v-if="saveLoading"
-                          class="mr-2 h-3 w-3 animate-spin"
-                        />
-                        <Play v-else class="mr-2 h-3 w-3" />
-                        {{ t("dashboard.jsRuntime.editor.saveAndRun") }}
-                      </Button>
-                      <DropdownMenuTrigger as-child>
-                        <Button
-                          size="sm"
-                          variant="default"
-                          class="h-8 w-7 p-0 rounded-l-none"
-                          :disabled="saveLoading"
-                        >
-                          <ChevronDown class="h-3 w-3" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                    </div>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem @click="updateWorkerContentFun(false)">
-                        <Save class="mr-2 h-4 w-4" />
-                        {{ t("dashboard.jsRuntime.editor.save") }}
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <Button
+                    size="sm"
+                    variant="default"
+                    class="h-8 shadow-sm"
+                    @click="updateWorkerContentFun(true)"
+                    :disabled="saveLoading"
+                  >
+                    <Loader2
+                      v-if="saveLoading"
+                      class="mr-2 h-3 w-3 animate-spin"
+                    />
+                    <Save v-else class="mr-2 h-3 w-3" />
+                    {{ t("dashboard.jsRuntime.editor.save") }}
+                  </Button>
                 </div>
               </div>
 
@@ -889,24 +861,6 @@ const formatTime = (ts: number | null) => {
                               </TableBody>
                             </Table>
                           </div>
-                          <div
-                            class="p-2 border-t bg-muted/20 flex justify-end"
-                          >
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              class="h-7 text-xs"
-                              @click="saveTempEnvFun"
-                              :disabled="saveLoading"
-                            >
-                              <Loader2
-                                v-if="saveLoading"
-                                class="mr-1 h-3 w-3 animate-spin"
-                              />
-                              <Save v-else class="mr-1 h-3 w-3" />
-                              {{ t("dashboard.jsRuntime.editor.save") }}
-                            </Button>
-                          </div>
                         </TabsContent>
                       </CollapsibleContent>
                     </Tabs>
@@ -951,81 +905,68 @@ const formatTime = (ts: number | null) => {
                       {{ t("dashboard.jsRuntime.editor.noRoute") }}
                     </p>
 
-                    <Card class="border shadow-none">
-                      <CardHeader class="p-3 pb-0">
-                        <div class="flex items-center justify-between">
-                          <CardTitle class="text-sm font-medium"
-                            >HTTP 请求配置</CardTitle
+                    <div
+                      class="w-full space-y-4 border rounded-md p-3 bg-card shadow-sm mt-2"
+                    >
+                      <!-- Headers Section -->
+                      <div class="space-y-2">
+                        <div class="flex items-center gap-4">
+                          <span class="text-[13px] font-semibold">{{
+                            t("dashboard.jsRuntime.editor.header")
+                          }}</span>
+                          <Button
+                            variant="link"
+                            size="sm"
+                            class="h-6 text-xs text-primary p-0"
+                            @click="addHttpHeaderFun"
                           >
+                            <Plus class="h-3 w-3 mr-1" />
+                            {{ t("dashboard.jsRuntime.editor.addHeader") }}
+                          </Button>
                         </div>
-                      </CardHeader>
-                      <CardContent class="p-3">
-                        <Tabs v-model="activeHttpTab" class="w-full">
-                          <TabsList class="h-8 p-1 w-fit">
-                            <TabsTrigger
-                              value="headers"
-                              class="text-xs px-3 h-6"
-                              >{{
-                                t("dashboard.jsRuntime.editor.header")
-                              }}</TabsTrigger
-                            >
-                            <TabsTrigger
-                              value="body"
-                              class="text-xs px-3 h-6"
-                              >{{
-                                t("dashboard.jsRuntime.editor.body")
-                              }}</TabsTrigger
-                            >
-                          </TabsList>
-                          <TabsContent value="headers" class="space-y-2 mt-2">
-                            <div
-                              v-for="(h, i) in httpSimulation.headers"
-                              :key="i"
-                              class="flex items-center gap-2"
-                            >
-                              <Input
-                                v-model="h.key"
-                                placeholder="Header"
-                                class="h-7 text-xs"
-                              />
-                              <Input
-                                v-model="h.value"
-                                placeholder="Value"
-                                class="h-7 text-xs"
-                              />
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                class="h-7 w-7 shrink-0"
-                                @click="removeHttpHeaderFun(i)"
-                              >
-                                <Trash2 class="h-3 w-3" />
-                              </Button>
-                            </div>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              class="h-7 text-xs"
-                              @click="addHttpHeaderFun"
-                            >
-                              <Plus class="h-3 w-3 mr-1" />
-                              {{ t("dashboard.jsRuntime.editor.addHeader") }}
-                            </Button>
-                          </TabsContent>
-                          <TabsContent
-                            value="body"
-                            class="mt-2 h-32 border rounded-md overflow-hidden bg-card"
+                        <div
+                          v-for="(h, i) in httpSimulation.headers"
+                          :key="i"
+                          class="flex items-center gap-2"
+                        >
+                          <Input
+                            v-model="h.key"
+                            placeholder="Header"
+                            class="h-7 text-xs"
+                          />
+                          <Input
+                            v-model="h.value"
+                            placeholder="Value"
+                            class="h-7 text-xs"
+                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            class="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
+                            @click="removeHttpHeaderFun(i)"
                           >
-                            <Codemirror
-                              v-model="httpSimulation.body"
-                              :extensions="jsonExtensions"
-                              class="h-full text-[12px]"
-                              :style="{ height: '100%' }"
-                            />
-                          </TabsContent>
-                        </Tabs>
-                      </CardContent>
-                    </Card>
+                            <Trash2 class="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      <!-- Body Section -->
+                      <div class="space-y-2 pt-2">
+                        <div class="text-[13px] font-semibold">
+                          {{ t("dashboard.jsRuntime.editor.body") }}
+                        </div>
+                        <div
+                          class="h-32 border rounded-md overflow-hidden bg-background"
+                        >
+                          <Codemirror
+                            v-model="httpSimulation.body"
+                            :extensions="jsonExtensions"
+                            class="h-full text-[12px]"
+                            :style="{ height: '100%' }"
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </template>
 

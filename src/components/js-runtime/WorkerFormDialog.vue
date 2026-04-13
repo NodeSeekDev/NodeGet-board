@@ -39,6 +39,9 @@ const defaultContent = `export default {
   async onCall(params, env, ctx) {
     return { ok: true, from: "onCall", params, env };
   },
+  async onInlineCall(params, env, ctx) {
+    return { ok: true, from: "onInlineCall", params, env };
+  },
   async onCron(params, env, ctx) {
     return { ok: true, from: "onCron", params, env };
   },
