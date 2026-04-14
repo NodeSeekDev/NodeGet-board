@@ -889,6 +889,9 @@ export default {
         copy: "copy script snippet content",
       },
     },
+    logsView: {
+      description: "View Logs",
+    },
   },
   router: {
     overview: "Overview",

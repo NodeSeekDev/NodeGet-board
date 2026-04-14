@@ -884,6 +884,9 @@ export default {
         copy: "复制代码",
       },
     },
+    logsView: {
+      description: "查看日志",
+    },
   },
   router: {
     overview: "服务概览",
