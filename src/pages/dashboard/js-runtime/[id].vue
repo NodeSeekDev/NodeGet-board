@@ -151,7 +151,9 @@ const parsedHttpResult = computed(() => {
 
     if (isImage) {
       try {
-        const blob = new Blob([uint8Body], { type: contentType.split(";")[0] });
+        const blob = new Blob([uint8Body as any], {
+          type: contentType.split(";")[0],
+        });
         return { isImage: true, url: URL.createObjectURL(blob) };
       } catch {
         return { isText: true, content: "[Image Decode Error]" };
