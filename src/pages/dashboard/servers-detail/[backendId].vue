@@ -177,7 +177,7 @@ function saveEdit(field: string) {
         variant="ghost"
         size="icon"
         class="h-8 w-8"
-        @click="router.push('/dashboard/node-manage')"
+        @click="router.push('/dashboard/node-manage?tab=servers')"
       >
         <ArrowLeft class="h-4 w-4" />
       </Button>

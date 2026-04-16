@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed } from "vue";
 import { useI18n } from "vue-i18n";
-import { Server, Plus } from "lucide-vue-next";
+import { useRoute, useRouter } from "vue-router";
+import { Server } from "lucide-vue-next";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import NodeManageTabAgents from "@/components/node-manage/NodeManageTabAgents.vue";
 import NodeManageTabServers from "@/components/node-manage/NodeManageTabServers.vue";
@@ -16,7 +17,15 @@ definePage({
 });
 
 const { t } = useI18n();
-const activeTab = ref("agents");
+const route = useRoute();
+const router = useRouter();
+
+const activeTab = computed({
+  get: () => (route.query.tab as string) || "agents",
+  set: (value) => {
+    router.push({ query: { ...route.query, tab: value } });
+  },
+});
 </script>
 
 <template>
