@@ -36,7 +36,6 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       Record<never, never>,
       | '/dashboard/about'
-      | '/dashboard/account'
       | '/dashboard/agents'
       | '/dashboard/app'
       | '/dashboard/app-panel'
@@ -51,11 +50,9 @@ declare module 'vue-router/auto-routes' {
       | '/dashboard/cost'
       | '/dashboard/cron'
       | '/dashboard/cron-history/[cronName]'
-      | '/dashboard/exec'
       | '/dashboard/js-runtime'
       | '/dashboard/js-runtime/[id]'
       | '/dashboard/kv'
-      | '/dashboard/loadbalance'
       | '/dashboard/logs'
       | '/dashboard/map'
       | '/dashboard/node-manage'
@@ -77,11 +74,8 @@ declare module 'vue-router/auto-routes' {
       | '/dashboard/scripts'
       | '/dashboard/servers'
       | '/dashboard/servers-detail/[backendId]'
-      | '/dashboard/sessions'
       | '/dashboard/settings'
       | '/dashboard/settings/general'
-      | '/dashboard/settings/login'
-      | '/dashboard/settings/notification'
       | '/dashboard/settings/site'
       | '/dashboard/token'
       | '/dashboard/tokenCeate'
@@ -93,13 +87,6 @@ declare module 'vue-router/auto-routes' {
     '/dashboard/about': RouteRecordInfo<
       '/dashboard/about',
       '/dashboard/about',
-      Record<never, never>,
-      Record<never, never>,
-      | never
-    >,
-    '/dashboard/account': RouteRecordInfo<
-      '/dashboard/account',
-      '/dashboard/account',
       Record<never, never>,
       Record<never, never>,
       | never
@@ -207,13 +194,6 @@ declare module 'vue-router/auto-routes' {
       { cronName: ParamValue<false> },
       | never
     >,
-    '/dashboard/exec': RouteRecordInfo<
-      '/dashboard/exec',
-      '/dashboard/exec',
-      Record<never, never>,
-      Record<never, never>,
-      | never
-    >,
     '/dashboard/js-runtime': RouteRecordInfo<
       '/dashboard/js-runtime',
       '/dashboard/js-runtime',
@@ -231,13 +211,6 @@ declare module 'vue-router/auto-routes' {
     '/dashboard/kv': RouteRecordInfo<
       '/dashboard/kv',
       '/dashboard/kv',
-      Record<never, never>,
-      Record<never, never>,
-      | never
-    >,
-    '/dashboard/loadbalance': RouteRecordInfo<
-      '/dashboard/loadbalance',
-      '/dashboard/loadbalance',
       Record<never, never>,
       Record<never, never>,
       | never
@@ -401,40 +374,17 @@ declare module 'vue-router/auto-routes' {
       { backendId: ParamValue<false> },
       | never
     >,
-    '/dashboard/sessions': RouteRecordInfo<
-      '/dashboard/sessions',
-      '/dashboard/sessions',
-      Record<never, never>,
-      Record<never, never>,
-      | never
-    >,
     '/dashboard/settings': RouteRecordInfo<
       '/dashboard/settings',
       '/dashboard/settings',
       Record<never, never>,
       Record<never, never>,
       | '/dashboard/settings/general'
-      | '/dashboard/settings/login'
-      | '/dashboard/settings/notification'
       | '/dashboard/settings/site'
     >,
     '/dashboard/settings/general': RouteRecordInfo<
       '/dashboard/settings/general',
       '/dashboard/settings/general',
-      Record<never, never>,
-      Record<never, never>,
-      | never
-    >,
-    '/dashboard/settings/login': RouteRecordInfo<
-      '/dashboard/settings/login',
-      '/dashboard/settings/login',
-      Record<never, never>,
-      Record<never, never>,
-      | never
-    >,
-    '/dashboard/settings/notification': RouteRecordInfo<
-      '/dashboard/settings/notification',
-      '/dashboard/settings/notification',
       Record<never, never>,
       Record<never, never>,
       | never
@@ -518,7 +468,6 @@ declare module 'vue-router/auto-routes' {
       routes:
         | '/dashboard'
         | '/dashboard/about'
-        | '/dashboard/account'
         | '/dashboard/agents'
         | '/dashboard/app'
         | '/dashboard/app-panel'
@@ -533,11 +482,9 @@ declare module 'vue-router/auto-routes' {
         | '/dashboard/cost'
         | '/dashboard/cron'
         | '/dashboard/cron-history/[cronName]'
-        | '/dashboard/exec'
         | '/dashboard/js-runtime'
         | '/dashboard/js-runtime/[id]'
         | '/dashboard/kv'
-        | '/dashboard/loadbalance'
         | '/dashboard/logs'
         | '/dashboard/map'
         | '/dashboard/node-manage'
@@ -559,11 +506,8 @@ declare module 'vue-router/auto-routes' {
         | '/dashboard/scripts'
         | '/dashboard/servers'
         | '/dashboard/servers-detail/[backendId]'
-        | '/dashboard/sessions'
         | '/dashboard/settings'
         | '/dashboard/settings/general'
-        | '/dashboard/settings/login'
-        | '/dashboard/settings/notification'
         | '/dashboard/settings/site'
         | '/dashboard/token'
         | '/dashboard/tokenCeate'
@@ -577,12 +521,6 @@ declare module 'vue-router/auto-routes' {
     'src/pages/dashboard/about.vue': {
       routes:
         | '/dashboard/about'
-      views:
-        | never
-    }
-    'src/pages/dashboard/account.vue': {
-      routes:
-        | '/dashboard/account'
       views:
         | never
     }
@@ -677,12 +615,6 @@ declare module 'vue-router/auto-routes' {
       views:
         | never
     }
-    'src/pages/dashboard/exec.vue': {
-      routes:
-        | '/dashboard/exec'
-      views:
-        | never
-    }
     'src/pages/dashboard/js-runtime.vue': {
       routes:
         | '/dashboard/js-runtime'
@@ -699,12 +631,6 @@ declare module 'vue-router/auto-routes' {
     'src/pages/dashboard/kv.vue': {
       routes:
         | '/dashboard/kv'
-      views:
-        | never
-    }
-    'src/pages/dashboard/loadbalance.vue': {
-      routes:
-        | '/dashboard/loadbalance'
       views:
         | never
     }
@@ -847,18 +773,10 @@ declare module 'vue-router/auto-routes' {
       views:
         | never
     }
-    'src/pages/dashboard/sessions.vue': {
-      routes:
-        | '/dashboard/sessions'
-      views:
-        | never
-    }
     'src/pages/dashboard/settings.vue': {
       routes:
         | '/dashboard/settings'
         | '/dashboard/settings/general'
-        | '/dashboard/settings/login'
-        | '/dashboard/settings/notification'
         | '/dashboard/settings/site'
       views:
         | 'default'
@@ -866,18 +784,6 @@ declare module 'vue-router/auto-routes' {
     'src/pages/dashboard/settings/general.vue': {
       routes:
         | '/dashboard/settings/general'
-      views:
-        | never
-    }
-    'src/pages/dashboard/settings/login.vue': {
-      routes:
-        | '/dashboard/settings/login'
-      views:
-        | never
-    }
-    'src/pages/dashboard/settings/notification.vue': {
-      routes:
-        | '/dashboard/settings/notification'
       views:
         | never
     }

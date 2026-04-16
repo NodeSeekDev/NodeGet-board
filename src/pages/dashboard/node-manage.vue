@@ -2,7 +2,7 @@
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
-import { Server } from "lucide-vue-next";
+import { ServerCog } from "lucide-vue-next";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import NodeManageTabAgents from "@/components/node-manage/NodeManageTabAgents.vue";
 import NodeManageTabServers from "@/components/node-manage/NodeManageTabServers.vue";
@@ -10,7 +10,7 @@ import NodeManageTabServers from "@/components/node-manage/NodeManageTabServers.
 definePage({
   meta: {
     title: "router.nodeManage",
-    icon: Server,
+    icon: ServerCog,
     order: 2,
     group: "router.group.monitor",
   },
