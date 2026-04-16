@@ -1,16 +1,11 @@
 <script setup lang="ts">
-import { onMounted, computed, ref, watch } from "vue";
+import { onMounted, computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useDynamicData } from "@/composables/useDynamicData";
 import { useStaticData } from "@/composables/useStaticData";
 import { useBackendStore } from "@/composables/useBackendStore";
 import { colors } from "@/composables/color";
-import {
-  formatLoad,
-  formatBytes,
-  formatUptime,
-  formatTimestamp,
-} from "@/utils/format";
+import { formatLoad, formatBytes, formatUptime } from "@/utils/format";
 import {
   showHostname,
   showOS,
@@ -18,7 +13,6 @@ import {
   showRamPercent,
   showRamText,
   showNetworkSpeed,
-  showDiskUsage,
   showDiskPercent,
   showDiskDisplay,
 } from "@/utils/show";
@@ -35,7 +29,6 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import HeaderView from "@/components/HeaderView.vue";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ArrowLeft,
   Cpu,
@@ -46,8 +39,6 @@ import {
   Menu,
   X,
   Clock,
-  Container,
-  Fish,
 } from "lucide-vue-next";
 import { usePermissionStore } from "@/stores/permission";
 
@@ -63,22 +54,15 @@ const router = useRouter();
 const uuid = (route.params as { uuid: string }).uuid;
 
 const isSidebarOpen = ref(false);
-const { currentBackend } = useBackendStore();
 
 const {
   status: dynamicStatus,
   error: dynamicError,
   servers: dynamicServers,
   connect: connectDynamic,
-  fetchCpuHistory,
 } = useDynamicData();
 
-const {
-  status: staticStatus,
-  error: staticError,
-  servers: staticServers,
-  connect: connectStatic,
-} = useStaticData();
+const { servers: staticServers, connect: connectStatic } = useStaticData();
 
 const activeTab = ref("cpu");
 
@@ -86,16 +70,15 @@ const server = computed(() => {
   const dServer = dynamicServers.value.find((s) => s.uuid === uuid);
   const sServer = staticServers.value.find((s) => s.uuid === uuid);
 
-  if (dServer && sServer) {
+  if (dServer) {
     return {
       ...dServer,
-      cpu: { ...dServer.cpu },
-      cpu_static: { ...sServer.cpu },
-      system: { ...sServer.system, ...dServer.system },
-      gpu: sServer.gpu || [],
+      system: sServer?.system,
+      cpu_static: sServer?.cpu,
+      gpu: sServer?.gpu || [],
     };
   }
-  return dServer;
+  return undefined;
 });
 
 const getcolors = (id: string) => {
@@ -126,95 +109,6 @@ const activeTheme = computed(() => getcolors(activeTab.value));
 onMounted(() => {
   connectDynamic();
   connectStatic();
-});
-
-const cpuHistory = ref<number[]>([]);
-const cpuMode = ref("realtime");
-const historyData = ref<any[]>([]);
-const isLoadingHistory = ref(false);
-
-watch(server, (newServer: any) => {
-  if (newServer) {
-    const cpuPercent = showCpuPercent(newServer);
-    cpuHistory.value.push(cpuPercent);
-    if (cpuHistory.value.length > 30) {
-      cpuHistory.value.shift();
-    }
-  }
-});
-
-const loadHistory = async () => {
-  if (!uuid) return;
-  isLoadingHistory.value = true;
-  try {
-    const res = await fetchCpuHistory(uuid);
-    if (Array.isArray(res)) {
-      historyData.value = res.reverse(); //oldest first for chart
-    }
-  } catch (e) {
-    console.error("Failed to fetch history", e);
-  } finally {
-    isLoadingHistory.value = false;
-  }
-};
-
-watch(cpuMode, (newMode) => {
-  if (newMode === "history") {
-    loadHistory();
-  }
-});
-
-const displayData = computed(() => {
-  if (cpuMode.value === "history") {
-    return historyData.value.map((item) => item.cpu.total_cpu_usage);
-  }
-  return cpuHistory.value;
-});
-
-const historyPath = computed(() => {
-  const data = displayData.value;
-  if (data.length < 2) return "";
-
-  const width = 100;
-  const height = 40;
-  const maxVal = 100;
-
-  const points: [number, number][] = data.map((val, i) => {
-    const x = (i / (data.length - 1)) * width;
-    const y = height - (val / maxVal) * height;
-    return [x, y];
-  });
-
-  if (points.length < 2) return "";
-
-  let d = `M ${points[0]![0].toFixed(2)},${points[0]![1].toFixed(2)}`;
-
-  for (let i = 0; i < points.length - 1; i++) {
-    const p0 = points[i === 0 ? 0 : i - 1];
-    const p1 = points[i];
-    const p2 = points[i + 1];
-    const p3 = points[i + 2 < points.length ? i + 2 : points.length - 1];
-
-    if (!p0 || !p1 || !p2 || !p3) continue;
-
-    const cp1x = p1[0] + (p2[0] - p0[0]) / 6;
-    const cp1y = p1[1] + (p2[1] - p0[1]) / 6;
-
-    const cp2x = p2[0] - (p3[0] - p1[0]) / 6;
-    const cp2y = p2[1] - (p3[1] - p1[1]) / 6;
-
-    d += ` C ${cp1x.toFixed(2)},${cp1y.toFixed(2)} ${cp2x.toFixed(2)},${cp2y.toFixed(2)} ${p2[0].toFixed(2)},${p2[1].toFixed(2)}`;
-  }
-
-  return d;
-});
-
-const historyAreaPath = computed(() => {
-  const data = displayData.value;
-  if (data.length < 2) return "";
-  const path = historyPath.value;
-
-  return `${path} L 100,40 L 0,40 Z`;
 });
 </script>
 
@@ -425,7 +319,7 @@ const historyAreaPath = computed(() => {
               <Badge variant="outline" class="font-mono text-xs">
                 <Clock class="h-3 w-3 mr-1" />
                 {{ $t("common.uptime") }}:
-                {{ formatUptime(server.system.uptime) }}
+                {{ formatUptime(server.uptime ?? 0) }}
               </Badge>
             </div>
 
@@ -434,150 +328,13 @@ const historyAreaPath = computed(() => {
               <div v-if="activeTab === 'cpu'" key="cpu" class="space-y-6">
                 <Card>
                   <CardHeader>
-                    <div class="flex items-center justify-between">
-                      <CardTitle>{{
-                        $t("serverDetail.cpu.totalUtilization")
-                      }}</CardTitle>
-                      <Tabs v-model="cpuMode" class="w-[200px]">
-                        <TabsList class="grid w-full grid-cols-2 h-8">
-                          <TabsTrigger value="realtime" class="text-xs">{{
-                            $t("serverDetail.cpu.realtime")
-                          }}</TabsTrigger>
-                          <TabsTrigger value="history" class="text-xs">{{
-                            $t("serverDetail.cpu.history")
-                          }}</TabsTrigger>
-                        </TabsList>
-                      </Tabs>
-                    </div>
-                    <div
-                      class="text-4xl font-bold tracking-tighter"
-                      v-if="cpuMode === 'realtime'"
-                    >
+                    <CardTitle>{{
+                      $t("serverDetail.cpu.totalUtilization")
+                    }}</CardTitle>
+                    <div class="text-4xl font-bold tracking-tighter">
                       {{ showCpuPercent(server).toFixed(1) }}%
                     </div>
-                    <div class="h-9 flex items-end" v-else>
-                      <span v-if="isLoadingHistory">{{
-                        $t("serverDetail.cpu.loadingHistory")
-                      }}</span>
-                      <span
-                        class="text-sm text-muted-foreground"
-                        v-else-if="historyData.length > 0"
-                      >
-                        {{
-                          $t("serverDetail.cpu.lastRecords", [
-                            historyData.length,
-                          ])
-                        }}
-                      </span>
-                    </div>
                   </CardHeader>
-                  <CardContent>
-                    <div
-                      class="h-[200px] w-full bg-muted/10 rounded-md border flex items-end p-0 relative overflow-hidden group"
-                    >
-                      <!-- Axis Guide -->
-                      <div
-                        class="absolute inset-y-0 left-0 w-8 flex flex-col justify-between py-2 text-[10px] text-muted-foreground/60 font-mono select-none pointer-events-none pl-2 z-10"
-                      >
-                        <div>100%</div>
-                        <div>50%</div>
-                        <div>0%</div>
-                      </div>
-                      <!-- Grid Lines -->
-                      <div
-                        class="absolute inset-0 flex flex-col justify-between pointer-events-none z-0"
-                      >
-                        <div class="border-t border-border/40 opacity-50"></div>
-                        <div
-                          class="border-t border-border/40 border-dashed opacity-50"
-                        ></div>
-                        <div class="border-b border-border/40 opacity-50"></div>
-                      </div>
-                      <svg
-                        viewBox="0 0 100 40"
-                        preserveAspectRatio="none"
-                        class="w-full h-full text-primary"
-                      >
-                        <defs>
-                          <linearGradient
-                            id="cpuGradient"
-                            x1="0"
-                            x2="0"
-                            y1="0"
-                            y2="1"
-                          >
-                            <stop
-                              offset="0%"
-                              :stop-color="activeTheme.color"
-                              stop-opacity="0.5"
-                            />
-                            <stop
-                              offset="100%"
-                              :stop-color="activeTheme.color"
-                              stop-opacity="0"
-                            />
-                          </linearGradient>
-                          <filter
-                            id="glow"
-                            x="-50%"
-                            y="-50%"
-                            width="200%"
-                            height="200%"
-                          >
-                            <feGaussianBlur
-                              stdDeviation="2"
-                              result="coloredBlur"
-                            />
-                            <feMerge>
-                              <feMergeNode in="coloredBlur" />
-                              <feMergeNode in="SourceGraphic" />
-                            </feMerge>
-                          </filter>
-                        </defs>
-
-                        <path
-                          :d="historyAreaPath"
-                          fill="url(#cpuGradient)"
-                          stroke="none"
-                        />
-                        <path
-                          :d="historyPath"
-                          fill="none"
-                          :stroke="activeTheme.color"
-                          stroke-width="1.5"
-                          filter="url(#glow)"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          vector-effect="non-scaling-stroke"
-                        />
-                      </svg>
-                      <div
-                        class="absolute inset-0 flex items-center justify-center text-muted-foreground/20 font-bold text-6xl select-none pointer-events-none group-hover:opacity-0 transition-opacity"
-                      >
-                        {{
-                          cpuMode === "realtime"
-                            ? $t("serverDetail.realtime")
-                            : $t("serverDetail.history")
-                        }}
-                      </div>
-                      <div
-                        v-if="cpuMode === 'history' && historyData.length > 0"
-                        class="absolute bottom-1 left-12 text-[10px] text-muted-foreground font-mono"
-                      >
-                        {{ formatTimestamp(historyData[0].timestamp) }}
-                      </div>
-                      <div
-                        v-if="cpuMode === 'history' && historyData.length > 0"
-                        class="absolute bottom-1 right-2 text-[10px] text-muted-foreground font-mono"
-                      >
-                        {{
-                          formatTimestamp(
-                            historyData[historyData.length - 1].timestamp,
-                          )
-                        }}
-                      </div>
-                    </div>
-                  </CardContent>
                 </Card>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -588,17 +345,23 @@ const historyAreaPath = computed(() => {
                       {{ $t("serverDetail.cpu.loadAverage") }}
                     </div>
                     <div class="text-lg font-mono">
-                      {{ formatLoad(server.load) }}
+                      {{
+                        formatLoad({
+                          load_one: server.load_one,
+                          load_five: server.load_five,
+                          load_fifteen: server.load_fifteen,
+                        })
+                      }}
                     </div>
                   </div>
                   <div
                     class="p-4 rounded-lg border bg-card text-card-foreground shadow-sm"
                   >
                     <div class="text-xs text-muted-foreground mb-1">
-                      {{ $t("serverDetail.cpu.cores") }}
+                      {{ $t("serverDetail.cpu.processes") }}
                     </div>
                     <div class="text-lg font-mono">
-                      {{ server.cpu.per_core.length }}
+                      {{ server.process_count ?? "-" }}
                     </div>
                   </div>
                   <div
@@ -651,9 +414,7 @@ const historyAreaPath = computed(() => {
                             $t("serverDetail.memory.used")
                           }}</span>
                           <span class="font-mono">{{
-                            formatBytes(
-                              server.ram.used_memory || server.ram.used,
-                            )
+                            formatBytes(server.used_memory ?? 0)
                           }}</span>
                         </div>
                         <div class="flex justify-between text-sm">
@@ -661,10 +422,7 @@ const historyAreaPath = computed(() => {
                             $t("serverDetail.memory.available")
                           }}</span>
                           <span class="font-mono">{{
-                            formatBytes(
-                              (server.ram.total_memory || server.ram.total) -
-                                (server.ram.used_memory || server.ram.used),
-                            )
+                            formatBytes(server.available_memory ?? 0)
                           }}</span>
                         </div>
                       </div>
@@ -678,24 +436,24 @@ const historyAreaPath = computed(() => {
                       }}</CardTitle>
                       <div class="text-3xl font-bold">
                         {{
-                          server.ram.total_swap
+                          server.total_swap
                             ? (
-                                (server.ram.used_swap / server.ram.total_swap) *
+                                ((server.used_swap ?? 0) / server.total_swap) *
                                 100
                               ).toFixed(1)
                             : 0
                         }}%
                       </div>
                       <CardDescription class="font-mono">
-                        {{ formatBytes(server.ram.used_swap || 0) }} /
-                        {{ formatBytes(server.ram.total_swap || 0) }}
+                        {{ formatBytes(server.used_swap || 0) }} /
+                        {{ formatBytes(server.total_swap || 0) }}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <Progress
                         :model-value="
-                          server.ram.total_swap
-                            ? (server.ram.used_swap / server.ram.total_swap) *
+                          server.total_swap
+                            ? ((server.used_swap ?? 0) / server.total_swap) *
                               100
                             : 0
                         "
@@ -712,59 +470,55 @@ const historyAreaPath = computed(() => {
                 key="disk"
                 class="space-y-6"
               >
-                <div class="grid gap-4">
-                  <Card v-for="(disk, index) in server.disk" :key="index">
-                    <CardHeader class="pb-2">
-                      <div class="flex items-center justify-between">
-                        <CardTitle
-                          class="text-base font-medium flex items-center gap-2"
+                <Card>
+                  <CardHeader>
+                    <div class="flex items-center justify-between">
+                      <CardTitle class="flex items-center gap-2">
+                        <HardDrive class="h-4 w-4" />
+                        {{ $t("common.disk") }}
+                      </CardTitle>
+                      <div class="flex items-center gap-3 text-xs font-mono">
+                        <span class="text-emerald-500"
+                          >↓ {{ formatBytes(server.read_speed ?? 0) }}/s</span
                         >
-                          <HardDrive class="h-4 w-4" />
-                          <span>{{
-                            disk.device_name || $t("common.disk") + " " + index
-                          }}</span>
-                          <Badge
-                            variant="secondary"
-                            class="ml-2 font-mono bg-primary/10 text-primary"
-                            >{{
-                              disk.mount_point.length < 16
-                                ? disk.mount_point
-                                : disk.mount_point.substring(0, 16) + "..."
-                            }}</Badge
-                          >
-                        </CardTitle>
-                        <span class="text-sm text-muted-foreground font-mono">{{
-                          disk.kind
-                        }}</span>
+                        <span class="text-blue-500"
+                          >↑ {{ formatBytes(server.write_speed ?? 0) }}/s</span
+                        >
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div class="flex items-end justify-between mb-2">
-                        <div class="text-2xl font-bold">
-                          {{
-                            (
-                              (1 - disk.available_space / disk.total_space) *
-                              100
-                            ).toFixed(0)
-                          }}%
-                        </div>
-                        <div class="text-sm text-muted-foreground font-mono">
-                          {{
-                            formatBytes(disk.total_space - disk.available_space)
-                          }}
-                          {{ $t("serverDetail.disk.usedOf") }}
-                          {{ formatBytes(disk.total_space) }}
-                        </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent v-if="server.total_space">
+                    <div class="flex items-end justify-between mb-2">
+                      <div class="text-2xl font-bold">
+                        {{
+                          (
+                            (1 -
+                              (server.available_space ?? 0) /
+                                server.total_space) *
+                            100
+                          ).toFixed(0)
+                        }}%
                       </div>
-                      <Progress
-                        :model-value="
-                          (1 - disk.available_space / disk.total_space) * 100
-                        "
-                        class="h-3"
-                      />
-                    </CardContent>
-                  </Card>
-                </div>
+                      <div class="text-sm text-muted-foreground font-mono">
+                        {{
+                          formatBytes(
+                            server.total_space - (server.available_space ?? 0),
+                          )
+                        }}
+                        {{ $t("serverDetail.disk.usedOf") }}
+                        {{ formatBytes(server.total_space) }}
+                      </div>
+                    </div>
+                    <Progress
+                      :model-value="
+                        (1 -
+                          (server.available_space ?? 0) / server.total_space) *
+                        100
+                      "
+                      class="h-3"
+                    />
+                  </CardContent>
+                </Card>
               </div>
 
               <!-- Network View -->
@@ -774,7 +528,7 @@ const historyAreaPath = computed(() => {
                 class="space-y-6"
               >
                 <div class="grid md:grid-cols-2 gap-6">
-                  <Card class="">
+                  <Card>
                     <CardContent class="pt-2">
                       <div
                         class="text-sm font-medium text-muted-foreground mb-2"
@@ -786,7 +540,7 @@ const historyAreaPath = computed(() => {
                       </div>
                     </CardContent>
                   </Card>
-                  <Card class="">
+                  <Card>
                     <CardContent class="pt-2">
                       <div
                         class="text-sm font-medium text-muted-foreground mb-2"
@@ -800,62 +554,35 @@ const historyAreaPath = computed(() => {
                   </Card>
                 </div>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle>{{
-                      $t("serverDetail.network.interfaces")
-                    }}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div class="space-y-4">
+                <div
+                  class="grid md:grid-cols-2 gap-6"
+                  v-if="server.total_received != null"
+                >
+                  <Card>
+                    <CardContent class="pt-2">
                       <div
-                        v-for="(iface, index) in server.network.interfaces"
-                        :key="index"
-                        class="flex items-center justify-between p-3 bg-muted/30 rounded-lg border"
+                        class="text-sm font-medium text-muted-foreground mb-2"
                       >
-                        <div class="flex items-center gap-3">
-                          <div
-                            class="h-8 w-8 rounded bg-background flex items-center justify-center border"
-                          >
-                            <Fish
-                              v-if="iface.interface_name.startsWith('docker')"
-                              class="h-4 w-4 text-muted-foreground"
-                            />
-                            <Container
-                              v-else-if="
-                                iface.interface_name.startsWith('podman')
-                              "
-                              class="h-4 w-4 text-muted-foreground"
-                            />
-                            <Network
-                              v-else
-                              class="h-4 w-4 text-muted-foreground"
-                            />
-                          </div>
-                          <div>
-                            <div class="font-medium">
-                              {{ iface.interface_name }}
-                            </div>
-                            <div
-                              class="text-xs text-muted-foreground font-mono"
-                              v-if="iface.ip_address"
-                            >
-                              {{ iface.ip_address }}
-                            </div>
-                          </div>
-                        </div>
-                        <div class="text-right text-xs font-mono space-y-1">
-                          <div class="text-emerald-500">
-                            ↓ {{ formatBytes(iface.receive_speed) }}/s
-                          </div>
-                          <div class="text-blue-500">
-                            ↑ {{ formatBytes(iface.transmit_speed) }}/s
-                          </div>
-                        </div>
+                        {{ $t("serverDetail.network.totalReceived") }}
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                      <div class="text-2xl font-bold font-mono">
+                        {{ formatBytes(server.total_received ?? 0) }}
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent class="pt-2">
+                      <div
+                        class="text-sm font-medium text-muted-foreground mb-2"
+                      >
+                        {{ $t("serverDetail.network.totalTransmitted") }}
+                      </div>
+                      <div class="text-2xl font-bold font-mono">
+                        {{ formatBytes(server.total_transmitted ?? 0) }}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
             </Transition>
           </div>

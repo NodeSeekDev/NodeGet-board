@@ -106,7 +106,7 @@ onUnmounted(() => stop());
                       class="text-[10px] text-muted-foreground font-normal mt-1 flex items-center gap-1"
                     >
                       <Clock class="h-3 w-3" />
-                      {{ formatUptime((server.system?.uptime as number) ?? 0) }}
+                      {{ formatUptime(server.uptime ?? 0) }}
                     </span>
                   </div>
                 </CardTitle>
@@ -173,7 +173,11 @@ onUnmounted(() => stop());
                       $t("common.load")
                     }}</span>
                     <span class="font-medium font-mono">{{
-                      formatLoad(server.load)
+                      formatLoad({
+                        load_one: server.load_one,
+                        load_five: server.load_five,
+                        load_fifteen: server.load_fifteen,
+                      })
                     }}</span>
                   </div>
                 </div>
@@ -182,7 +186,13 @@ onUnmounted(() => stop());
               <!-- Network & Disk -->
               <div class="grid grid-cols-2 gap-4 pt-2 border-t">
                 <!-- Network -->
-                <div class="flex flex-col gap-1" v-if="server.network">
+                <div
+                  class="flex flex-col gap-1"
+                  v-if="
+                    server.receive_speed != null ||
+                    server.transmit_speed != null
+                  "
+                >
                   <span
                     class="text-[10px] text-muted-foreground flex items-center gap-1 uppercase tracking-wider"
                     ><NetworkIcon
@@ -205,7 +215,7 @@ onUnmounted(() => stop());
                 <!-- Disk -->
                 <div
                   class="flex flex-col gap-1"
-                  v-if="server.disk && server.disk.length > 0"
+                  v-if="server.total_space"
                   :style="{ '--primary': `hsl(${colors.disk.hsl})` }"
                 >
                   <span
@@ -216,11 +226,6 @@ onUnmounted(() => stop());
                     />{{ $t("common.disk") }}</span
                   >
                   <div class="flex items-center justify-between text-xs">
-                    <span
-                      class="truncate flex-1"
-                      :title="(server.disk![0] as any).name"
-                      >{{ (server.disk![0] as any).name }}</span
-                    >
                     <span class="font-medium">{{
                       showDiskDisplay(server)
                     }}</span>

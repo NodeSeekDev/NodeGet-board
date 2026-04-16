@@ -2,8 +2,33 @@ import { ref } from "vue";
 import { useBackendStore } from "@/composables/useBackendStore";
 import { getWsConnection } from "@/composables/useWsConnection";
 import { useKv } from "@/composables/useKv";
+import type { SummaryField } from "@/types/monitoring";
 
-const DYNAMIC_FIELDS = ["cpu", "ram", "load", "system", "disk", "network"];
+const SUMMARY_FIELDS: SummaryField[] = [
+  "cpu_usage",
+  "gpu_usage",
+  "used_swap",
+  "total_swap",
+  "used_memory",
+  "total_memory",
+  "available_memory",
+  "load_one",
+  "load_five",
+  "load_fifteen",
+  "uptime",
+  "boot_time",
+  "process_count",
+  "total_space",
+  "available_space",
+  "read_speed",
+  "write_speed",
+  "tcp_connections",
+  "udp_connections",
+  "total_received",
+  "total_transmitted",
+  "transmit_speed",
+  "receive_speed",
+];
 const STATIC_FIELDS = ["cpu", "system", "gpu"];
 const POLL_INTERVAL_MS = 1000;
 const STATIC_POLL_INTERVAL_MS = 60_000;
@@ -12,13 +37,34 @@ type AgentRow = { uuid: string; [key: string]: unknown };
 
 export interface OverviewServer {
   uuid: string;
-  cpu?: Record<string, unknown>;
+  // summary flat fields
+  cpu_usage?: number;
+  gpu_usage?: number;
+  used_swap?: number;
+  total_swap?: number;
+  used_memory?: number;
+  total_memory?: number;
+  available_memory?: number;
+  load_one?: number;
+  load_five?: number;
+  load_fifteen?: number;
+  uptime?: number;
+  boot_time?: number;
+  process_count?: number;
+  total_space?: number;
+  available_space?: number;
+  read_speed?: number;
+  write_speed?: number;
+  tcp_connections?: number;
+  udp_connections?: number;
+  total_received?: number;
+  total_transmitted?: number;
+  transmit_speed?: number;
+  receive_speed?: number;
+  // static fields
   system?: Record<string, unknown>;
   gpu?: unknown[];
-  load?: Record<string, unknown>;
-  ram?: Record<string, unknown>;
-  disk?: unknown[];
-  network?: Record<string, unknown>;
+  // kv metadata
   customName: string;
   hidden: boolean;
   region?: string;
@@ -139,8 +185,8 @@ function initFunctions() {
 
     try {
       const results = await conn().call<AgentRow[]>(
-        "agent_dynamic_data_multi_last_query",
-        { token: currentBackend.value.token, uuids, fields: DYNAMIC_FIELDS },
+        "agent_dynamic_summary_multi_last_query",
+        { token: currentBackend.value.token, uuids, fields: SUMMARY_FIELDS },
       );
 
       const dynamicMap = new Map<string, AgentRow>();
@@ -161,19 +207,34 @@ function initFunctions() {
 
         return {
           uuid,
-          cpu: {
-            ...(s.cpu as Record<string, unknown> | undefined),
-            ...(d.cpu as Record<string, unknown> | undefined),
-          },
-          system: {
-            ...(s.system as Record<string, unknown> | undefined),
-            ...(d.system as Record<string, unknown> | undefined),
-          },
+          // summary flat fields
+          cpu_usage: d.cpu_usage as number | undefined,
+          gpu_usage: d.gpu_usage as number | undefined,
+          used_swap: d.used_swap as number | undefined,
+          total_swap: d.total_swap as number | undefined,
+          used_memory: d.used_memory as number | undefined,
+          total_memory: d.total_memory as number | undefined,
+          available_memory: d.available_memory as number | undefined,
+          load_one: d.load_one as number | undefined,
+          load_five: d.load_five as number | undefined,
+          load_fifteen: d.load_fifteen as number | undefined,
+          uptime: d.uptime as number | undefined,
+          boot_time: d.boot_time as number | undefined,
+          process_count: d.process_count as number | undefined,
+          total_space: d.total_space as number | undefined,
+          available_space: d.available_space as number | undefined,
+          read_speed: d.read_speed as number | undefined,
+          write_speed: d.write_speed as number | undefined,
+          tcp_connections: d.tcp_connections as number | undefined,
+          udp_connections: d.udp_connections as number | undefined,
+          total_received: d.total_received as number | undefined,
+          total_transmitted: d.total_transmitted as number | undefined,
+          transmit_speed: d.transmit_speed as number | undefined,
+          receive_speed: d.receive_speed as number | undefined,
+          // static fields (system info, gpu)
+          system: s.system as Record<string, unknown> | undefined,
           gpu: (s.gpu ?? []) as unknown[],
-          load: d.load as Record<string, unknown> | undefined,
-          ram: d.ram as Record<string, unknown> | undefined,
-          disk: d.disk as unknown[] | undefined,
-          network: d.network as Record<string, unknown> | undefined,
+          // kv metadata
           customName: meta.customName,
           hidden: meta.hidden,
           region: meta.region,
