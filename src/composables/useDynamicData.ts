@@ -1,22 +1,50 @@
 import { ref, watch } from "vue";
 import { toast } from "vue-sonner";
 import { useBackendStore } from "./useBackendStore";
+import type {
+  DynamicSummaryResponseItem,
+  SummaryField,
+} from "@/types/monitoring";
 
 // Dynamic data state (separate from static)
 const dynamicStatus = ref<"disconnected" | "connecting" | "connected">(
   "disconnected",
 );
 const dynamicError = ref("");
-const dynamicServers = ref<any[]>([]);
+const dynamicServers = ref<DynamicSummaryResponseItem[]>([]);
 const dynamicWs = ref<WebSocket | null>(null);
 let dynamicPollInterval: any = null;
 let dynamicReconnectTimeout: any = null;
 let dynamicRetryTimeout: any = null;
-let dynamicNextId = 1; // Different starting ID to avoid conflicts
+let dynamicNextId = 1;
 
 const { currentBackend } = useBackendStore();
 
-const queryFields = ["cpu", "ram", "load", "system", "disk", "network"];
+const summaryFields: SummaryField[] = [
+  "cpu_usage",
+  "gpu_usage",
+  "used_swap",
+  "total_swap",
+  "used_memory",
+  "total_memory",
+  "available_memory",
+  "load_one",
+  "load_five",
+  "load_fifteen",
+  "uptime",
+  "boot_time",
+  "process_count",
+  "total_space",
+  "available_space",
+  "read_speed",
+  "write_speed",
+  "tcp_connections",
+  "udp_connections",
+  "total_received",
+  "total_transmitted",
+  "transmit_speed",
+  "receive_speed",
+];
 
 const scheduleReconnect = () => {
   if (dynamicReconnectTimeout) clearTimeout(dynamicReconnectTimeout);
@@ -52,12 +80,12 @@ const sendQuery = async () => {
     return;
 
   const queryObj = {
-    fields: queryFields,
+    fields: summaryFields,
     condition: [{ last: null }],
   };
 
   try {
-    const result = await sendRequest("agent_query_dynamic", [
+    const result = await sendRequest("agent_query_dynamic_summary", [
       currentBackend.value.token,
       queryObj,
     ]);
@@ -255,38 +283,29 @@ const sendRequest = (method: string, params: any): Promise<any> => {
   });
 };
 
-const fetchCpuHistory = async (serverUuid: string) => {
+const fetchSummaryAvg = async (
+  serverUuid: string,
+  points: number = 100,
+  fields?: SummaryField[],
+) => {
   if (!currentBackend.value) throw new Error("No backend selected");
 
-  return sendRequest("agent_query_dynamic", [
+  const queryFields = fields ?? [
+    "cpu_usage",
+    "used_memory",
+    "total_memory",
+    "read_speed",
+    "write_speed",
+    "transmit_speed",
+    "receive_speed",
+  ];
+
+  return sendRequest("agent_query_dynamic_summary_avg", [
     currentBackend.value.token,
     {
-      fields: ["cpu"],
-      condition: [{ uuid: serverUuid }, { limit: 200 }],
-    },
-  ]);
-};
-
-const fetchRamHistory = async (serverUuid: string) => {
-  if (!currentBackend.value) throw new Error("No backend selected");
-
-  return sendRequest("agent_query_dynamic", [
-    currentBackend.value.token,
-    {
-      fields: ["ram"],
-      condition: [{ uuid: serverUuid }, { limit: 200 }],
-    },
-  ]);
-};
-
-const fetchNetworkHistory = async (serverUuid: string) => {
-  if (!currentBackend.value) throw new Error("No backend selected");
-
-  return sendRequest("agent_query_dynamic", [
-    currentBackend.value.token,
-    {
-      fields: ["network"],
-      condition: [{ uuid: serverUuid }, { limit: 200 }],
+      fields: queryFields,
+      uuid: serverUuid,
+      points,
     },
   ]);
 };
@@ -297,8 +316,6 @@ export function useDynamicData() {
     error: dynamicError,
     servers: dynamicServers,
     connect,
-    fetchCpuHistory,
-    fetchRamHistory,
-    fetchNetworkHistory,
+    fetchSummaryAvg,
   };
 }

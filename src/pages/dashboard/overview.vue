@@ -167,9 +167,7 @@ const goToServerDetail = (uuid: string) => {
                 class="flex items-center gap-1 text-sm text-muted-foreground"
               >
                 <Clock class="h-3 w-3" />
-                <span>{{
-                  formatUptime((server.system?.uptime as number) ?? 0)
-                }}</span>
+                <span>{{ formatUptime(server.uptime ?? 0) }}</span>
               </div>
             </TableCell>
 
@@ -180,7 +178,13 @@ const goToServerDetail = (uuid: string) => {
               >
                 <div class="flex items-center gap-1">
                   <Activity class="h-3 w-3" />
-                  <span>{{ formatLoad(server.load) }}</span>
+                  <span>{{
+                    formatLoad({
+                      load_one: server.load_one,
+                      load_five: server.load_five,
+                      load_fifteen: server.load_fifteen,
+                    })
+                  }}</span>
                 </div>
               </div>
             </TableCell>
@@ -230,7 +234,7 @@ const goToServerDetail = (uuid: string) => {
             <TableCell>
               <div
                 class="space-y-1.5"
-                v-if="server.disk && server.disk.length > 0"
+                v-if="server.total_space"
                 :style="{ '--primary': `hsl(${colors.disk.hsl})` }"
               >
                 <div class="flex justify-between text-xs">
@@ -257,7 +261,9 @@ const goToServerDetail = (uuid: string) => {
             <TableCell>
               <div
                 class="flex flex-col gap-1 text-xs font-mono"
-                v-if="server.network"
+                v-if="
+                  server.receive_speed != null || server.transmit_speed != null
+                "
               >
                 <div
                   class="flex items-center justify-between gap-2 text-muted-foreground"

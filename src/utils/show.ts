@@ -1,86 +1,67 @@
-import { formatBytes } from '@/utils/format'
+import { formatBytes } from "@/utils/format";
 
 export const showHostname = (server: any) => {
-  if (server.system && server.system_host_name) {
-    return server.system.system_host_name
+  if (server.system && server.system.system_host_name) {
+    return server.system.system_host_name;
   }
-  return 'Server'
-}
+  return "Server";
+};
 
 export const showOS = (server: any) => {
-    if (server.system && server.system.system_name) return server.system.system_name
-    return 'Unknown OS' 
-}
+  if (server.system && server.system.system_name)
+    return server.system.system_name;
+  return "Unknown OS";
+};
 
 export const showCpuPercent = (server: any): number => {
-    if (server.cpu) {
-        if (typeof server.cpu.total_cpu_usage === 'number') return server.cpu.total_cpu_usage
-    }
-    return 0
-}
+  if (typeof server.cpu_usage === "number") return server.cpu_usage;
+  // fallback for old nested structure
+  if (server.cpu && typeof server.cpu.total_cpu_usage === "number")
+    return server.cpu.total_cpu_usage;
+  return 0;
+};
 
 export const showRamPercent = (server: any): number => {
-    if (server.ram) {
-        const used = server.ram.used_memory || server.ram.used || 0
-        const total = server.ram.total_memory || server.ram.total || 1
-        return (used / total) * 100
-    }
-    return 0
-}
+  const used = server.used_memory ?? 0;
+  const total = server.total_memory ?? 1;
+  return (used / total) * 100;
+};
 
 export const showRamText = (server: any) => {
-    if (server.ram) {
-        const used = server.ram.used_memory || server.ram.used || 0
-        const total = server.ram.total_memory || server.ram.total || 0
-        return `${formatBytes(used)} / ${formatBytes(total)}`
-    }
-    return 'N/A'
-}
+  const used = server.used_memory ?? 0;
+  const total = server.total_memory ?? 0;
+  return `${formatBytes(used)} / ${formatBytes(total)}`;
+};
 
-
-export const showNetworkSpeed = (server: any, type: 'rx' | 'tx' | 'total') => {
-    if (!server.network) return '0 B/s'
-    let totalSpeed = 0
-    
-    for (const iface of server.network.interfaces) {
-        if (iface.interface_name === 'lo') continue;
-        
-        if (type === 'rx') totalSpeed += (iface.receive_speed || 0)
-        if (type === 'tx') totalSpeed += (iface.transmit_speed || 0)
-        if (type === 'total') totalSpeed += (iface.receive_speed || 0) + (iface.transmit_speed || 0)
-    }
-    
-    return formatBytes(totalSpeed) + '/s'
-}
+export const showNetworkSpeed = (server: any, type: "rx" | "tx" | "total") => {
+  const rx = server.receive_speed ?? 0;
+  const tx = server.transmit_speed ?? 0;
+  if (type === "rx") return formatBytes(rx) + "/s";
+  if (type === "tx") return formatBytes(tx) + "/s";
+  return formatBytes(rx + tx) + "/s";
+};
 
 export const showDiskUsage = (server: any) => {
-    if (server.disk && Array.isArray(server.disk) && server.disk.length > 0) {
-        const root = server.disk.find((d: any) => d.mount_point === '/') || server.disk[0]
-        if (root) {
-            const total = root.total_space
-            const available = root.available_space
-            const used = total - available
-            const percent = (used / total) * 100
-            return `${root.mount_point}: ${Math.round(percent)}%`
-        }
-    }
-    return 'N/A'
-}
+  const total = server.total_space ?? 0;
+  const available = server.available_space ?? 0;
+  if (total === 0) return "N/A";
+  const used = total - available;
+  const percent = (used / total) * 100;
+  return `Disk: ${Math.round(percent)}%`;
+};
 
 export const showDiskPercent = (server: any) => {
-    const text = showDiskUsage(server)
-    if (text === 'N/A') return 0
-    const parts = text.split(': ')
-    if (parts.length === 2) {
-        return parseFloat(parts[1] as string)
-    }
-    return 0
-}
+  const total = server.total_space ?? 0;
+  const available = server.available_space ?? 0;
+  if (total === 0) return 0;
+  return ((total - available) / total) * 100;
+};
 
 export const showDiskDisplay = (server: any) => {
-    const text = showDiskUsage(server)
-    if (text === 'N/A') return 'N/A'
-    const parts = text.split(': ')
-    return parts.length === 2 ? parts[1] : 'N/A'
-}
-
+  const total = server.total_space ?? 0;
+  const available = server.available_space ?? 0;
+  if (total === 0) return "N/A";
+  const used = total - available;
+  const percent = (used / total) * 100;
+  return `${Math.round(percent)}%`;
+};
