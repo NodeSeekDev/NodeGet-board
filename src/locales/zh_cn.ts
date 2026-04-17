@@ -665,6 +665,7 @@ export default {
       empty: "暂无定时任务",
       agentTask: "Agent 任务",
       serverTask: "Server 任务",
+      workerName: "Worker 名称",
       taskLabel: "任务",
       taskTarget: "任务目标",
       execCommand: "执行命令",

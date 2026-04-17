@@ -49,7 +49,17 @@ const taskKindVariant = (kind: string) => {
 };
 
 const taskLabel = (task: CronTask) => {
-  if (task.taskKind === "server") return task.serverTask;
+  if (task.taskKind === "server") {
+    if (typeof task.serverTask === "string") {
+      return task.serverTask;
+    }
+    return (
+      `[worker]: ` +
+      task.serverTask.js_worker[0] +
+      ", params: " +
+      JSON.stringify(task.serverTask.js_worker[1])
+    );
+  }
   if (task.agentTaskType === "execute") {
     const args = task.agentExecuteArgs.join(" ");
     return args

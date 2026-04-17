@@ -674,6 +674,7 @@ export default {
       empty: "No cron jobs",
       agentTask: "Agent Task",
       serverTask: "Server Task",
+      workerName: "Worker Name",
       taskLabel: "Task",
       taskTarget: "Task Target",
       execCommand: "Command",
