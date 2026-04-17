@@ -818,6 +818,7 @@ export default {
         status: "Status",
         actions: "Actions",
         success: "Success",
+        runType: "run type",
         error: "Error",
         view: "View",
         detailTitle: "Log Detail",

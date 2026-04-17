@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import {
   Dialog,
   DialogContent,
@@ -14,14 +14,27 @@ import { useBackendStore, type Backend } from "@/composables/useBackendStore";
 import { Trash2 } from "lucide-vue-next";
 import { RainbowButton } from "@/components/ui/rainbow-button";
 import { useI18n } from "vue-i18n";
+import { useLifecycle } from "@/composables/useLifecycle";
 
 const props = withDefaults(
   defineProps<{
     open?: boolean;
     showList?: boolean;
+    initForm?: {
+      newName: string;
+      newUrl: string;
+      newToken: string;
+    };
   }>(),
   {
     showList: true,
+    initForm() {
+      return {
+        newName: "",
+        newUrl: "",
+        newToken: "",
+      };
+    },
   },
 );
 
@@ -29,6 +42,7 @@ const emit = defineEmits<{
   (e: "update:open", value: boolean): void;
 }>();
 
+const { afterServerCreate } = useLifecycle();
 const { t } = useI18n();
 
 const isOpen = computed({
@@ -39,29 +53,42 @@ const isOpen = computed({
 const { backends, currentBackend, addBackend, removeBackend, selectBackend } =
   useBackendStore();
 
-const newName = ref("");
-const newUrl = ref("");
-const newToken = ref("");
+const newName = ref(props.initForm.newName);
+const newUrl = ref(props.initForm.newUrl);
+const newToken = ref(props.initForm.newToken);
 
 const resetForm = () => {
-  newName.value = "";
-  newUrl.value = "";
-  newToken.value = "";
+  newName.value = props.initForm.newName;
+  newUrl.value = props.initForm.newUrl;
+  newToken.value = props.initForm.newToken;
 };
 
-const handleAdd = () => {
+const handleAdd = async () => {
   if (!newName.value || !newUrl.value || !newToken.value) return;
-  addBackend({
+  const backend = {
     name: newName.value,
     url: newUrl.value,
     token: newToken.value,
-  });
+  };
+  addBackend(backend);
+  await afterServerCreate(backend);
   resetForm();
   if (props.showList === false) isOpen.value = false;
+
+  // 防止出现有未预料到的未更新的内存变量
+  location.reload();
 };
 
 const handleRemove = (b: Backend) => removeBackend(b);
 const handleSelect = (b: Backend) => selectBackend(b);
+
+watch(
+  () => JSON.stringify(props.initForm),
+  () => {
+    resetForm();
+  },
+  { immediate: true },
+);
 </script>
 
 <template>

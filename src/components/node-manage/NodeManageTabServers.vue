@@ -28,6 +28,15 @@ const { refreshAll, isActive, serverInfo, serverInfoLoading } =
   useBackendExtra();
 
 const addOpen = ref(false);
+const initForm = ref<{
+  newName: string;
+  newUrl: string;
+  newToken: string;
+}>({
+  newName: "",
+  newUrl: "",
+  newToken: "",
+});
 
 const handleManage = (backend: Backend) => {
   router.push(
@@ -35,11 +44,15 @@ const handleManage = (backend: Backend) => {
   );
 };
 
-// 修复: 用 watch 替代 onMounted，支持路由内动态修改 query
 watch(
-  () => route.query.add,
+  () => route.query.fill,
   (raw) => {
     if (!raw || typeof raw !== "string") return;
+
+    if (raw === "empty") {
+      addOpen.value = true;
+      return;
+    }
 
     try {
       const decoded = JSON.parse(atob(raw)) as Backend;
@@ -49,16 +62,14 @@ watch(
         (b) => b.url === decoded.url && b.token === decoded.token,
       );
       if (!exists) {
-        addBackend(decoded);
-        if (backends.value.length === 1) {
-          selectBackend(decoded);
-        }
+        initForm.value.newName = decoded.name;
+        initForm.value.newUrl = decoded.url;
+        initForm.value.newToken = decoded.token;
+        addOpen.value = true;
       }
     } catch {
       // 解码或解析失败时静默忽略
     }
-
-    router.replace({ query: { ...route.query, add: undefined } });
   },
   { immediate: true },
 );
@@ -156,6 +167,10 @@ watch(
       </Table>
     </div>
 
-    <BackendSwitcher v-model:open="addOpen" :show-list="false" />
+    <BackendSwitcher
+      v-model:open="addOpen"
+      :init-form="initForm"
+      :show-list="false"
+    />
   </div>
 </template>

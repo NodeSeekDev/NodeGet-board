@@ -814,6 +814,7 @@ export default {
         recordId: "记录 ID",
         limit: "返回条数",
         latestOnly: "仅最后一条",
+        runType: "运行类型",
         message: "消息",
         deleteConfirm: "确定要删除这条日志吗？",
         deleteSuccess: "日志已删除",

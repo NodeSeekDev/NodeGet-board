@@ -9,7 +9,8 @@ export interface BackendCron {
   cron_expression: string;
   cron_type:
     | { agent: [string[], { task: Record<string, unknown> }] }
-    | { server: string };
+    | { server: string }
+    | { server: { js_worker: [string, { task: string }] } };
   last_run_time: number | null;
 }
 
@@ -117,10 +118,9 @@ export function taskToCronType(
   return { server: task.serverTask };
 }
 
-export function useCron() {
-  const { currentBackend } = useBackendStore();
-  const backendUrl = computed(() => currentBackend.value?.url ?? "");
-  const backendToken = computed(() => currentBackend.value?.token ?? "");
+export function useCron(backend = useBackendStore().currentBackend) {
+  const backendUrl = computed(() => backend.value?.url ?? "");
+  const backendToken = computed(() => backend.value?.token ?? "");
 
   const rpc = <T>(method: string, params: unknown): Promise<T> =>
     getWsConnection(backendUrl.value).call<T>(method, params);

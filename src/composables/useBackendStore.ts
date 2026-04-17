@@ -40,7 +40,11 @@ const init = () => {
   }
 
   // If in dev mode, add dev backend
-  if (import.meta.env.DEV && backends.value.length === 0) {
+  if (
+    import.meta.env.DEV &&
+    backends.value.length === 0 &&
+    import.meta.env.VITE_BACKEND_WS
+  ) {
     const devBackend: Backend = {
       name: "Dev",
       url: import.meta.env.VITE_BACKEND_WS || "",

@@ -47,7 +47,11 @@ const refreshAll = () => {
   backends.value.forEach(fetchServerInfo);
 };
 
-watch(backends, (list) => list.forEach(fetchServerInfo), { immediate: true });
+watch(
+  () => JSON.stringify(backends.value),
+  () => backends.value.forEach(fetchServerInfo),
+  { immediate: true },
+);
 
 const isActive = (backend: Backend) =>
   currentBackend.value?.url === backend.url &&
