@@ -27,27 +27,27 @@ const loadingText = computed(() => {
 
 <template>
   <div
-    class="mt-4 max-h-[60vh] overflow-y-auto rounded-md border bg-background/40 p-3"
+    class="mt-4 max-h-[60vh] overflow-y-auto rounded-md border bg-background/30 p-2"
   >
-    <div class="space-y-3">
+    <div class="space-y-2">
       <div
         v-if="isBusy"
-        class="flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
+        class="flex items-center gap-2 rounded-md border bg-muted/40 px-2.5 py-1.5 text-xs text-muted-foreground"
       >
-        <Loader2 class="h-4 w-4 animate-spin" />
+        <Loader2 class="h-3.5 w-3.5 animate-spin" />
         <span>{{ loadingText }}</span>
       </div>
 
       <div
         v-if="error"
-        class="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+        class="rounded-md border border-destructive/40 bg-destructive/10 px-2.5 py-1.5 text-xs text-destructive"
       >
         {{ error }}
       </div>
 
       <div
         v-if="logs.length === 0"
-        class="rounded-md border border-dashed px-4 py-8 text-center text-sm text-muted-foreground"
+        class="rounded-md border border-dashed px-3 py-6 text-center text-xs text-muted-foreground"
       >
         <span v-if="status === 'connecting'">
           {{ t("dashboard.logsPanel.empty.connecting") }}
@@ -56,7 +56,7 @@ const loadingText = computed(() => {
         <span v-else>{{ t("dashboard.logsPanel.empty.idle") }}</span>
       </div>
 
-      <div v-else class="flex flex-col gap-2">
+      <div v-else class="flex flex-col gap-1.5">
         <LogsItem v-for="item in displayLogs" :key="item.id" :item="item" />
       </div>
     </div>

@@ -3,8 +3,11 @@ import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { ChevronDown, ChevronRight } from "lucide-vue-next";
 import { Badge } from "@/components/ui/badge";
-import { Collapsible, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import type { LogEntry } from "@/composables/useLogs";
 
@@ -49,80 +52,92 @@ const formattedFields = computed(() => {
 
 <template>
   <Collapsible v-model:open="isOpen">
-    <Card class="transition-colors hover:bg-muted/30">
+    <div
+      class="overflow-hidden rounded-md border border-border/70 bg-background/80 transition-colors hover:bg-muted/10"
+    >
       <CollapsibleTrigger as-child>
-        <CardHeader
+        <button
+          type="button"
           :class="
-            isOpen ? 'cursor-pointer px-4 py-2.5' : 'cursor-pointer px-4 py-2'
+            isOpen
+              ? 'flex w-full cursor-pointer flex-col gap-1 px-2.5 py-2 text-left sm:flex-row sm:items-center sm:justify-between sm:gap-2.5'
+              : 'flex w-full cursor-pointer flex-col gap-1 px-2.5 py-1.5 text-left sm:flex-row sm:items-center sm:justify-between sm:gap-2.5'
           "
         >
-          <div
-            class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5"
-          >
-            <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-              <component
-                :is="isOpen ? ChevronDown : ChevronRight"
-                class="size-4 shrink-0 text-muted-foreground"
-              />
-              <Badge
-                variant="outline"
-                :class="cn('font-mono text-xs', levelClass)"
-              >
-                {{ item.level }}
-              </Badge>
-              <Badge variant="secondary" class="font-mono text-xs">
-                {{ item.target }}
-              </Badge>
-              <CardTitle
-                class="basis-full text-sm font-medium break-all sm:min-w-0 sm:flex-1 sm:basis-auto sm:truncate sm:break-normal"
-              >
-                {{ item.message || "-" }}
-              </CardTitle>
-            </div>
-
-            <div
-              class="w-full font-mono text-xs text-muted-foreground sm:w-auto sm:shrink-0"
+          <div class="flex min-w-0 flex-1 items-center gap-1.5">
+            <component
+              :is="isOpen ? ChevronDown : ChevronRight"
+              class="size-3.5 shrink-0 text-muted-foreground"
+            />
+            <Badge
+              variant="outline"
+              :class="
+                cn(
+                  'h-5 shrink-0 rounded-sm px-1.5 font-mono text-[10px] leading-none',
+                  levelClass,
+                )
+              "
             >
-              {{ formattedTimestamp }}
+              {{ item.level }}
+            </Badge>
+            <Badge
+              variant="secondary"
+              class="h-5 max-w-28 shrink-0 rounded-sm px-1.5 font-mono text-[10px] leading-none sm:max-w-36"
+            >
+              {{ item.target }}
+            </Badge>
+            <div
+              class="min-w-0 flex-1 truncate text-xs font-medium leading-[1.2rem]"
+            >
+              {{ item.message || "-" }}
             </div>
           </div>
-        </CardHeader>
+
+          <div
+            class="pl-5 font-mono text-[10px] leading-4 text-muted-foreground sm:w-auto sm:shrink-0 sm:pl-0"
+          >
+            {{ formattedTimestamp }}
+          </div>
+        </button>
       </CollapsibleTrigger>
 
-      <CardContent v-if="isOpen" class="space-y-2.5 pt-0 pb-3">
+      <CollapsibleContent
+        v-if="isOpen"
+        class="space-y-1.5 border-t bg-muted/10 px-2.5 pt-1.5 pb-2"
+      >
         <div>
-          <div class="mb-1 text-xs font-medium text-muted-foreground">
+          <div class="mb-1 text-[11px] font-medium text-muted-foreground">
             {{ t("dashboard.logsPanel.details.fields") }}
           </div>
           <pre
             v-if="formattedFields"
-            class="overflow-x-auto rounded-md bg-muted p-3 text-xs"
+            class="overflow-x-auto rounded-md bg-muted/70 p-1.5 text-[11px] leading-4"
             >{{ formattedFields }}</pre
           >
           <div
             v-else
-            class="rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground"
+            class="rounded-md border border-dashed px-2 py-1 text-[11px] text-muted-foreground"
           >
             {{ t("common.noData") }}
           </div>
         </div>
 
-        <div class="space-y-2">
-          <div class="text-xs font-medium text-muted-foreground">
+        <div class="space-y-1">
+          <div class="text-[11px] font-medium text-muted-foreground">
             {{ t("dashboard.logsPanel.details.spans") }}
           </div>
           <template v-if="item.spans.length > 0">
             <div
               v-for="(span, index) in item.spans"
               :key="`${item.id}-span-${index}`"
-              class="rounded-md border px-3 py-2"
+              class="rounded-md border bg-background/70 px-2 py-1"
             >
-              <div class="font-mono text-xs font-medium">
+              <div class="font-mono text-[11px] font-medium leading-4">
                 {{ span.name || "-" }}
               </div>
               <div
                 v-if="span.fields"
-                class="mt-1 text-xs text-muted-foreground"
+                class="mt-0.5 text-[11px] leading-4 text-muted-foreground"
               >
                 {{ span.fields }}
               </div>
@@ -130,12 +145,12 @@ const formattedFields = computed(() => {
           </template>
           <div
             v-else
-            class="rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground"
+            class="rounded-md border border-dashed px-2.5 py-1.5 text-[11px] text-muted-foreground"
           >
             {{ t("common.noData") }}
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </CollapsibleContent>
+    </div>
   </Collapsible>
 </template>
