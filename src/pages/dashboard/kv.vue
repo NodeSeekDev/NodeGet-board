@@ -186,6 +186,7 @@ const openAddKey = () => {
           @select="enterNamespace"
           @open-create="createOpen = true"
           @delete="handleNsDelete"
+          @refresh="() => kv.fetchNamespaces()"
         />
       </TabsContent>
 
