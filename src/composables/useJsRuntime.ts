@@ -1,14 +1,15 @@
 import { ref, computed } from "vue";
 import { useBackendStore } from "@/composables/useBackendStore";
 import { getWsConnection } from "@/composables/useWsConnection";
+import { type Backend } from "@/composables/useBackendStore";
 import type { JsWorker, JsResult, JsWorkerOptions } from "@/types/worker";
+import { unicodeToBase64 } from "@/lib/base64";
 
 export type { JsWorker, JsResult, JsWorkerOptions };
 
-export function useJsRuntime() {
-  const { currentBackend } = useBackendStore();
-  const backendUrl = computed(() => currentBackend.value?.url ?? "");
-  const backendToken = computed(() => currentBackend.value?.token ?? "");
+export function useJsRuntime(backend = useBackendStore().currentBackend) {
+  const backendUrl = computed(() => backend.value?.url ?? "");
+  const backendToken = computed(() => backend.value?.token ?? "");
 
   const workers = ref<JsWorker[]>([]);
   const loading = ref(false);
@@ -51,7 +52,7 @@ export function useJsRuntime() {
   const addWorker = async (options: JsWorkerOptions) => {
     if (!backendUrl.value) return;
 
-    const contentBase64 = btoa(unescape(encodeURIComponent(options.content)));
+    const contentBase64 = unicodeToBase64(options.content);
     return await rpc<any>("js-worker_create", {
       token: backendToken.value,
       name: options.name,
@@ -139,9 +140,7 @@ export function useJsRuntime() {
       delete params.route;
     }
     if (updates.content !== undefined) {
-      params.js_script_base64 = btoa(
-        unescape(encodeURIComponent(updates.content as string)),
-      );
+      params.js_script_base64 = unicodeToBase64(updates.content as string);
       delete params.content;
     }
     return await rpc<any>("js-worker_update", params);

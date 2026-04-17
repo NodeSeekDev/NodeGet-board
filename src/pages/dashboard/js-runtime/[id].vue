@@ -328,6 +328,7 @@ const logFilter = ref({
   status: "all",
   limit: 20,
   latestOnly: false,
+  runType: "",
 });
 
 const loadLogsFun = async () => {
@@ -350,6 +351,9 @@ const loadLogsFun = async () => {
 
     if (logFilter.value.latestOnly) {
       condition.push({ last: null });
+    }
+    if (logFilter.value.runType) {
+      condition.push({ run_type: logFilter.value.runType });
     }
 
     let results = await runtime.getWorkerLogs(condition);
@@ -374,6 +378,7 @@ const resetLogsFilterFun = () => {
     status: "all",
     limit: 20,
     latestOnly: false,
+    runType: "",
   };
   loadLogsFun();
 };
@@ -1394,14 +1399,18 @@ const formatTime = (ts: number | null) => {
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div class="space-y-1.5">
                 <label class="text-sm font-medium text-foreground/80">{{
-                  t("dashboard.jsRuntime.logs.recordId", "Record ID")
+                  t("dashboard.jsRuntime.logs.runType")
                 }}</label>
-                <Input
-                  v-model="logFilter.id"
-                  type="number"
-                  min="1"
-                  class="bg-background/50 h-9"
-                />
+                <Select v-model="logFilter.runType">
+                  <SelectTrigger class="bg-background/50 h-9 w-full"
+                    ><SelectValue
+                  /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="call">Call</SelectItem>
+                    <SelectItem value="cron">Cron</SelectItem>
+                    <SelectItem value="http">Http</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div class="space-y-1.5">
                 <label class="text-sm font-medium text-foreground/80">{{
@@ -1465,6 +1474,17 @@ const formatTime = (ts: number | null) => {
                     }}</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div class="space-y-1.5">
+                <label class="text-sm font-medium text-foreground/80">{{
+                  t("dashboard.jsRuntime.logs.recordId", "Record ID")
+                }}</label>
+                <Input
+                  v-model="logFilter.id"
+                  type="number"
+                  min="1"
+                  class="bg-background/50 h-9"
+                />
               </div>
 
               <div

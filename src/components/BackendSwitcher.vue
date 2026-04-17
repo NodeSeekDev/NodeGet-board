@@ -14,6 +14,7 @@ import { useBackendStore, type Backend } from "@/composables/useBackendStore";
 import { Trash2 } from "lucide-vue-next";
 import { RainbowButton } from "@/components/ui/rainbow-button";
 import { useI18n } from "vue-i18n";
+import { useLifecycle } from "@/composables/useLifecycle";
 
 const props = withDefaults(
   defineProps<{
@@ -41,6 +42,7 @@ const emit = defineEmits<{
   (e: "update:open", value: boolean): void;
 }>();
 
+const { afterServerCreate } = useLifecycle();
 const { t } = useI18n();
 
 const isOpen = computed({
@@ -61,15 +63,20 @@ const resetForm = () => {
   newToken.value = props.initForm.newToken;
 };
 
-const handleAdd = () => {
+const handleAdd = async () => {
   if (!newName.value || !newUrl.value || !newToken.value) return;
-  addBackend({
+  const backend = {
     name: newName.value,
     url: newUrl.value,
     token: newToken.value,
-  });
+  };
+  addBackend(backend);
+  await afterServerCreate(backend);
   resetForm();
   if (props.showList === false) isOpen.value = false;
+
+  // 防止出现有未预料到的未更新的内存变量
+  location.reload();
 };
 
 const handleRemove = (b: Backend) => removeBackend(b);
