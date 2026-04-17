@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { inject } from "vue";
 import { RouterLink } from "vue-router";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,8 +8,6 @@ import SettingsDialog from "./SettingsDialog.vue";
 defineProps<{
   status: "disconnected" | "connecting" | "connected";
 }>();
-
-const openBackendSwitcher = inject<() => void>("openBackendSwitcher");
 </script>
 
 <template>
@@ -28,10 +25,6 @@ const openBackendSwitcher = inject<() => void>("openBackendSwitcher");
 
       <SettingsDialog />
 
-      <Button variant="ghost" size="icon" @click="openBackendSwitcher?.()">
-        <ServerIcon class="h-4 w-4" />
-        <span class="sr-only">Switch backend</span>
-      </Button>
       <Badge
         :variant="
           status === 'connected'

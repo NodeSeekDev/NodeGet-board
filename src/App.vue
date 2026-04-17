@@ -4,10 +4,13 @@ import { Toaster } from "vue-sonner";
 import "vue-sonner/style.css";
 import FlickeringGrid from "@/components/ui/flickering-grid/FlickeringGrid.vue";
 import { ref, provide, onMounted, watch } from "vue";
-import BackendSwitcher from "@/components/BackendSwitcher.vue";
 import { useBackendStore } from "@/composables/useBackendStore";
 import { usePermissionStore } from "@/stores/permission";
 import { getWsConnection } from "@/composables/useWsConnection";
+import { useRouter, useRoute } from "vue-router";
+
+const router = useRouter();
+const route = useRoute();
 
 const background = ref<"default" | "flickering">("default");
 
@@ -18,13 +21,6 @@ const setBackground = (val: "default" | "flickering") => {
 
 provide("background", background);
 provide("setBackground", setBackground);
-
-// Backend Switcher Logic
-const isBackendSwitcherOpen = ref(false);
-const openBackendSwitcher = () => {
-  isBackendSwitcherOpen.value = true;
-};
-provide("openBackendSwitcher", openBackendSwitcher);
 
 const { backends, currentBackend } = useBackendStore();
 const permissionStore = usePermissionStore();
@@ -37,12 +33,28 @@ onMounted(() => {
   if (bgCookie === "flickering") {
     background.value = "flickering";
   }
-
-  // Check if we need to force open backend switcher
-  if (!import.meta.env.DEV && backends.value.length === 0) {
-    isBackendSwitcherOpen.value = true;
-  }
 });
+
+function ensureBackend() {
+  // Check if we need to force open backend switcher
+  if (backends.value.length === 0) {
+    if (route.name !== "/dashboard/node-manage")
+      router.push({
+        name: "/dashboard/node-manage",
+        query: {
+          fill: "empty",
+          tab: "servers",
+        },
+      });
+  }
+}
+
+watch(
+  () => route.fullPath,
+  () => {
+    ensureBackend();
+  },
+);
 
 watch(
   currentBackend,
@@ -78,7 +90,6 @@ watch(
       <component :is="Component" />
     </Transition>
   </RouterView>
-  <BackendSwitcher v-model:open="isBackendSwitcherOpen" />
   <Toaster rich-colors close-button theme="system" :duration="3000" />
 </template>
 <style scoped></style>

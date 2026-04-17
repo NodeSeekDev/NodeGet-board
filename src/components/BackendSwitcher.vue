@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import {
   Dialog,
   DialogContent,
@@ -19,9 +19,21 @@ const props = withDefaults(
   defineProps<{
     open?: boolean;
     showList?: boolean;
+    initForm?: {
+      newName: string;
+      newUrl: string;
+      newToken: string;
+    };
   }>(),
   {
     showList: true,
+    initForm() {
+      return {
+        newName: "",
+        newUrl: "",
+        newToken: "",
+      };
+    },
   },
 );
 
@@ -39,14 +51,14 @@ const isOpen = computed({
 const { backends, currentBackend, addBackend, removeBackend, selectBackend } =
   useBackendStore();
 
-const newName = ref("");
-const newUrl = ref("");
-const newToken = ref("");
+const newName = ref(props.initForm.newName);
+const newUrl = ref(props.initForm.newUrl);
+const newToken = ref(props.initForm.newToken);
 
 const resetForm = () => {
-  newName.value = "";
-  newUrl.value = "";
-  newToken.value = "";
+  newName.value = props.initForm.newName;
+  newUrl.value = props.initForm.newUrl;
+  newToken.value = props.initForm.newToken;
 };
 
 const handleAdd = () => {
@@ -62,6 +74,14 @@ const handleAdd = () => {
 
 const handleRemove = (b: Backend) => removeBackend(b);
 const handleSelect = (b: Backend) => selectBackend(b);
+
+watch(
+  () => JSON.stringify(props.initForm),
+  () => {
+    resetForm();
+  },
+  { immediate: true },
+);
 </script>
 
 <template>

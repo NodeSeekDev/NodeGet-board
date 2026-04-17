@@ -158,7 +158,7 @@ const installScript = computed(() => {
   const token = generatedToken.value || "{TOKEN}";
   const serverWs = currentBackendInfo.value?.url || "{Server_WS}";
   const serverName = currentBackendInfo.value?.name || "{Server_NAME}";
-  return `bash <(curl https://install.nodeget.com) \\
+  return `bash <(curl -sL https://temp-releases.pages.dev/install.sh) install-agent  \\
   --agent-id ${uuid} \\
   --token ${token} \\
   --server-ws ${serverWs} \\

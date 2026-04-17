@@ -32,14 +32,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useBackendStore } from "@/composables/useBackendStore";
-import { useBackendExtra } from "@/composables/useBackendExtra";
 import { getWsConnection } from "@/composables/useWsConnection";
 import AddAgentDialog from "@/components/agents/AddAgentDialog.vue";
 
 const { t } = useI18n();
 const router = useRouter();
 const { backends, currentBackend } = useBackendStore();
-const { serverInfo } = useBackendExtra();
 
 interface AgentInfo {
   uuid: string;
