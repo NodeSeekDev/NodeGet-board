@@ -118,7 +118,7 @@ const handleSave = async (script: Script) => {
     <div class="flex items-start justify-between">
       <div class="flex-1">
         <h1 class="text-2xl font-semibold">{{ $t("router.scripts") }}</h1>
-        <p class="text-sm text-muted-foreground mt-1">
+        <p class="text-sm text-muted-foreground mt-1 mb-2">
           {{ $t("dashboard.scripts.desc") }}
         </p>
       </div>

@@ -25,6 +25,7 @@ import { useBackendStore } from "@/composables/useBackendStore";
 import { getWsConnection } from "@/composables/useWsConnection";
 import { wsRpcCall } from "@/composables/useWsRpc";
 import { useCron, type BackendCron } from "@/composables/useCron";
+import { useBackendExtra } from "@/composables/useBackendExtra";
 
 const open = defineModel<boolean>("open", { required: true });
 const emit = defineEmits<{
@@ -34,7 +35,7 @@ const emit = defineEmits<{
 const { t } = useI18n();
 const router = useRouter();
 const themeStore = useThemeStore();
-const { currentBackend } = useBackendStore();
+const { currentBackendInfo } = useBackendExtra();
 const { list: listCrons } = useCron();
 
 const step = ref(1);
@@ -70,7 +71,7 @@ const dynamicRetention = ref<number | undefined>();
 const agentTaskRetention = ref<number | undefined>();
 
 const loadCrons = async () => {
-  if (!currentBackend.value) return;
+  if (!currentBackendInfo.value) return;
   try {
     cronList.value = await listCrons();
   } catch {
@@ -83,12 +84,12 @@ const isOnline = ref(false);
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 
 const checkOnline = async () => {
-  if (!currentBackend.value) return;
+  if (!currentBackendInfo.value) return;
   try {
-    const conn = getWsConnection(currentBackend.value.url);
+    const conn = getWsConnection(currentBackendInfo.value.url);
     const result = await conn.call<{ uuids: string[] }>(
       "nodeget-server_list_all_agent_uuid",
-      { token: currentBackend.value.token },
+      { token: currentBackendInfo.value.token },
     );
     if (result?.uuids?.includes(nodeUuid.value)) {
       isOnline.value = true;
@@ -117,13 +118,13 @@ onUnmounted(stopPolling);
 
 // 预生成 token
 const preGenerateToken = async () => {
-  if (!currentBackend.value) return;
+  if (!currentBackendInfo.value) return;
   try {
     const result = await wsRpcCall<{ key?: string; secret?: string }>(
-      currentBackend.value.url,
+      currentBackendInfo.value.url,
       "token_create",
       {
-        father_token: currentBackend.value.token,
+        father_token: currentBackendInfo.value.token,
         token_creation: {
           username: null,
           password: null,
@@ -155,12 +156,13 @@ const preGenerateToken = async () => {
 const installScript = computed(() => {
   const uuid = nodeUuid.value || "{AGENT_UUID}";
   const token = generatedToken.value || "{TOKEN}";
-  const serverWs = currentBackend.value?.url || "{Server_WS}";
-  const serverName = currentBackend.value?.name || "{Server_NAME}";
+  const serverWs = currentBackendInfo.value?.url || "{Server_WS}";
+  const serverName = currentBackendInfo.value?.name || "{Server_NAME}";
   return `bash <(curl https://install.nodeget.com) \\
   --agent-id ${uuid} \\
   --token ${token} \\
   --server-ws ${serverWs} \\
+  --server-id ${currentBackendInfo.value?.uuid} \\
   --server-name ${serverName}`;
 });
 
@@ -278,7 +280,7 @@ const steps = [
           <div class="space-y-2">
             <Label>{{ t("dashboard.agents.fieldServerUrl") }}</Label>
             <Input
-              :model-value="currentBackend?.url ?? '--'"
+              :model-value="currentBackendInfo?.url ?? '--'"
               readonly
               class="text-muted-foreground"
             />
@@ -286,7 +288,7 @@ const steps = [
           <div class="space-y-2">
             <Label>{{ t("dashboard.agents.fieldServerName") }}</Label>
             <Input
-              :model-value="currentBackend?.name ?? '--'"
+              :model-value="currentBackendInfo?.name ?? '--'"
               readonly
               class="text-muted-foreground"
             />

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { Trash2, Plus, Search, Loader2 } from "lucide-vue-next";
+import { Trash2, Plus, Search, Loader2, RefreshCw } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { PopConfirm } from "@/components/ui/pop-confirm";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,7 @@ const emit = defineEmits<{
   select: [namespace: string];
   openCreate: [];
   delete: [namespace: string];
+  refresh: [];
 }>();
 
 const searchQuery = ref("");
@@ -49,6 +50,15 @@ const filteredNamespaces = computed(() => {
         />
       </div>
       <div class="flex-1" />
+      <Button
+        variant="outline"
+        size="sm"
+        :disabled="loading"
+        class="ml-auto mr-2"
+        @click="emit('refresh')"
+      >
+        <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': loading }" />
+      </Button>
       <Button size="sm" @click="emit('openCreate')">
         <Plus class="h-4 w-4 mr-1" />
         创建命名空间

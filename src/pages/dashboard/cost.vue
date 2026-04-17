@@ -87,6 +87,18 @@ function getProgressColor(expireTime: string): string {
   return "bg-red-500";
 }
 
+// 计算剩余价值（按剩余天数比例）
+function getRemainingValue(
+  expireTime: string,
+  price: number,
+  priceCycle: number,
+): number {
+  const remaining = getRemainingDays(expireTime);
+  if (remaining === null || remaining <= 0) return 0;
+  const ratio = Math.min(remaining / priceCycle, 1);
+  return price * ratio;
+}
+
 const sortedNodes = computed(() => {
   const field = sortField.value;
   const dir = sortDir.value;
@@ -113,12 +125,15 @@ const sortedNodes = computed(() => {
 const stats = computed(() => {
   const total = nodes.value.reduce((sum, n) => sum + n.price, 0);
   const avg = nodes.value.length ? total / nodes.value.length : 0;
+  const totalRemaining = nodes.value.reduce((sum, n) => {
+    return sum + getRemainingValue(n.expireTime, n.price, n.priceCycle);
+  }, 0);
   const expiringSoon = nodes.value.filter((n) => {
     const r = getRemainingDays(n.expireTime);
     return r !== null && r >= 0 && r <= 30;
   }).length;
   const priceUnit = nodes.value[0]?.priceUnit ?? "$";
-  return { total, avg, expiringSoon, priceUnit };
+  return { total, avg, totalRemaining, expiringSoon, priceUnit };
 });
 
 async function loadNodes() {
@@ -212,7 +227,7 @@ onMounted(loadNodes);
 <template>
   <div class="h-full flex flex-col gap-4 overflow-auto p-1">
     <!-- 统计卡片 -->
-    <div class="grid grid-cols-3 gap-4">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
       <div class="rounded-lg border bg-card p-4 flex items-center gap-3">
         <div class="p-2 rounded-md bg-primary/10">
           <CreditCard class="h-5 w-5 text-primary" />
@@ -233,6 +248,18 @@ onMounted(loadNodes);
           <p class="text-xs text-muted-foreground">平均每台</p>
           <p class="text-xl font-semibold font-mono">
             {{ stats.priceUnit }}{{ stats.avg.toFixed(2) }}
+          </p>
+        </div>
+      </div>
+
+      <div class="rounded-lg border bg-card p-4 flex items-center gap-3">
+        <div class="p-2 rounded-md bg-green-500/10">
+          <TrendingUp class="h-5 w-5 text-green-500" />
+        </div>
+        <div>
+          <p class="text-xs text-muted-foreground">总剩余价值</p>
+          <p class="text-xl font-semibold font-mono">
+            {{ stats.priceUnit }}{{ stats.totalRemaining.toFixed(2) }}
           </p>
         </div>
       </div>
@@ -313,6 +340,7 @@ onMounted(loadNodes);
             <TableHead>节点名称</TableHead>
             <TableHead class="text-right">价格 / 周期</TableHead>
             <TableHead>到期时间</TableHead>
+            <TableHead class="text-right">剩余价值</TableHead>
             <TableHead class="w-48">剩余时间占比</TableHead>
             <TableHead class="text-right">操作</TableHead>
           </TableRow>
@@ -357,6 +385,27 @@ onMounted(loadNodes);
                 >
                   {{ node.expireTime }}
                 </span>
+              </template>
+              <span v-else class="text-muted-foreground">—</span>
+            </TableCell>
+
+            <!-- 剩余价值 -->
+            <TableCell class="text-right font-mono">
+              <template
+                v-if="
+                  node.expireTime &&
+                  getRemainingDays(node.expireTime) !== null &&
+                  getRemainingDays(node.expireTime)! > 0
+                "
+              >
+                {{ node.priceUnit
+                }}{{
+                  getRemainingValue(
+                    node.expireTime,
+                    node.price,
+                    node.priceCycle,
+                  ).toFixed(2)
+                }}
               </template>
               <span v-else class="text-muted-foreground">—</span>
             </TableCell>

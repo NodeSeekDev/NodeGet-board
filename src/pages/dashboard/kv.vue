@@ -168,7 +168,7 @@ const openAddKey = () => {
         <TabsTrigger value="list">{{
           $t("dashboard.kv.normalView")
         }}</TabsTrigger>
-        <TabsTrigger value="flat">{{
+        <TabsTrigger value="flat" v-if="false">{{
           $t("dashboard.kv.flatView")
         }}</TabsTrigger>
         <TabsTrigger value="node">{{
@@ -186,6 +186,7 @@ const openAddKey = () => {
           @select="enterNamespace"
           @open-create="createOpen = true"
           @delete="handleNsDelete"
+          @refresh="() => kv.fetchNamespaces()"
         />
       </TabsContent>
 

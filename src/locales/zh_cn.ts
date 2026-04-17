@@ -899,7 +899,7 @@ export default {
     token: "Token",
     tokenImport: "导入 Token",
     kv: "KV 管理",
-    jsRuntime: "JS 扩展",
+    jsRuntime: "JS Worker",
     jsRuntimeDetail: "Worker 详情",
     appPanel: "扩展管理",
     appEntrance: "应用入口",

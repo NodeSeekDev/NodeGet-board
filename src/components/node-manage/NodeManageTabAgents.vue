@@ -10,6 +10,7 @@ import {
   Copy,
   Loader2,
   RefreshCw,
+  Plus,
 } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,11 +32,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useBackendStore } from "@/composables/useBackendStore";
+import { useBackendExtra } from "@/composables/useBackendExtra";
 import { getWsConnection } from "@/composables/useWsConnection";
+import AddAgentDialog from "@/components/agents/AddAgentDialog.vue";
 
 const { t } = useI18n();
 const router = useRouter();
 const { backends, currentBackend } = useBackendStore();
+const { serverInfo } = useBackendExtra();
 
 interface AgentInfo {
   uuid: string;
@@ -47,6 +51,7 @@ const agents = ref<AgentInfo[]>([]);
 const loading = ref(true);
 const searchQuery = ref("");
 const selectedUuids = ref<Set<string>>(new Set());
+const addAgentOpen = ref(false);
 
 const fetchAgents = async () => {
   loading.value = true;
@@ -181,9 +186,14 @@ defineExpose({ fetchAgents });
         variant="outline"
         size="sm"
         :disabled="loading"
+        class="ml-auto"
         @click="fetchAgents"
       >
         <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': loading }" />
+      </Button>
+      <Button @click="addAgentOpen = true">
+        <Plus class="h-4 w-4 mr-1.5" />
+        {{ t("dashboard.agents.addAgent") }}
       </Button>
       <div v-if="hasSelection" class="flex items-center gap-2">
         <Button
@@ -281,5 +291,6 @@ defineExpose({ fetchAgents });
         </TableBody>
       </Table>
     </div>
+    <AddAgentDialog v-model:open="addAgentOpen" @added="fetchAgents()" />
   </div>
 </template>
