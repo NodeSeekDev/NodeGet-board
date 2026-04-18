@@ -498,7 +498,7 @@ export default {
       storage: {
         title: "储存周期设置",
         cleanTitle: "立即清理数据",
-        cleanDesc: "将临时清除所有储存数据，此操作不可恢复。",
+        cleanDesc: "立即按照储存周期设置清理过期数据，此操作不可恢复。",
         cleanButton: "清理数据",
         cleaning: "清理中...",
         cleanSuccess: "数据清理完成",

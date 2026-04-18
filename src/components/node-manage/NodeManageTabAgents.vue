@@ -291,6 +291,10 @@ defineExpose({ fetchAgents });
         </TableBody>
       </Table>
     </div>
-    <AddAgentDialog v-model:open="addAgentOpen" @added="fetchAgents()" />
+    <AddAgentDialog
+      v-if="addAgentOpen"
+      v-model:open="addAgentOpen"
+      @added="fetchAgents()"
+    />
   </div>
 </template>

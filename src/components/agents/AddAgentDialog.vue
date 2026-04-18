@@ -50,7 +50,7 @@ const step = ref(1);
 
 // Step 1: 基础信息
 const nodeName = ref("");
-const nodeUuid = ref("");
+const nodeUuid = ref(crypto.randomUUID());
 
 const generateUuid = () => {
   nodeUuid.value = crypto.randomUUID();
@@ -62,7 +62,7 @@ const generatedToken = ref("");
 const resetForm = () => {
   step.value = 1;
   nodeName.value = "";
-  nodeUuid.value = "";
+  nodeUuid.value = crypto.randomUUID();
   generatedToken.value = "";
   selectedCronIds.value = new Set();
   staticRetention.value = 60 * 24 * 7; // minute
@@ -123,6 +123,7 @@ const checkOnline = async () => {
         },
       });
       stopPolling();
+      emit("added");
     }
   } catch {
     // ignore
@@ -373,8 +374,8 @@ const steps = [
               >
                 <Checkbox
                   :checked="selectedCronIds.has(cron.id)"
-                  @update:checked="
-                    (v: boolean) => {
+                  @update:modelValue="
+                    (v: unknown) => {
                       if (v) selectedCronIds.add(cron.id);
                       else selectedCronIds.delete(cron.id);
                     }

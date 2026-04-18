@@ -503,7 +503,7 @@ export default {
         title: "Storage Retention",
         cleanTitle: "Clean Data Now",
         cleanDesc:
-          "This will temporarily clear all stored data. This action cannot be undone.",
+          "Immediately purge expired data based on the configured retention period. This action is irreversible.",
         cleanButton: "Clean Data",
         cleaning: "Cleaning...",
         cleanSuccess: "Data cleaned successfully",
