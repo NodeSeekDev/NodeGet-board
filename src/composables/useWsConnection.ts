@@ -169,7 +169,8 @@ class WsConnection {
       msg.result &&
       typeof msg.result === "object" &&
       !Array.isArray(msg.result) &&
-      "error_message" in (msg.result as Record<string, unknown>)
+      "error_message" in msg.result &&
+      msg.result.error_message !== null
     ) {
       const r = msg.result as Record<string, unknown>;
       req.reject(

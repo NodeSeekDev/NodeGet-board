@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { NumberField } from "@/components/ui/number-field";
 import { Switch } from "@/components/ui/switch";
 import { PopConfirm } from "@/components/ui/pop-confirm";
+import { useAgentConfig } from "@/composables/useAgentConfig";
 import {
   Select,
   SelectContent,
@@ -24,6 +25,12 @@ const props = defineProps<{ uuid: string }>();
 
 const { t } = useI18n();
 const { currentBackend } = useBackendStore();
+// const { getRawAgentConfig } = useAgentConfig()
+
+// getRawAgentConfig(props.uuid)
+//   .then(r => {
+//     console.log(r)
+//   })
 
 const loading = ref(false);
 const saveLoading = ref(false);
