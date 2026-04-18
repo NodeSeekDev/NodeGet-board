@@ -2,23 +2,36 @@
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { Loader2 } from "lucide-vue-next";
-import { useLogs } from "@/composables/useLogs";
+import type {
+  LogActionStatus,
+  LogEntry,
+  LogStatus,
+} from "@/composables/useLogs";
 import LogsItem from "./logsItem.vue";
 
-const { logs, error, status, actionStatus, isBusy } = useLogs();
+interface LogsListProps {
+  logs: LogEntry[];
+  error: string | null;
+  status: LogStatus;
+  actionStatus: LogActionStatus;
+  isBusy: boolean;
+}
+
+const props = defineProps<LogsListProps>();
 const { t } = useI18n();
-const displayLogs = computed(() => [...logs.value].reverse());
+
+const displayLogs = computed(() => [...props.logs].reverse());
 const loadingText = computed(() => {
-  if (actionStatus.value === "connecting") {
+  if (props.actionStatus === "connecting") {
     return t("dashboard.logsPanel.loading.connecting");
   }
-  if (actionStatus.value === "disconnecting") {
+  if (props.actionStatus === "disconnecting") {
     return t("dashboard.logsPanel.loading.disconnecting");
   }
-  if (actionStatus.value === "reconnecting") {
+  if (props.actionStatus === "reconnecting") {
     return t("dashboard.logsPanel.loading.reconnecting");
   }
-  if (actionStatus.value === "updatingFilters") {
+  if (props.actionStatus === "updatingFilters") {
     return t("dashboard.logsPanel.loading.updatingFilters");
   }
   return t("common.loading");

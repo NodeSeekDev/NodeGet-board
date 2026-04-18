@@ -21,12 +21,12 @@ import {
   Square,
   X,
 } from "lucide-vue-next";
-import {
-  useLogs,
-  type LogFilterRule,
-  type LogLevel,
-  type LogStatus,
-  type LogTarget,
+import type {
+  LogActionStatus,
+  LogFilterRule,
+  LogLevel,
+  LogStatus,
+  LogTarget,
 } from "@/composables/useLogs";
 
 type SelectValueType = {
@@ -34,66 +34,66 @@ type SelectValueType = {
   level: LogLevel | null;
 };
 
+interface HeaderFilterProps {
+  filters: LogFilterRule[];
+  status: LogStatus;
+  actionStatus: LogActionStatus;
+  isBusy: boolean;
+  targetOptions: readonly LogTarget[];
+  levelOptions: readonly LogLevel[];
+}
+
+const props = defineProps<HeaderFilterProps>();
+
+const emit = defineEmits<{
+  "update:filters": [filters: LogFilterRule[]];
+  connect: [];
+  pause: [];
+  resume: [];
+  stop: [];
+  reconnect: [];
+  clear: [];
+}>();
+
+const { t } = useI18n();
 const selectValue = ref<SelectValueType>({
   target: null,
   level: null,
 });
-const {
-  filters,
-  status,
-  actionStatus,
-  isBusy,
-  targetOptions,
-  levelOptions,
-  setFilters,
-  connect,
-  pause,
-  resume,
-  stop,
-  reconnect,
-  clearLogs,
-} = useLogs();
-const { t } = useI18n();
-
-const searchParams = ref<LogFilterRule[]>([...filters.value]);
+const searchParams = ref<LogFilterRule[]>([]);
 
 watch(
-  filters,
+  () => props.filters,
   (nextFilters) => {
-    searchParams.value = [...nextFilters];
+    searchParams.value = nextFilters.map((item) => ({ ...item }));
   },
-  { deep: true },
+  { deep: true, immediate: true },
 );
 
-watch(
-  searchParams,
-  (nextSearchParams, previousSearchParams) => {
-    const nextSerialized = JSON.stringify(nextSearchParams);
-    const previousSerialized = JSON.stringify(previousSearchParams);
-    if (nextSerialized === previousSerialized) return;
-    void setFilters(nextSearchParams);
-  },
-  { deep: true },
-);
-
-const connectStatus = computed<LogStatus>(() => status.value);
-const isConnecting = computed(() => actionStatus.value === "connecting");
-const isDisconnecting = computed(() => actionStatus.value === "disconnecting");
+const connectStatus = computed(() => props.status);
+const isConnecting = computed(() => props.actionStatus === "connecting");
+const isDisconnecting = computed(() => props.actionStatus === "disconnecting");
 const isReconnecting = computed(() => {
   return (
-    actionStatus.value === "reconnecting" ||
-    actionStatus.value === "updatingFilters"
+    props.actionStatus === "reconnecting" ||
+    props.actionStatus === "updatingFilters"
   );
 });
 
-const addSearchParams = (value: SelectValueType) => {
-  if (!value.target || !value.level) return;
-  const isDuplicate = searchParams.value.some(
-    (item) => item.target === value.target && item.level === value.level,
-  );
+const addSearchParams = () => {
+  if (!selectValue.value.target || !selectValue.value.level) return;
+
+  const nextFilter = {
+    target: selectValue.value.target,
+    level: selectValue.value.level,
+  } as LogFilterRule;
+
+  const isDuplicate = searchParams.value.some((item) => {
+    return item.target === nextFilter.target && item.level === nextFilter.level;
+  });
 
   if (!isDuplicate) {
-    searchParams.value = [...searchParams.value, value as LogFilterRule];
+    emit("update:filters", [...searchParams.value, nextFilter]);
   }
 
   selectValue.value = {
@@ -103,9 +103,10 @@ const addSearchParams = (value: SelectValueType) => {
 };
 
 const removeSearchParam = (index: number) => {
-  searchParams.value = searchParams.value.filter((_, itemIndex) => {
-    return itemIndex !== index;
-  });
+  emit(
+    "update:filters",
+    searchParams.value.filter((_, itemIndex) => itemIndex !== index),
+  );
 };
 </script>
 
@@ -169,7 +170,7 @@ const removeSearchParam = (index: number) => {
           </Select>
         </div>
         <div>
-          <Button :disabled="isBusy" @click="addSearchParams(selectValue)">
+          <Button :disabled="isBusy" @click="addSearchParams">
             <Loader2
               v-if="actionStatus === 'updatingFilters'"
               class="h-4 w-4 animate-spin"
@@ -184,7 +185,7 @@ const removeSearchParam = (index: number) => {
         <Button
           v-show="connectStatus === 'disconnected' || connectStatus === 'error'"
           :disabled="isBusy"
-          @click="connect"
+          @click="emit('connect')"
         >
           <Loader2 v-if="isConnecting" class="h-4 w-4 animate-spin" />
           <Play v-else />
@@ -197,7 +198,7 @@ const removeSearchParam = (index: number) => {
         <Button
           v-show="connectStatus === 'connected'"
           :disabled="isBusy"
-          @click="pause"
+          @click="emit('pause')"
         >
           <Pause />
           {{ t("dashboard.logsPanel.actions.pause") }}
@@ -205,7 +206,7 @@ const removeSearchParam = (index: number) => {
         <Button
           v-show="connectStatus === 'paused'"
           :disabled="isBusy"
-          @click="resume"
+          @click="emit('resume')"
         >
           <Play />
           {{ t("dashboard.logsPanel.actions.resume") }}
@@ -217,7 +218,7 @@ const removeSearchParam = (index: number) => {
             connectStatus === 'error'
           "
           :disabled="isBusy"
-          @click="stop"
+          @click="emit('stop')"
         >
           <Loader2 v-if="isDisconnecting" class="h-4 w-4 animate-spin" />
           <Square v-else />
@@ -234,7 +235,7 @@ const removeSearchParam = (index: number) => {
             connectStatus === 'error'
           "
           :disabled="isBusy"
-          @click="reconnect"
+          @click="emit('reconnect')"
         >
           <Loader2 v-if="isReconnecting" class="h-4 w-4 animate-spin" />
           <RefreshCcw v-else />
@@ -244,7 +245,7 @@ const removeSearchParam = (index: number) => {
               : t("dashboard.logsPanel.actions.reconnect")
           }}
         </Button>
-        <Button variant="outline" :disabled="isBusy" @click="clearLogs">
+        <Button variant="outline" :disabled="isBusy" @click="emit('clear')">
           {{ t("dashboard.logsPanel.actions.clear") }}
         </Button>
       </div>
@@ -253,7 +254,7 @@ const removeSearchParam = (index: number) => {
     <div class="flex flex-wrap gap-2">
       <Badge
         v-for="(item, index) in searchParams"
-        :key="index"
+        :key="`${item.target}-${item.level}-${index}`"
         variant="secondary"
         class="h-6 gap-1 px-2 text-[11px]"
       >
