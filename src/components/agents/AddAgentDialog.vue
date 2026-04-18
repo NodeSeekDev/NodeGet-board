@@ -2,7 +2,13 @@
 import { ref, computed, watch, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { Loader2, CircleCheckBig, RefreshCw } from "lucide-vue-next";
+import {
+  Loader2,
+  CircleCheckBig,
+  RefreshCw,
+  Copy,
+  Check,
+} from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -26,6 +32,7 @@ import { getWsConnection } from "@/composables/useWsConnection";
 import { wsRpcCall } from "@/composables/useWsRpc";
 import { useCron, type BackendCron } from "@/composables/useCron";
 import { useBackendExtra } from "@/composables/useBackendExtra";
+import { useLifecycle } from "@/composables/useLifecycle";
 
 const open = defineModel<boolean>("open", { required: true });
 const emit = defineEmits<{
@@ -37,6 +44,7 @@ const router = useRouter();
 const themeStore = useThemeStore();
 const { currentBackendInfo } = useBackendExtra();
 const { list: listCrons } = useCron();
+const { afterAgentCreate } = useLifecycle();
 
 const step = ref(1);
 
@@ -57,9 +65,9 @@ const resetForm = () => {
   nodeUuid.value = "";
   generatedToken.value = "";
   selectedCronIds.value = new Set();
-  staticRetention.value = undefined;
-  dynamicRetention.value = undefined;
-  agentTaskRetention.value = undefined;
+  staticRetention.value = 60 * 24 * 7; // minute
+  dynamicRetention.value = 60 * 6; // minute
+  agentTaskRetention.value = 60 * 6; // minute
   isOnline.value = false;
 };
 
@@ -73,7 +81,9 @@ const agentTaskRetention = ref<number | undefined>();
 const loadCrons = async () => {
   if (!currentBackendInfo.value) return;
   try {
-    cronList.value = await listCrons();
+    cronList.value = await listCrons().then((r) =>
+      r.filter((c) => "agent" in c.cron_type),
+    );
   } catch {
     cronList.value = [];
   }
@@ -81,6 +91,7 @@ const loadCrons = async () => {
 
 // Step 3: 安装
 const isOnline = ref(false);
+const isCopied = ref(false);
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 
 const checkOnline = async () => {
@@ -93,6 +104,24 @@ const checkOnline = async () => {
     );
     if (result?.uuids?.includes(nodeUuid.value)) {
       isOnline.value = true;
+      const formatMinute = (t: typeof dynamicRetention) => {
+        const oneMinute = 60 * 1000; // ms
+        if (typeof t.value == "undefined") {
+          return undefined;
+        }
+        return t.value * oneMinute;
+      };
+      await afterAgentCreate(nodeUuid.value, {
+        cronList: cronList.value.filter((v) => selectedCronIds.value.has(v.id)),
+        databaseLimit: {
+          database_limit_dynamic_monitoring: formatMinute(dynamicRetention),
+          database_limit_static_monitoring: formatMinute(staticRetention),
+          database_limit_task: formatMinute(agentTaskRetention),
+        },
+        metadata: {
+          metadata_name: nodeName.value,
+        },
+      });
       stopPolling();
     }
   } catch {
@@ -111,6 +140,18 @@ const stopPolling = () => {
   if (pollTimer) {
     clearInterval(pollTimer);
     pollTimer = null;
+  }
+};
+
+const copyInstallScript = async () => {
+  try {
+    await navigator.clipboard.writeText(installScript.value);
+    isCopied.value = true;
+    setTimeout(() => {
+      isCopied.value = false;
+    }, 2000);
+  } catch (e) {
+    console.error("Failed to copy:", e);
   }
 };
 
@@ -137,6 +178,7 @@ const preGenerateToken = async () => {
               permissions: [
                 { static_monitoring: "write" },
                 { dynamic_monitoring: "write" },
+                { dynamic_monitoring_summary: "write" },
                 { task: "listen" },
               ],
             },
@@ -225,6 +267,8 @@ watch(open, (value) => {
     stopPolling();
   }
 });
+
+resetForm();
 
 // 进度指示器
 const steps = [
@@ -319,7 +363,7 @@ const steps = [
               v-if="cronList.length === 0"
               class="text-sm text-muted-foreground py-2"
             >
-              -- 暂无定时任务 --
+              -- 暂无Agent定时任务 --
             </div>
             <div v-else class="space-y-2 max-h-40 overflow-y-auto">
               <div
@@ -356,7 +400,7 @@ const steps = [
                 <NumberField
                   :model-value="staticRetention"
                   :min="0"
-                  class="w-28"
+                  class="w-38"
                   @update:model-value="staticRetention = $event"
                 />
                 <span class="text-sm text-muted-foreground whitespace-nowrap">
@@ -372,7 +416,7 @@ const steps = [
                 <NumberField
                   :model-value="dynamicRetention"
                   :min="0"
-                  class="w-28"
+                  class="w-38"
                   @update:model-value="dynamicRetention = $event"
                 />
                 <span class="text-sm text-muted-foreground whitespace-nowrap">
@@ -388,7 +432,7 @@ const steps = [
                 <NumberField
                   :model-value="agentTaskRetention"
                   :min="0"
-                  class="w-28"
+                  class="w-38"
                   @update:model-value="agentTaskRetention = $event"
                 />
                 <span class="text-sm text-muted-foreground whitespace-nowrap">
@@ -413,7 +457,16 @@ const steps = [
               {{ t("dashboard.agents.installSubtitle") }}
             </p>
           </div>
-          <div class="rounded-md border overflow-hidden">
+          <div class="rounded-md border overflow-hidden relative">
+            <button
+              type="button"
+              @click="copyInstallScript"
+              class="absolute top-2 right-2 z-10 p-1.5 rounded-md bg-background/80 hover:bg-background border border-border/50 hover:border-border transition-colors"
+              :title="isCopied ? 'Copied!' : 'Copy to clipboard'"
+            >
+              <Check v-if="isCopied" class="h-4 w-4 text-green-500" />
+              <Copy v-else class="h-4 w-4 text-muted-foreground" />
+            </button>
             <Codemirror
               :model-value="installScript"
               :extensions="editorExtensions"
@@ -439,11 +492,13 @@ const steps = [
       </div>
 
       <DialogFooter class="px-6 pb-6 pt-2">
+        <!-- 基础信息 -->
         <template v-if="step === 1">
           <Button :disabled="!canNext" @click="handleNext">
             {{ t("dashboard.agents.next") }}
           </Button>
         </template>
+        <!-- 预配置 -->
         <template v-else-if="step === 2">
           <Button variant="outline" @click="handlePrev">
             {{ t("dashboard.agents.prev") }}
@@ -452,6 +507,7 @@ const steps = [
             {{ t("dashboard.agents.next") }}
           </Button>
         </template>
+        <!-- 安装 -->
         <template v-else-if="step === 3">
           <Button variant="outline" @click="handlePrev">
             {{ t("dashboard.agents.prev") }}
@@ -464,6 +520,7 @@ const steps = [
             {{ t("dashboard.agents.next") }}
           </Button>
         </template>
+        <!-- 完成 -->
         <template v-else-if="step === 4">
           <Button variant="outline" @click="handleContinueAdding">
             {{ t("dashboard.agents.continueAdding") }}

@@ -3,6 +3,28 @@ import { useJsRuntime } from "@/composables/useJsRuntime";
 import { useCron } from "@/composables/useCron";
 import { toast } from "vue-sonner";
 import { type Backend } from "@/composables/useBackendStore";
+import { useKv } from "@/composables/useKv";
+import { type BackendCron } from "@/composables/useCron";
+
+const kv = useKv();
+
+export interface agentPostprocessOptions {
+  cronList: BackendCron[];
+  databaseLimit: {
+    database_limit_static_monitoring?: number;
+    database_limit_dynamic_monitoring?: number;
+    database_limit_task?: number;
+  };
+  metadata: {
+    metadata_name?: string;
+    metadata_tags?: string[];
+    metadata_price?: number;
+    metadata_price_unit?: string;
+    metadata_price_cycle?: string;
+    metadata_region?: string;
+    metadata_hidden?: boolean;
+  };
+}
 
 async function afterServerCreate(backend: Backend) {
   const { getWorker, addWorker, runWorker } = useJsRuntime(ref(backend));
@@ -57,8 +79,23 @@ async function afterServerCreate(backend: Backend) {
   }
 }
 
+async function afterAgentCreate(
+  agentuuid: string,
+  option: agentPostprocessOptions,
+) {
+  await kv.fetchNamespaces();
+  const existedNS = kv.namespaces.value.includes(agentuuid);
+  if (!existedNS) {
+    kv.createNamespace(agentuuid);
+  }
+  console.debug({
+    option,
+  });
+}
+
 export function useLifecycle() {
   return {
     afterServerCreate,
+    afterAgentCreate,
   };
 }
