@@ -73,6 +73,43 @@ export default {
     account: "账户",
     exec: "远程执行",
     logs: "日志",
+    logsPanel: {
+      filters: {
+        select: "请选择",
+        target: "请选择目标",
+        level: "请选择级别",
+      },
+      actions: {
+        addFilter: "添加条件",
+        connect: "连接",
+        connecting: "连接中",
+        pause: "暂停",
+        resume: "继续",
+        stop: "终止",
+        disconnecting: "断开中",
+        reconnect: "重连",
+        reconnecting: "重连中",
+        clear: "清空",
+      },
+      loading: {
+        connecting: "正在建立日志连接...",
+        disconnecting: "正在断开日志连接...",
+        reconnecting: "正在重新建立日志连接...",
+        updatingFilters: "正在应用新的筛选条件...",
+      },
+      empty: {
+        connecting: "正在建立日志订阅...",
+        idle: "暂无日志，连接后会持续接收新的流式日志。",
+      },
+      details: {
+        fields: "字段",
+        spans: "调用链",
+      },
+      errors: {
+        missingUrl: "当前后端缺少 WebSocket 地址",
+        missingToken: "当前后端缺少 token",
+      },
+    },
     sessions: "会话管理",
     saveSuccess: "保存成功",
     saveFailed: "保存失败",
@@ -885,6 +922,9 @@ export default {
         loading: "加载中...",
         copy: "复制代码",
       },
+    },
+    logsView: {
+      description: "查看日志",
     },
   },
   router: {
