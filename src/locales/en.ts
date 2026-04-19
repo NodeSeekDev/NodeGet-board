@@ -314,6 +314,7 @@ export default {
           jsWorkerScope: "JsWorker: {value}",
           staticMonitoringTitle: "Static Monitoring",
           dynamicMonitoringTitle: "Dynamic Monitoring",
+          dynamicMonitoringSummaryTitle: "Dynamic Monitoring Summary",
           taskTitle: "Task",
           crontabTitle: "Crontab",
           crontabResultTitle: "Crontab Result",
@@ -386,6 +387,12 @@ export default {
             },
             dynamicMonitoring: {
               title: "Dynamic Monitoring",
+              write: "Write",
+              read: "Read",
+              delete: "Delete",
+            },
+            dynamicMonitoringSummary: {
+              title: "Dynamic Monitoring Summary",
               write: "Write",
               read: "Read",
               delete: "Delete",
