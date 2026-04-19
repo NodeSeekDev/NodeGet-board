@@ -165,6 +165,12 @@ export function useKv() {
   ): Promise<{ partialFailures: string[] }> => {
     const results = await getMultiValue([{ namespace: ns, key: "*" }]);
     const keys = results.map((r) => r.key);
+    // const keys = await rpc<
+    //     string[]
+    //   >("kv_get_all_keys", {
+    //     token: backendToken.value,
+    //     namespace: ns,
+    //   });
 
     if (keys.length === 0) {
       namespaces.value = namespaces.value.filter((n) => n !== ns);

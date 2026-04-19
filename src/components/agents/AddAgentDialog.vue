@@ -180,7 +180,12 @@ const preGenerateToken = async () => {
           version: 1,
           token_limit: [
             {
-              scopes: [{ global: null }],
+              // scopes: [{ global: null }],
+              scopes: [
+                {
+                  agent_uuid: nodeUuid.value,
+                },
+              ],
               permissions: [
                 { static_monitoring: "write" },
                 { dynamic_monitoring: "write" },

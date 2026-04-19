@@ -14,7 +14,6 @@ import {
   type UpstreamServer,
   type splitConfig,
 } from "@/composables/useAgentConfig";
-import { useBackendExtra } from "@/composables/useBackendExtra";
 import { delay } from "@/lib/delay";
 import {
   Select,
@@ -29,7 +28,6 @@ const props = defineProps<{ uuid: string }>();
 
 const { t } = useI18n();
 const { getAgentConfigExtra, writeAgentConfig } = useAgentConfig();
-const { currentBackendInfo } = useBackendExtra();
 
 const loading = ref(false);
 const saveLoading = ref(false);
