@@ -8,6 +8,8 @@ Handles functionalities related to agent configuration, such as
 
 import { ref, computed } from "vue";
 import { useBackendStore } from "@/composables/useBackendStore";
+import { useBackendExtra } from "@/composables/useBackendExtra";
+
 import {
   useTask,
   type CreateTaskBlockingResponse,
@@ -15,9 +17,9 @@ import {
 import TOML from "smol-toml";
 
 export type LogLevel = "trace" | "debug" | "info" | "warn" | "error";
-export type ExecShell = "bash" | "cmd";
+export type TerminalShell = "bash" | "cmd";
 
-export interface ServerConfig {
+export interface UpstreamServer {
   name: string;
   server_uuid: string;
   token: string;
@@ -38,34 +40,36 @@ export interface ServerConfig {
   [key: string]: any;
 }
 
-export interface AgentConfig {
+export interface BasicAgentConfig {
   log_level: LogLevel;
   agent_uuid: string;
 
-  connect_timeout_ms: number;
-  monitoring_report_interval_ms: number;
   // dynamic_report_interval_ms必须是dynamic_summary_report_interval_ms的整数倍
   dynamic_report_interval_ms: number;
   dynamic_summary_report_interval_ms: number;
   static_report_interval_ms: number;
 
-  exec_shell: ExecShell;
+  terminal_shell: TerminalShell;
   exec_max_character: number;
 
   ip_provider: "ipinfo" | "cloudflare";
 
-  server: ServerConfig[];
-
   [key: string]: any;
+  connect_timeout_ms: number;
 }
+
+export interface AgentConfig extends BasicAgentConfig {
+  server: UpstreamServer[];
+}
+
+const { currentBackend } = useBackendStore();
+const { createReadConfigTask } = useTask(currentBackend);
+const { currentBackendInfo, refreshAll } = useBackendExtra();
 
 function getRawAgentConfig(
   agentUuid: string,
-  timeoutMs: number = 5000,
+  timeoutMs: number = 9000,
 ): Promise<string> {
-  const { currentBackend } = useBackendStore();
-  const { createReadConfigTask } = useTask(currentBackend);
-
   return createReadConfigTask(agentUuid, true, timeoutMs).then(
     (response: any) => {
       if ("read_config" in response.task_event_result) {
@@ -130,12 +134,45 @@ function getAgentConfig(
   });
 }
 
+export type splitConfig = {
+  upstreams: UpstreamServer[];
+  currentUpstream: UpstreamServer;
+  otherUpstreams: UpstreamServer[];
+  basicConfig: BasicAgentConfig;
+};
+
+async function getAgentConfigExtra(
+  agentUuid: string,
+  timeoutMs: number = 5000,
+): Promise<splitConfig> {
+  const [cfg, _] = await Promise.all([
+    getAgentConfig(agentUuid, timeoutMs),
+    refreshAll(),
+  ]);
+  const upstreams = cfg.server;
+  const currentUpstream = cfg.server.find(
+    (v) => v.server_uuid === currentBackendInfo.value?.uuid,
+  ) as UpstreamServer;
+  const otherUpstreams = cfg.server.filter(
+    (v) => v.server_uuid !== currentBackendInfo.value?.uuid,
+  );
+  const basicConfig = {
+    ...cfg,
+    server: undefined,
+  };
+  return {
+    upstreams,
+    currentUpstream,
+    otherUpstreams,
+    basicConfig,
+  };
+}
+
 function writeRawAgentConfig(
   agentUuid: string,
   tomlContent: string,
   timeoutMs: number = 5000,
 ): Promise<boolean> {
-  const { currentBackend } = useBackendStore();
   const { createEditConfigTask } = useTask(currentBackend);
 
   return createEditConfigTask(agentUuid, tomlContent, true, timeoutMs).then(
@@ -163,5 +200,6 @@ export function useAgentConfig() {
     getAgentConfig,
     writeRawAgentConfig,
     writeAgentConfig,
+    getAgentConfigExtra,
   };
 }

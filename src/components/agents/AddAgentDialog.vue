@@ -65,8 +65,9 @@ const resetForm = () => {
   nodeUuid.value = crypto.randomUUID();
   generatedToken.value = "";
   selectedCronIds.value = new Set();
-  staticRetention.value = 60 * 24 * 7; // minute
+  staticRetention.value = 60 * 24 * 365; // minute
   dynamicRetention.value = 60 * 6; // minute
+  dynamicSummaryRetention.value = 60 * 24 * 30; // minute
   agentTaskRetention.value = 60 * 6; // minute
   isOnline.value = false;
 };
@@ -74,9 +75,10 @@ const resetForm = () => {
 // Step 2: 预配置
 const cronList = ref<BackendCron[]>([]);
 const selectedCronIds = ref<Set<number>>(new Set());
-const staticRetention = ref<number | undefined>();
-const dynamicRetention = ref<number | undefined>();
-const agentTaskRetention = ref<number | undefined>();
+const staticRetention = ref<number>(60 * 24 * 365);
+const dynamicRetention = ref<number>(60 * 6);
+const dynamicSummaryRetention = ref<number>(60 * 24 * 30);
+const agentTaskRetention = ref<number>(60 * 6);
 
 const loadCrons = async () => {
   if (!currentBackendInfo.value) return;
@@ -181,6 +183,14 @@ const preGenerateToken = async () => {
                 { dynamic_monitoring: "write" },
                 { dynamic_monitoring_summary: "write" },
                 { task: "listen" },
+                { task: { write: "ping" } },
+                { task: { write: "tcp_ping" } },
+                { task: { write: "http_ping" } },
+                { task: { write: "web_shell" } },
+                { task: { write: "execute" } },
+                { task: { write: "edit_config" } },
+                { task: { write: "read_config" } },
+                { task: { write: "ip" } },
               ],
             },
           ],
@@ -393,16 +403,17 @@ const steps = [
             <Label class="text-base">{{
               t("dashboard.agents.storageSection")
             }}</Label>
+
             <div class="flex items-center justify-between gap-4">
               <span class="text-sm">
-                {{ t("dashboard.agents.staticMonitoring") }}
+                {{ t("dashboard.agents.dynamicMonitoringSummary") }}
               </span>
               <div class="flex items-center gap-1.5">
                 <NumberField
-                  :model-value="staticRetention"
+                  :model-value="dynamicSummaryRetention"
                   :min="0"
                   class="w-38"
-                  @update:model-value="staticRetention = $event"
+                  @update:model-value="dynamicSummaryRetention = $event"
                 />
                 <span class="text-sm text-muted-foreground whitespace-nowrap">
                   {{ t("dashboard.agents.minuteUnit") }}
@@ -419,6 +430,23 @@ const steps = [
                   :min="0"
                   class="w-38"
                   @update:model-value="dynamicRetention = $event"
+                />
+                <span class="text-sm text-muted-foreground whitespace-nowrap">
+                  {{ t("dashboard.agents.minuteUnit") }}
+                </span>
+              </div>
+            </div>
+            <!-- no need to change -->
+            <div class="flex items-center justify-between gap-4" v-if="false">
+              <span class="text-sm">
+                {{ t("dashboard.agents.staticMonitoring") }}
+              </span>
+              <div class="flex items-center gap-1.5">
+                <NumberField
+                  :model-value="staticRetention"
+                  :min="0"
+                  class="w-38"
+                  @update:model-value="staticRetention = $event"
                 />
                 <span class="text-sm text-muted-foreground whitespace-nowrap">
                   {{ t("dashboard.agents.minuteUnit") }}

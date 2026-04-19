@@ -605,6 +605,7 @@ export default {
       storageSection: "Data Retention",
       staticMonitoring: "static_monitoring retention",
       dynamicMonitoring: "dynamic_monitoring retention",
+      dynamicMonitoringSummary: "dynamic_monitoring_summary retention",
       agentTask: "agnet_task retention",
       minuteUnit: "minutes",
       storageHint:
