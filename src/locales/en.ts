@@ -478,12 +478,19 @@ export default {
       tabDelete: "Delete Node",
       config: {
         logLevel: "Log Level",
+        ipProvider: "IP Provider",
         ipInfoSource: "IP Info Source",
+        dynamicSummaryReportInterval: "Dynamic Summary Report Interval",
+        dynamicReportInterval: "Dynamic Report Interval",
+        staticReportInterval: "Static Report Interval",
         reportInterval: "Report Interval",
         reportIntervalUnit: "seconds",
+        msUnit: "ms",
         enabledFeatures: "Enabled Features",
         terminalShell: "Terminal Shell",
+        execMaxCharacter: "Exec Max Characters",
         execMaxLength: "Exec Max Length",
+        connectTimeout: "Connection Timeout",
         connectionTimeout: "Connection Timeout",
         featureTask: "task",
         featureIcmpPing: "icmp_ping",
@@ -498,6 +505,8 @@ export default {
         featureEditConfigConfirmTitle: "Disable config editing?",
         featureEditConfigConfirmDesc:
           "Once disabled, you will not be able to edit this node's config from the panel.",
+        loadFailed: "Failed to load configuration",
+        saveFailed: "Failed to save configuration",
       },
       storage: {
         title: "Storage Retention",
