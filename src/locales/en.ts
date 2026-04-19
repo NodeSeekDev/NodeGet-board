@@ -62,6 +62,43 @@ export default {
     account: "Account",
     exec: "Remote Execution",
     logs: "Logs",
+    logsPanel: {
+      filters: {
+        select: "Please select",
+        target: "Select target",
+        level: "Select level",
+      },
+      actions: {
+        addFilter: "Add filter",
+        connect: "Connect",
+        connecting: "Connecting",
+        pause: "Pause",
+        resume: "Resume",
+        stop: "Stop",
+        disconnecting: "Disconnecting",
+        reconnect: "Reconnect",
+        reconnecting: "Reconnecting",
+        clear: "Clear",
+      },
+      loading: {
+        connecting: "Establishing log connection...",
+        disconnecting: "Disconnecting log connection...",
+        reconnecting: "Re-establishing log connection...",
+        updatingFilters: "Applying new filters...",
+      },
+      empty: {
+        connecting: "Establishing log subscription...",
+        idle: "No logs yet. New streaming logs will appear after connection.",
+      },
+      details: {
+        fields: "Fields",
+        spans: "Spans",
+      },
+      errors: {
+        missingUrl: "Current backend is missing a WebSocket URL",
+        missingToken: "Current backend is missing a token",
+      },
+    },
     sessions: "Sessions Administration",
     saveSuccess: "Saved successfully",
     saveFailed: "Save failed",
@@ -900,6 +937,9 @@ export default {
         loading: "Loading...",
         copy: "copy script snippet content",
       },
+    },
+    logsView: {
+      description: "View Logs",
     },
   },
   router: {
