@@ -2,7 +2,6 @@
 import { ref, onMounted } from "vue";
 import { toast } from "vue-sonner";
 import { Loader2 } from "lucide-vue-next";
-import { parse as parseToml, stringify as stringifyToml } from "smol-toml";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,238 +9,203 @@ import { NumberField } from "@/components/ui/number-field";
 import { Switch } from "@/components/ui/switch";
 import { PopConfirm } from "@/components/ui/pop-confirm";
 import {
+  useAgentConfig,
+  type AgentConfig,
+  type UpstreamServer,
+  type splitConfig,
+} from "@/composables/useAgentConfig";
+import { useBackendExtra } from "@/composables/useBackendExtra";
+import { delay } from "@/lib/delay";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useBackendStore } from "@/composables/useBackendStore";
-import { getWsConnection } from "@/composables/useWsConnection";
 import { useI18n } from "vue-i18n";
 
 const props = defineProps<{ uuid: string }>();
 
 const { t } = useI18n();
-const { currentBackend } = useBackendStore();
+const { getAgentConfigExtra, writeAgentConfig } = useAgentConfig();
+const { currentBackendInfo } = useBackendExtra();
 
 const loading = ref(false);
 const saveLoading = ref(false);
 
-// 基本配置
-const configLogLevel = ref("info");
-const configIpInfoSource = ref("ipinfo");
-const configReportInterval = ref(60);
-const configTerminalShell = ref("bash");
-const configExecMaxLength = ref<number | undefined>(undefined);
-const configConnectionTimeout = ref<number | undefined>(undefined);
+// Agent 配置对象
+const agentConfig = ref<splitConfig | null>(null);
 
-// 特性开关
-const featureIcmpPing = ref(true);
-const featureTcpPing = ref(true);
-const featureHttpPing = ref(true);
-const featureHttpRequest = ref(true);
-const featureWebShell = ref(true);
-const featureExecute = ref(true);
-const featureReadConfig = ref(true);
-const featureEditConfig = ref(true);
-const featureTask = ref(true);
+// UI 绑定的临时变量
+const logLevel = ref<"trace" | "debug" | "info" | "warn" | "error">("info");
+const ipProvider = ref<"ipinfo" | "cloudflare">("ipinfo");
+const dynamicSummaryReportInterval = ref(1000); // ms
+const dynamicReportInterval = ref(1000); // ms
+const staticReportInterval = ref(3600000); // ms
+const terminalShell = ref<"bash" | "cmd">("bash");
+const execMaxCharacter = ref<number | undefined>(undefined);
+const connectTimeout = ref<number | undefined>(undefined);
 
-// IP 信息来源
-const allowIp = ref("");
+// 特性开关 (server config中的allow_*属性)
+const allowTask = ref(true);
+const allowIcmpPing = ref(true);
+const allowTcpPing = ref(true);
+const allowHttpPing = ref(true);
+const allowHttpRequest = ref(true);
+const allowWebShell = ref(true);
+const allowExecute = ref(true);
+const allowReadConfig = ref(true);
+const allowEditConfig = ref(true);
+const allowIp = ref(true);
 
-// 原始 TOML JSON，用于保留未知字段
-const rawConfig = ref<Record<string, unknown>>({});
+/**
+ * 从 AgentConfig 对象更新 UI 状态
+ */
+function syncFromConfig(config: splitConfig) {
+  const basicConfig = config.basicConfig;
+  const currentUpstream = config.currentUpstream;
+  logLevel.value = basicConfig.log_level || "info";
+  ipProvider.value = basicConfig.ip_provider || "ipinfo";
+  dynamicReportInterval.value = basicConfig.dynamic_report_interval_ms || 1000;
+  dynamicSummaryReportInterval.value =
+    basicConfig.dynamic_summary_report_interval_ms || 1000;
+  staticReportInterval.value = basicConfig.static_report_interval_ms || 300000;
+  terminalShell.value = basicConfig.terminal_shell || "bash";
+  execMaxCharacter.value = basicConfig.exec_max_character;
+  connectTimeout.value = basicConfig.connect_timeout_ms;
 
-// task 轮询
-async function pollTaskResult(
-  taskId: number,
-  maxAttempts = 15,
-): Promise<Record<string, unknown> | null> {
-  if (!currentBackend.value) return null;
-  const conn = getWsConnection(currentBackend.value.url);
-  for (let i = 0; i < maxAttempts; i++) {
-    await new Promise((r) => setTimeout(r, 500));
-    try {
-      const result = await conn.call<
-        Array<{
-          task_id: number;
-          success: boolean;
-          task_event_result: Record<string, unknown>;
-          task_event_type: Record<string, unknown>;
-        }>
-      >("task_query", {
-        token: currentBackend.value.token,
-        task_data_query: {
-          condition: [{ task_id: taskId }, "last"],
-        },
-      });
-      if (Array.isArray(result) && result.length > 0) {
-        const entry = result[0]!;
-        if (entry.success === false) {
-          // task 执行失败，立即返回而不是继续轮询
-          return null;
-        }
-        if (entry.task_event_result) {
-          return entry.task_event_result;
-        }
-      }
-    } catch {
-      // retry
-    }
+  // 从 server 配置中提取第一个 server 的 allow_* 属性
+  if (currentUpstream) {
+    allowTask.value = currentUpstream.allow_task !== false;
+    allowIcmpPing.value = currentUpstream.allow_icmp_ping !== false;
+    allowTcpPing.value = currentUpstream.allow_tcp_ping !== false;
+    allowHttpPing.value = currentUpstream.allow_http_ping !== false;
+    allowHttpRequest.value = currentUpstream.allow_http_request !== false;
+    allowWebShell.value = currentUpstream.allow_web_shell !== false;
+    allowExecute.value = currentUpstream.allow_execute !== false;
+    allowReadConfig.value = currentUpstream.allow_read_config !== false;
+    allowEditConfig.value = currentUpstream.allow_edit_config !== false;
+    allowIp.value = currentUpstream.allow_edit_config !== false;
   }
-  return null;
 }
 
+/**
+ * 从 UI 状态构建 AgentConfig 对象
+ */
+function buildConfig(): AgentConfig {
+  if (!agentConfig.value) {
+    throw new Error("Config not loaded");
+  }
+  if (dynamicReportInterval.value % dynamicSummaryReportInterval.value !== 0) {
+    toast.error(
+      "dynamicReportInterval must be an integer multiple of dynamicSummaryReportInterval",
+    );
+    throw new Error(
+      "dynamicReportInterval must be an integer multiple of dynamicSummaryReportInterval",
+    );
+  }
+
+  const config = JSON.parse(
+    JSON.stringify({
+      ...agentConfig.value.basicConfig,
+      server: [],
+    }),
+  );
+
+  config.log_level = logLevel.value;
+  config.ip_provider = ipProvider.value;
+  config.dynamic_report_interval_ms = dynamicReportInterval.value;
+  config.dynamic_summary_report_interval_ms =
+    dynamicSummaryReportInterval.value;
+  config.static_report_interval_ms = staticReportInterval.value;
+  config.terminal_shell = terminalShell.value;
+
+  if (execMaxCharacter.value !== undefined) {
+    config.exec_max_character = execMaxCharacter.value;
+  }
+  if (connectTimeout.value !== undefined) {
+    config.connect_timeout_ms = connectTimeout.value;
+  }
+
+  const currentUpstreamNew: UpstreamServer = {
+    ...agentConfig.value.currentUpstream,
+    allow_task: allowTask.value,
+    allow_icmp_ping: allowIcmpPing.value,
+    allow_tcp_ping: allowTcpPing.value,
+    allow_http_ping: allowHttpPing.value,
+    allow_http_request: allowHttpRequest.value,
+    allow_web_shell: allowWebShell.value,
+    allow_execute: allowExecute.value,
+    allow_read_config: allowReadConfig.value,
+    allow_edit_config: allowEditConfig.value,
+    allow_ip: !!allowIp.value,
+  };
+
+  return {
+    ...config,
+    server: [...agentConfig.value.otherUpstreams, currentUpstreamNew],
+  };
+}
+
+/**
+ * 加载 Agent 配置
+ */
 onMounted(async () => {
-  if (!currentBackend.value) return;
   loading.value = true;
   try {
-    const conn = getWsConnection(currentBackend.value.url);
-
-    // 创建 read_config task
-    const createResult = await conn.call<{ id: number }>("task_create_task", {
-      token: currentBackend.value.token,
-      target_uuid: props.uuid,
-      task_type: "read_config",
-    });
-
-    const taskId = createResult?.id;
-    if (!taskId) {
-      loading.value = false;
-      return;
-    }
-
-    // 轮询获取结果
-    const taskResult = await pollTaskResult(taskId);
-    const configStr = taskResult?.["read_config"];
-    if (typeof configStr === "string") {
-      parseConfig(configStr);
-    }
-  } catch {
-    // use defaults
+    const config = await getAgentConfigExtra(props.uuid);
+    agentConfig.value = config;
+    // todo: find current backend, watch
+    syncFromConfig(config);
+  } catch (e: unknown) {
+    toast.error(
+      e instanceof Error ? e.message : t("dashboard.node.config.loadFailed"),
+    );
   } finally {
     loading.value = false;
   }
 });
 
-function parseConfig(tomlStr: string) {
-  const parsed = parseToml(tomlStr) as Record<string, unknown>;
-  rawConfig.value = { ...parsed };
-
-  const getStr = (key: string, fallback: string) =>
-    typeof parsed[key] === "string" ? (parsed[key] as string) : fallback;
-  const getNum = (key: string, fallback: number) =>
-    typeof parsed[key] === "number" ? (parsed[key] as number) : fallback;
-  const getBool = (key: string, fallback: boolean) =>
-    typeof parsed[key] === "boolean" ? (parsed[key] as boolean) : fallback;
-
-  configLogLevel.value = getStr("log_level", "info");
-  configIpInfoSource.value = getStr("ip_info_source", "ipinfo");
-  configReportInterval.value = getNum("report_interval", 60);
-  configTerminalShell.value = getStr("terminal_shell", "bash");
-  configExecMaxLength.value =
-    parsed["exec_max_length"] != null
-      ? getNum("exec_max_length", 0)
-      : undefined;
-  configConnectionTimeout.value =
-    parsed["connection_timeout"] != null
-      ? getNum("connection_timeout", 0)
-      : undefined;
-
-  featureIcmpPing.value = getBool("allow_icmp_ping", true);
-  featureTcpPing.value = getBool("allow_tcp_ping", true);
-  featureHttpPing.value = getBool("allow_http_ping", true);
-  featureHttpRequest.value = getBool("allow_http_request", true);
-  featureWebShell.value = getBool("allow_web_shell", true);
-  featureExecute.value = getBool("allow_execute", true);
-  featureReadConfig.value = getBool("allow_read_config", true);
-  featureEditConfig.value = getBool("allow_edit_config", true);
-  featureTask.value = getBool("allow_task", true);
-  allowIp.value = getStr("allow_ip", "");
-}
-
-// 基于原始 JSON 修改已知字段，保留未知字段，再序列化
-function buildConfigToml(): string {
-  const config = { ...rawConfig.value };
-
-  config["log_level"] = configLogLevel.value;
-  config["ip_info_source"] = configIpInfoSource.value;
-  config["report_interval"] = configReportInterval.value;
-  config["terminal_shell"] = configTerminalShell.value;
-
-  if (configExecMaxLength.value !== undefined) {
-    config["exec_max_length"] = configExecMaxLength.value;
-  }
-  if (configConnectionTimeout.value !== undefined) {
-    config["connection_timeout"] = configConnectionTimeout.value;
-  }
-
-  config["allow_icmp_ping"] = featureIcmpPing.value;
-  config["allow_tcp_ping"] = featureTcpPing.value;
-  config["allow_http_ping"] = featureHttpPing.value;
-  config["allow_http_request"] = featureHttpRequest.value;
-  config["allow_web_shell"] = featureWebShell.value;
-  config["allow_execute"] = featureExecute.value;
-  config["allow_read_config"] = featureReadConfig.value;
-  config["allow_edit_config"] = featureEditConfig.value;
-  config["allow_task"] = featureTask.value;
-
-  if (allowIp.value) {
-    config["allow_ip"] = allowIp.value;
-  }
-
-  return stringifyToml(config);
-}
-
+/**
+ * 保存配置
+ */
 async function handleSave() {
-  if (!currentBackend.value) return;
   saveLoading.value = true;
   try {
-    const conn = getWsConnection(currentBackend.value.url);
-    const configToml = buildConfigToml();
+    const config = buildConfig();
+    const success = await writeAgentConfig(props.uuid, config);
 
-    // 创建 edit_config task
-    const createResult = await conn.call<{ id: number }>("task_create_task", {
-      token: currentBackend.value.token,
-      target_uuid: props.uuid,
-      task_type: { edit_config: configToml },
-    });
-
-    const taskId = createResult?.id;
-    if (!taskId) {
-      toast.error(t("dashboard.saveFailed"));
-      saveLoading.value = false;
-      return;
-    }
-
-    // 轮询获取结果
-    const taskResult = await pollTaskResult(taskId);
-    const editResult = taskResult?.["edit_config"];
-    if (editResult === true) {
+    if (success) {
       toast.success(t("dashboard.saveSuccess"));
+      await delay(1000);
+      agentConfig.value = await getAgentConfigExtra(props.uuid);
     } else {
       toast.error(t("dashboard.saveFailed"));
     }
   } catch (e: unknown) {
-    toast.error(e instanceof Error ? e.message : t("dashboard.saveFailed"));
+    toast.error(
+      e instanceof Error ? e.message : t("dashboard.node.config.saveFailed"),
+    );
   } finally {
     saveLoading.value = false;
   }
 }
 
-// allow_edit_config 禁用确认
-const editConfigConfirmOpen = ref(false);
+/**
+ * 处理禁用 allow_edit_config
+ */
 function handleEditConfigToggle(checked: boolean) {
   if (!checked) {
-    editConfigConfirmOpen.value = true;
+    // 触发确认弹窗
+    // 这里通过 PopConfirm 组件处理
   } else {
-    featureEditConfig.value = true;
+    allowEditConfig.value = true;
   }
 }
+
 function confirmDisableEditConfig() {
-  featureEditConfig.value = false;
-  editConfigConfirmOpen.value = false;
+  allowEditConfig.value = false;
 }
 </script>
 
@@ -259,23 +223,24 @@ function confirmDisableEditConfig() {
       <!-- 日志等级 -->
       <div class="space-y-1.5">
         <Label>{{ $t("dashboard.node.config.logLevel") }}</Label>
-        <Select v-model="configLogLevel">
+        <Select v-model="logLevel">
           <SelectTrigger class="w-48">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="info">info</SelectItem>
+            <SelectItem value="trace">trace</SelectItem>
             <SelectItem value="debug">debug</SelectItem>
+            <SelectItem value="info">info</SelectItem>
             <SelectItem value="warn">warn</SelectItem>
             <SelectItem value="error">error</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
-      <!-- IP 信息来源 -->
+      <!-- IP 提供商 -->
       <div class="space-y-1.5">
-        <Label>{{ $t("dashboard.node.config.ipInfoSource") }}</Label>
-        <Select v-model="configIpInfoSource">
+        <Label>{{ $t("dashboard.node.config.ipProvider") }}</Label>
+        <Select v-model="ipProvider">
           <SelectTrigger class="w-48">
             <SelectValue />
           </SelectTrigger>
@@ -286,147 +251,183 @@ function confirmDisableEditConfig() {
         </Select>
       </div>
 
-      <!-- 上报间隔 -->
+      <!-- 动态监控上报间隔 (ms) -->
       <div class="space-y-1.5">
-        <Label>{{ $t("dashboard.node.config.reportInterval") }}</Label>
+        <Label>{{
+          $t("dashboard.node.config.dynamicSummaryReportInterval")
+        }}</Label>
         <div class="flex items-center gap-2">
-          <NumberField v-model="configReportInterval" :min="1" class="w-32" />
+          <NumberField
+            v-model="dynamicSummaryReportInterval"
+            :min="1000"
+            class="w-40"
+          />
           <span class="text-sm text-muted-foreground">
-            {{ $t("dashboard.node.config.reportIntervalUnit") }}
+            {{ $t("dashboard.node.config.msUnit") }}
           </span>
         </div>
       </div>
 
-      <!-- 启用特性 -->
-      <div class="space-y-2">
-        <Label>{{ $t("dashboard.node.config.enabledFeatures") }}</Label>
-
-        <!-- 当 allow_task 开启时显示其他特性 -->
-        <div v-if="featureTask" class="space-y-2">
-          <div class="flex items-center justify-between">
-            <span class="text-sm">{{
-              $t("dashboard.node.config.featureIcmpPing")
-            }}</span>
-            <Switch v-model:checked="featureIcmpPing" />
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="text-sm">{{
-              $t("dashboard.node.config.featureTcpPing")
-            }}</span>
-            <Switch v-model:checked="featureTcpPing" />
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="text-sm">{{
-              $t("dashboard.node.config.featureHttpPing")
-            }}</span>
-            <Switch v-model:checked="featureHttpPing" />
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="text-sm">{{
-              $t("dashboard.node.config.featureHttpRequest")
-            }}</span>
-            <Switch v-model:checked="featureHttpRequest" />
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="text-sm">{{
-              $t("dashboard.node.config.featureWebShell")
-            }}</span>
-            <Switch v-model:checked="featureWebShell" />
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="text-sm">{{
-              $t("dashboard.node.config.featureExecute")
-            }}</span>
-            <Switch v-model:checked="featureExecute" />
-          </div>
-          <div class="flex items-center justify-between gap-4">
-            <span class="text-sm">{{
-              $t("dashboard.node.config.featureIp")
-            }}</span>
-            <Input v-model="allowIp" placeholder="auto" class="w-32 h-8" />
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="text-sm">{{
-              $t("dashboard.node.config.featureReadConfig")
-            }}</span>
-            <Switch v-model:checked="featureReadConfig" />
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="text-sm">{{
-              $t("dashboard.node.config.featureEditConfig")
-            }}</span>
-            <PopConfirm
-              :title="$t('dashboard.node.config.featureEditConfigConfirmTitle')"
-              :description="
-                $t('dashboard.node.config.featureEditConfigConfirmDesc')
-              "
-              @confirm="confirmDisableEditConfig"
-            >
-              <Switch
-                :checked="featureEditConfig"
-                :disabled="!featureEditConfig"
-              />
-            </PopConfirm>
-          </div>
+      <!-- 动态监控上报间隔 (ms) -->
+      <div class="space-y-1.5">
+        <Label>{{ $t("dashboard.node.config.dynamicReportInterval") }}</Label>
+        <div class="flex items-center gap-2">
+          <NumberField
+            v-model="dynamicReportInterval"
+            :min="1000"
+            class="w-40"
+          />
+          <span class="text-sm text-muted-foreground">
+            {{ $t("dashboard.node.config.msUnit") }}
+          </span>
         </div>
+      </div>
 
-        <!-- allow_task 放在最后 -->
-        <div class="flex items-center justify-between pt-1 border-t">
-          <span class="text-sm font-medium">{{
-            $t("dashboard.node.config.featureTask")
-          }}</span>
-          <Switch v-model:checked="featureTask" />
+      <!-- 静态监控上报间隔 (ms) -->
+      <div class="space-y-1.5">
+        <Label>{{ $t("dashboard.node.config.staticReportInterval") }}</Label>
+        <div class="flex items-center gap-2">
+          <NumberField
+            v-model="staticReportInterval"
+            :min="1000"
+            class="w-40"
+          />
+          <span class="text-sm text-muted-foreground">
+            {{ $t("dashboard.node.config.msUnit") }}
+          </span>
+        </div>
+      </div>
+
+      <!-- 连接超时 (ms) -->
+      <div class="space-y-1.5">
+        <Label>{{ $t("dashboard.node.config.connectTimeout") }}</Label>
+        <div class="flex items-center gap-2">
+          <NumberField
+            :model-value="connectTimeout"
+            :min="0"
+            class="w-40"
+            @update:model-value="connectTimeout = $event"
+          />
+          <span class="text-sm text-muted-foreground">
+            {{ $t("dashboard.node.config.msUnit") }}
+          </span>
         </div>
       </div>
 
       <!-- Terminal Shell -->
       <div class="space-y-1.5">
         <Label>{{ $t("dashboard.node.config.terminalShell") }}</Label>
-        <Select v-model="configTerminalShell">
+        <Select v-model="terminalShell">
           <SelectTrigger class="w-48">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="bash">bash</SelectItem>
-            <SelectItem value="sh">sh</SelectItem>
-            <SelectItem value="zsh">zsh</SelectItem>
-            <SelectItem value="fish">fish</SelectItem>
+            <SelectItem value="cmd">cmd</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
-      <!-- exec 最大返回长度 -->
+      <!-- exec 最大返回字符数 -->
       <div class="space-y-1.5">
-        <Label>{{ $t("dashboard.node.config.execMaxLength") }}</Label>
+        <Label>{{ $t("dashboard.node.config.execMaxCharacter") }}</Label>
         <NumberField
-          :model-value="configExecMaxLength"
+          :model-value="execMaxCharacter"
           :min="0"
-          class="w-32"
-          @update:model-value="configExecMaxLength = $event"
+          class="w-40"
+          @update:model-value="execMaxCharacter = $event"
         />
       </div>
 
-      <!-- 连接超时 -->
-      <div class="space-y-1.5">
-        <Label>{{ $t("dashboard.node.config.connectionTimeout") }}</Label>
-        <div class="flex items-center gap-2">
-          <NumberField
-            :model-value="configConnectionTimeout"
-            :min="0"
-            class="w-32"
-            @update:model-value="configConnectionTimeout = $event"
-          />
-          <span class="text-sm text-muted-foreground">
-            {{ $t("dashboard.node.config.reportIntervalUnit") }}
-          </span>
+      <!-- 启用特性 -->
+      <div class="space-y-2">
+        <Label>{{ $t("dashboard.node.config.enabledFeatures") }}</Label>
+
+        <!-- allow_task 放在最前面作为总开关 -->
+        <div class="flex items-center justify-between pb-2 border-b">
+          <span class="text-sm font-medium">{{
+            $t("dashboard.node.config.featureTask")
+          }}</span>
+          <Switch v-model:modelValue="allowTask" />
         </div>
+
+        <!-- 当 allow_task 开启时显示其他特性 -->
+        <template v-if="allowTask">
+          <div class="space-y-2 pt-2">
+            <div class="flex items-center justify-between">
+              <span class="text-sm">{{
+                $t("dashboard.node.config.featureIcmpPing")
+              }}</span>
+              <Switch v-model:modelValue="allowIcmpPing" />
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm">{{
+                $t("dashboard.node.config.featureTcpPing")
+              }}</span>
+              <Switch v-model:modelValue="allowTcpPing" />
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm">{{
+                $t("dashboard.node.config.featureHttpPing")
+              }}</span>
+              <Switch v-model:modelValue="allowHttpPing" />
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm">{{
+                $t("dashboard.node.config.featureHttpRequest")
+              }}</span>
+              <Switch v-model:modelValue="allowHttpRequest" />
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm">{{
+                $t("dashboard.node.config.featureWebShell")
+              }}</span>
+              <Switch v-model:modelValue="allowWebShell" />
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm">{{
+                $t("dashboard.node.config.featureExecute")
+              }}</span>
+              <Switch v-model:modelValue="allowExecute" />
+            </div>
+            <div class="flex items-center justify-between gap-4">
+              <span class="text-sm">{{
+                $t("dashboard.node.config.featureIp")
+              }}</span>
+              <Switch v-model:modelValue="allowIp" />
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm">{{
+                $t("dashboard.node.config.featureReadConfig")
+              }}</span>
+              <Switch v-model:modelValue="allowReadConfig" />
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm">{{
+                $t("dashboard.node.config.featureEditConfig")
+              }}</span>
+              <PopConfirm
+                :title="
+                  $t('dashboard.node.config.featureEditConfigConfirmTitle')
+                "
+                :description="
+                  $t('dashboard.node.config.featureEditConfigConfirmDesc')
+                "
+                @confirm="confirmDisableEditConfig"
+              >
+                <Switch
+                  :checked="allowEditConfig"
+                  :disabled="!allowEditConfig"
+                  @update:checked="handleEditConfigToggle"
+                />
+              </PopConfirm>
+            </div>
+          </div>
+        </template>
       </div>
 
       <div class="pt-2">
-        <Button
-          :disabled="saveLoading || !featureEditConfig"
-          @click="handleSave"
-        >
+        <Button :disabled="saveLoading" @click="handleSave">
           <Loader2 v-if="saveLoading" class="h-4 w-4 animate-spin mr-2" />
           {{ saveLoading ? $t("dashboard.saving") : $t("dashboard.save") }}
         </Button>

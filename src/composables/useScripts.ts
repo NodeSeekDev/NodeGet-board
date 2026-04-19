@@ -46,7 +46,6 @@ export function useScripts() {
       const kvGetScripts = await getMultiValue([
         { namespace: namespace.value, key: "*" },
       ]);
-      console.log(kvGetScripts);
       // 将 KV 的 value 转为 Script
       scripts.value = kvGetScripts
         .map((e) => {

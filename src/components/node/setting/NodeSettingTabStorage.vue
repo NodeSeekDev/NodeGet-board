@@ -26,8 +26,9 @@ const loading = ref(false);
 const saveLoading = ref(false);
 const cleanLoading = ref(false);
 
-const storageStatic = ref<number | undefined>(undefined);
+const storageDynamicSummary = ref<number | undefined>(undefined);
 const storageDynamic = ref<number | undefined>(undefined);
+const storageStatic = ref<number | undefined>(undefined);
 const storageAgentTask = ref<number | undefined>(undefined);
 
 let cleanCronName = "periodic-cleanup";
@@ -58,12 +59,16 @@ onMounted(async () => {
     ]);
     const get = (key: string) => results.find((r) => r.key === key)?.value;
 
-    if (get("database_limit_static_monitoring") !== undefined)
-      storageStatic.value = tsToMinute(get("database_limit_static_monitoring"));
+    if (get("database_limit_dynamic_monitoring_summary") !== undefined)
+      storageDynamicSummary.value = tsToMinute(
+        get("database_limit_dynamic_monitoring_summary"),
+      );
     if (get("database_limit_dynamic_monitoring") !== undefined)
       storageDynamic.value = tsToMinute(
         get("database_limit_dynamic_monitoring"),
       );
+    if (get("database_limit_static_monitoring") !== undefined)
+      storageStatic.value = tsToMinute(get("database_limit_static_monitoring"));
     if (get("database_limit_task") !== undefined)
       storageAgentTask.value = tsToMinute(get("database_limit_task"));
   } catch {
@@ -79,15 +84,20 @@ async function handleSave() {
     kv.namespace.value = props.uuid;
     const items: { key: string; value: unknown }[] = [];
 
-    if (storageStatic.value !== undefined)
+    if (storageDynamicSummary.value !== undefined)
       items.push({
-        key: "database_limit_static_monitoring",
-        value: minute2Ts(storageStatic.value),
+        key: "database_limit_dynamic_monitoring_summary",
+        value: minute2Ts(storageDynamicSummary.value),
       });
     if (storageDynamic.value !== undefined)
       items.push({
         key: "database_limit_dynamic_monitoring",
         value: minute2Ts(storageDynamic.value),
+      });
+    if (storageStatic.value !== undefined)
+      items.push({
+        key: "database_limit_static_monitoring",
+        value: minute2Ts(storageStatic.value),
       });
     if (storageAgentTask.value !== undefined)
       items.push({
@@ -201,14 +211,14 @@ async function handleCleanData() {
         <div v-else class="space-y-3">
           <div class="flex items-center justify-between gap-4">
             <span class="text-sm">{{
-              $t("dashboard.agents.staticMonitoring")
+              $t("dashboard.agents.dynamicMonitoringSummary")
             }}</span>
             <div class="flex items-center gap-1.5">
               <NumberField
-                :model-value="storageStatic"
+                :model-value="storageDynamicSummary"
                 :min="0"
                 class="w-36"
-                @update:model-value="storageStatic = $event"
+                @update:model-value="storageDynamicSummary = $event"
               />
               <span class="text-sm text-muted-foreground whitespace-nowrap">
                 {{ $t("dashboard.agents.minuteUnit") }}
@@ -225,6 +235,24 @@ async function handleCleanData() {
                 :min="0"
                 class="w-36"
                 @update:model-value="storageDynamic = $event"
+              />
+              <span class="text-sm text-muted-foreground whitespace-nowrap">
+                {{ $t("dashboard.agents.minuteUnit") }}
+              </span>
+            </div>
+          </div>
+
+          <!-- no need to change -->
+          <div class="flex items-center justify-between gap-4" v-if="false">
+            <span class="text-sm">{{
+              $t("dashboard.agents.staticMonitoring")
+            }}</span>
+            <div class="flex items-center gap-1.5">
+              <NumberField
+                :model-value="storageStatic"
+                :min="0"
+                class="w-36"
+                @update:model-value="storageStatic = $event"
               />
               <span class="text-sm text-muted-foreground whitespace-nowrap">
                 {{ $t("dashboard.agents.minuteUnit") }}
