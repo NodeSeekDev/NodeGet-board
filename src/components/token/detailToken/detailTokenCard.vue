@@ -5,8 +5,8 @@ import { useRoute, useRouter } from "vue-router";
 import { toast } from "vue-sonner";
 import { ArrowLeft, Copy, KeyRound, Pencil } from "lucide-vue-next";
 import type { Token, TokenDetail } from "../type";
-import { mapTokenDetailToForm } from "../editToken/useEditToken";
-import { useTokenListHook } from "../token-list/useTokenList";
+import { mapTokenDetailToForm } from "@/composables/token/useEditToken";
+import { useTokenListHook } from "@/composables/token/useTokenList";
 import TokenDetailPreview from "../components/tokenDetailPreview.vue";
 import { Button } from "@/components/ui/button";
 

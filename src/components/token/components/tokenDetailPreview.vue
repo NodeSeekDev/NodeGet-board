@@ -132,6 +132,10 @@ const buildPermissionSections = (permissions: PermissionEntry[]) => {
       entries: buckets.dynamicMonitoringPermissions,
     },
     {
+      title: t("dashboard.token.detail.preview.dynamicMonitoringSummaryTitle"),
+      entries: buckets.dynamicMonitoringSummaryPermissions,
+    },
+    {
       title: t("dashboard.token.detail.preview.taskTitle"),
       entries: buckets.taskPermissions,
     },

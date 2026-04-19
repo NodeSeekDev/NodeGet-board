@@ -3,12 +3,12 @@ import { useI18n } from "vue-i18n";
 import { useBackendStore } from "@/composables/useBackendStore";
 import { wsRpcCall } from "@/composables/useWsRpc";
 import { toast } from "vue-sonner";
-import { type Token } from "../type";
+import { type Token } from "@/components/token/type";
 import {
   buildOptionalFieldPayload,
   mapTokenDetailToForm,
   serializeTokenPayload,
-} from "../scopeCodec";
+} from "@/components/token/scopeCodec";
 
 export type errorResponse = {
   error: {

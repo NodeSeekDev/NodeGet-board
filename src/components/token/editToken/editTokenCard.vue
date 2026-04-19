@@ -6,8 +6,11 @@ import { type Token } from "../type";
 import { KeyRound } from "lucide-vue-next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
-import { mapTokenDetailToForm, useEditTokenHook } from "./useEditToken";
-import { useTokenListHook } from "../token-list/useTokenList";
+import {
+  mapTokenDetailToForm,
+  useEditTokenHook,
+} from "@/composables/token/useEditToken";
+import { useTokenListHook } from "@/composables/token/useTokenList";
 import TokenEditorWorkspace from "../components/TokenEditorWorkspace.vue";
 
 const useEditToken = useEditTokenHook();

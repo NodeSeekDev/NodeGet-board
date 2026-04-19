@@ -3,7 +3,7 @@ import { useI18n } from "vue-i18n";
 import { useBackendStore } from "@/composables/useBackendStore";
 import { wsRpcCall } from "@/composables/useWsRpc";
 import { toast } from "vue-sonner";
-import { type TokenDetail } from "../type";
+import { type TokenDetail } from "@/components/token/type";
 
 export type errorResponse = {
   error: {

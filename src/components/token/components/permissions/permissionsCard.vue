@@ -6,6 +6,7 @@ import { detectScopeTab, type ScopeTabValue } from "../../scopeUi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import StaticMonitoringPermission from "./StaticMonitoringPermission.vue";
 import DynamicMonitoringPermission from "./DynamicMonitoringPermission.vue";
+import DynamicMonitoringSummaryPermission from "./DynamicMonitoringSummaryPermission.vue";
 import TaskPermission from "./TaskPermission.vue";
 import CrontabPermission from "./CrontabPermission.vue";
 import CrontabResultPermission from "./CrontabResultPermission.vue";
@@ -68,6 +69,12 @@ const dynamicMonitoringPermissions = computed({
   get: () => buckets.value.dynamicMonitoringPermissions,
   set: (value: PermissionEntry[]) =>
     updateBucket("dynamicMonitoringPermissions", value),
+});
+
+const dynamicMonitoringSummaryPermissions = computed({
+  get: () => buckets.value.dynamicMonitoringSummaryPermissions,
+  set: (value: PermissionEntry[]) =>
+    updateBucket("dynamicMonitoringSummaryPermissions", value),
 });
 
 const taskPermissions = computed({
@@ -145,6 +152,9 @@ watch(
     <CardContent class="grid gap-2 space-y-2">
       <StaticMonitoringPermission v-model="staticMonitoringPermissions" />
       <DynamicMonitoringPermission v-model="dynamicMonitoringPermissions" />
+      <DynamicMonitoringSummaryPermission
+        v-model="dynamicMonitoringSummaryPermissions"
+      />
       <TaskPermission v-model="taskPermissions" />
       <CrontabPermission v-model="crontabPermissions" />
       <CrontabResultPermission

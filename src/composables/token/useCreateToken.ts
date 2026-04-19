@@ -1,10 +1,10 @@
-import { computed, onMounted, ref, watch } from "vue";
+import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { useBackendStore } from "@/composables/useBackendStore";
 import { wsRpcCall } from "@/composables/useWsRpc";
 import { toast } from "vue-sonner";
-import { type UuidList, type token } from "../type";
-import { serializeTokenPayload } from "../scopeCodec";
+import { type token } from "@/components/token/type";
+import { serializeTokenPayload } from "@/components/token/scopeCodec";
 
 export type errorResponse = {
   error: {

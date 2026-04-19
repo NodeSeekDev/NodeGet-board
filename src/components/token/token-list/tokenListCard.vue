@@ -32,7 +32,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Eye, Pencil, Trash2, RotateCcw, Search } from "lucide-vue-next";
-import { useTokenListHook, type Token } from "./useTokenList";
+import { useTokenListHook, type Token } from "@/composables/token/useTokenList";
 
 const useTokenList = useTokenListHook();
 const router = useRouter();

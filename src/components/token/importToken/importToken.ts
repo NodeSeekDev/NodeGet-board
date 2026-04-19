@@ -1,6 +1,7 @@
 import {
   DEFAULT_SCOPE,
   createDefaultToken,
+  generateUuid,
   normalizePermissions,
   normalizeScopes,
 } from "../scopeCodec";
@@ -16,6 +17,7 @@ const DYNAMIC_MONITORING_FIELDS = new Set([
   "network",
   "gpu",
 ]);
+const DYNAMIC_MONITORING_SUMMARY_TYPES = new Set(["read", "write", "delete"]);
 const TASK_TYPES = new Set([
   "ping",
   "tcp_ping",
@@ -135,6 +137,19 @@ const validatePermissionEntry = (entry: PermissionEntry, index: number) => {
       ensureNonEmptyString(target, `dynamic_monitoring_${index}`),
       DYNAMIC_MONITORING_FIELDS,
       `dynamic_monitoring_${index}`,
+    );
+    return;
+  }
+
+  if ("dynamic_monitoring_summary" in entry) {
+    const value = ensureNonEmptyString(
+      entry.dynamic_monitoring_summary,
+      `dynamic_monitoring_summary_${index}`,
+    );
+    ensureAllowedValue(
+      value,
+      DYNAMIC_MONITORING_SUMMARY_TYPES,
+      `dynamic_monitoring_summary_${index}`,
     );
     return;
   }
@@ -275,14 +290,16 @@ export const mapImportedTokenToForm = (payload: unknown): Token => {
 
   const source = payload as Record<string, unknown>;
   const token = createDefaultToken();
+  const username = withImportedUsernameSuffix(
+    ensureOptionalString(source.username, "username"),
+  );
+  const password = ensureOptionalString(source.password, "password");
 
   const mapped: Token = {
     ...token,
     version: ensureFiniteNumber(source.version, "version"),
-    username: withImportedUsernameSuffix(
-      ensureOptionalString(source.username, "username"),
-    ),
-    password: ensureOptionalString(source.password, "password"),
+    username,
+    password: username && !password ? generateUuid() : password,
     timestamp_from: ensureOptionalFiniteNumber(
       source.timestamp_from,
       "timestamp_from",

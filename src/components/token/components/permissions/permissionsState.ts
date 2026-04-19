@@ -3,6 +3,7 @@ import type { PermissionEntry } from "../../type";
 export type PermissionBucketKey =
   | "staticMonitoringPermissions"
   | "dynamicMonitoringPermissions"
+  | "dynamicMonitoringSummaryPermissions"
   | "taskPermissions"
   | "crontabPermissions"
   | "crontabResultPermissions"
@@ -18,6 +19,7 @@ export type PermissionBuckets = Record<PermissionBucketKey, PermissionEntry[]>;
 export const createEmptyPermissionBuckets = (): PermissionBuckets => ({
   staticMonitoringPermissions: [],
   dynamicMonitoringPermissions: [],
+  dynamicMonitoringSummaryPermissions: [],
   taskPermissions: [],
   crontabPermissions: [],
   crontabResultPermissions: [],
@@ -41,6 +43,10 @@ export const createPermissionBuckets = (
     }
     if ("dynamic_monitoring" in entry) {
       buckets.dynamicMonitoringPermissions.push(entry);
+      continue;
+    }
+    if ("dynamic_monitoring_summary" in entry) {
+      buckets.dynamicMonitoringSummaryPermissions.push(entry);
       continue;
     }
     if ("task" in entry) {
@@ -89,6 +95,7 @@ export const mergePermissionBuckets = (
   return [
     ...buckets.staticMonitoringPermissions,
     ...buckets.dynamicMonitoringPermissions,
+    ...buckets.dynamicMonitoringSummaryPermissions,
     ...buckets.taskPermissions,
     ...buckets.crontabPermissions,
     ...(canShowCrontabResultPermission ? buckets.crontabResultPermissions : []),

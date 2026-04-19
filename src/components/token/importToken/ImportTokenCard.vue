@@ -17,7 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useCreatTokenHook } from "../create-token/useCreateToken";
+import { useCreatTokenHook } from "@/composables/token/useCreateToken";
 import { createDefaultToken } from "../scopeCodec";
 import type { Token } from "../type";
 import { parseImportedTokenJson } from "./importToken";

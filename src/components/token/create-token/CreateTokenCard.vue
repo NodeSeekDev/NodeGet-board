@@ -3,7 +3,7 @@ import { ref } from "vue";
 import { type token } from "../type";
 import { KeyRound } from "lucide-vue-next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useCreatTokenHook } from "../create-token/useCreateToken";
+import { useCreatTokenHook } from "@/composables/token/useCreateToken";
 import { createDefaultToken } from "../scopeCodec";
 import TokenEditorWorkspace from "../components/TokenEditorWorkspace.vue";
 import TokenSuccessDialog from "../components/TokenSuccessDialog.vue";

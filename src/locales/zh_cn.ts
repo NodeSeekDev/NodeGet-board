@@ -315,6 +315,7 @@ export default {
           jsWorkerScope: "JsWorker: {value}",
           staticMonitoringTitle: "静态监控",
           dynamicMonitoringTitle: "动态监控",
+          dynamicMonitoringSummaryTitle: "动态监控摘要",
           taskTitle: "任务",
           crontabTitle: "定时任务",
           crontabResultTitle: "定时任务结果",
@@ -386,6 +387,12 @@ export default {
             },
             dynamicMonitoring: {
               title: "动态监控",
+              write: "写入",
+              read: "读取",
+              delete: "删除",
+            },
+            dynamicMonitoringSummary: {
+              title: "动态监控摘要",
               write: "写入",
               read: "读取",
               delete: "删除",
