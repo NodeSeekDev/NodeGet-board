@@ -17,18 +17,25 @@ import {
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import { useKv } from "@/composables/useKv";
-import { useCron } from "@/composables/useCron";
 import { useBackendStore } from "@/composables/useBackendStore";
-import { getWsConnection } from "@/composables/useWsConnection";
+import { makeRpcFunction } from "@/composables/useWsConnection";
+import { useLifecycle } from "@/composables/useLifecycle";
 import { useI18n } from "vue-i18n";
+import {
+  useAgentConfig,
+  type AgentConfig,
+  type UpstreamServer,
+  type splitConfig,
+} from "@/composables/useAgentConfig";
 
 const props = defineProps<{ uuid: string }>();
 
 const { t } = useI18n();
 const router = useRouter();
 const kv = useKv();
-const { list: listCrons, remove: removeCron } = useCron();
 const { currentBackend } = useBackendStore();
+const { getAgentConfigExtra, writeAgentConfig } = useAgentConfig();
+const { afterAgentDelete } = useLifecycle();
 
 const nodeName = ref("");
 
@@ -75,6 +82,8 @@ function setStep(i: number, status: "running" | "done") {
 }
 
 async function handleDelete() {
+  const rpc = makeRpcFunction();
+
   if (confirmName.value !== nodeName.value) {
     toast.error(t("dashboard.node.delete.nameMismatch"));
     return;
@@ -83,63 +92,50 @@ async function handleDelete() {
   // Step 1: delete token
   setStep(0, "running");
   try {
-    if (currentBackend.value) {
-      const conn = getWsConnection(currentBackend.value.url);
-      await conn.call("token_delete", {
-        token: currentBackend.value.token,
-        agent_uuid: props.uuid,
-      });
-    }
+    const { currentUpstream } = await getAgentConfigExtra(props.uuid);
+    // disable token, stop data report
+    await rpc("token_delete", {
+      token: currentBackend.value?.token,
+      target_token: currentUpstream.token.split(":")[0],
+    });
+
+    // todo: delete server block
   } catch {
     // API may not be implemented yet, continue
   }
   setStep(0, "done");
 
-  // Step 2: clean KV data
+  // Step 2: clean cron
   setStep(1, "running");
   try {
-    kv.namespace.value = props.uuid;
-    await kv.setValueBatch([
-      { key: "database_limit_static_monitoring", value: 0 },
-      { key: "database_limit_dynamic_monitoring", value: 0 },
-      { key: "database_limit_agent_task", value: 0 },
-    ]);
-    await new Promise((r) => setTimeout(r, 1000));
-    await kv.deleteNamespace(props.uuid);
+    await afterAgentDelete(props.uuid, "cron");
   } catch {
     // ignore
   }
   setStep(1, "done");
 
-  // Step 3: clean cron jobs
+  // Step 3: clean KV namespace
   setStep(2, "running");
   try {
-    const crons = await listCrons();
-    const toDelete = crons.filter((c) => {
-      if ("agent" in c.cron_type) {
-        const [ids] = c.cron_type.agent;
-        return ids.includes(props.uuid);
-      }
-      return false;
-    });
-    for (const cron of toDelete) {
-      await removeCron(cron.name);
-    }
+    await afterAgentDelete(props.uuid, "kv");
   } catch {
     // ignore
   }
   setStep(2, "done");
 
-  // Step 4: done
+  // Step 4: clean monitor/report data
   setStep(3, "running");
-  await new Promise((r) => setTimeout(r, 300));
+  try {
+    await afterAgentDelete(props.uuid, "data");
+    await new Promise((r) => setTimeout(r, 300));
+  } catch (error) {}
   setStep(3, "done");
   progress.value = 100;
 
   toast.success(t("dashboard.node.delete.success"));
   setTimeout(() => {
     dialogOpen.value = false;
-    router.push("/dashboard/agents");
+    router.push("/dashboard/node-manage?tab=agents");
   }, 1200);
 }
 </script>

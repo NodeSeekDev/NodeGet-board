@@ -116,6 +116,9 @@ const checkOnline = async () => {
       await afterAgentCreate(nodeUuid.value, {
         cronList: cronList.value.filter((v) => selectedCronIds.value.has(v.id)),
         databaseLimit: {
+          database_limit_dynamic_monitoring_summary: formatMinute(
+            dynamicSummaryRetention,
+          ),
           database_limit_dynamic_monitoring: formatMinute(dynamicRetention),
           database_limit_static_monitoring: formatMinute(staticRetention),
           database_limit_task: formatMinute(agentTaskRetention),
@@ -177,7 +180,12 @@ const preGenerateToken = async () => {
           version: 1,
           token_limit: [
             {
-              scopes: [{ global: null }],
+              // scopes: [{ global: null }],
+              scopes: [
+                {
+                  agent_uuid: nodeUuid.value,
+                },
+              ],
               permissions: [
                 { static_monitoring: "write" },
                 { dynamic_monitoring: "write" },

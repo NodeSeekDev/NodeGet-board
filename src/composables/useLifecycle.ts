@@ -6,12 +6,14 @@ import { type Backend } from "@/composables/useBackendStore";
 import { useKv } from "@/composables/useKv";
 import { type BackendCron } from "@/composables/useCron";
 import { useBackendStore } from "@/composables/useBackendStore";
+import { makeRpcFunction } from "@/composables/useWsConnection";
 
 export interface agentPostprocessOptions {
   cronList: BackendCron[];
   databaseLimit: {
     database_limit_static_monitoring?: number;
     database_limit_dynamic_monitoring?: number;
+    database_limit_dynamic_monitoring_summary?: number;
     database_limit_task?: number;
   };
   metadata: {
@@ -146,9 +148,78 @@ async function afterAgentCreate(
   }
 }
 
+async function afterAgentDelete(agentUUID: string, stage: string) {
+  try {
+    const { currentBackend } = useBackendStore();
+    const backend = currentBackend.value;
+    if (!backend) {
+      throw new Error("No backend configured");
+    }
+
+    const rpc = makeRpcFunction();
+
+    switch (stage) {
+      case "cron":
+        {
+          // Update cron tasks to include this agent
+          const cronClient = useCron(ref(backend));
+          const cronList = await cronClient.list();
+          for (const cronTask of cronList) {
+            if ("agent" in cronTask.cron_type) {
+              const [agentIds, taskPayload] = cronTask.cron_type.agent;
+              const updatedAgentIds = agentIds.filter((v) => v !== agentUUID);
+
+              await cronClient.edit({
+                name: cronTask.name,
+                cron_expression: cronTask.cron_expression,
+                cron_type: {
+                  agent: [updatedAgentIds, taskPayload],
+                },
+              });
+            }
+          }
+        }
+        break;
+      case "kv":
+        // clean up monitor data and task data
+        {
+          const kvClient = useKv();
+          await kvClient.fetchNamespaces();
+          const existedNS = kvClient.namespaces.value.includes(agentUUID);
+          if (existedNS) {
+            await kvClient.deleteNamespace(agentUUID);
+          }
+        }
+        break;
+      case "data":
+        // clean up monitor data and task data
+        {
+          const params = {
+            token: currentBackend.value?.token,
+            conditions: [{ uuid: agentUUID }],
+          };
+
+          await rpc("task_delete", params);
+          await rpc("agent_delete_dynamic_summary", params);
+          await rpc("agent_delete_dynamic", params);
+          await rpc("agent_delete_static", params);
+        }
+        break;
+      default:
+        break;
+    }
+  } catch (e: unknown) {
+    const errorMsg =
+      e instanceof Error ? e.message : "Agent post-processing failed";
+    toast.error(errorMsg);
+    console.error("agent delete error:", e);
+  }
+}
+
 export function useLifecycle() {
   return {
     afterServerCreate,
     afterAgentCreate,
+    afterAgentDelete,
   };
 }
