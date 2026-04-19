@@ -12,6 +12,7 @@ export interface agentPostprocessOptions {
   databaseLimit: {
     database_limit_static_monitoring?: number;
     database_limit_dynamic_monitoring?: number;
+    database_limit_dynamic_monitoring_summary?: number;
     database_limit_task?: number;
   };
   metadata: {
