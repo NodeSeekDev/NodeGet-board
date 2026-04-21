@@ -9,6 +9,7 @@ import { mapTokenDetailToForm } from "@/composables/token/useEditToken";
 import { useTokenListHook } from "@/composables/token/useTokenList";
 import TokenDetailPreview from "../components/tokenDetailPreview.vue";
 import { Button } from "@/components/ui/button";
+import { copyText } from "@/utils/copy";
 
 const useTokenList = useTokenListHook();
 const route = useRoute();
@@ -51,12 +52,13 @@ const handleGetTokenDetail = async () => {
   }
 };
 
-const copyText = async (value: string, successMessage: string) => {
+const handleCopy = async (value: string, successMessage: string) => {
   if (!value) return;
-  try {
-    await navigator.clipboard.writeText(value);
+
+  const copied = await copyText(value);
+  if (copied) {
     toast.success(successMessage);
-  } catch {
+  } else {
     toast.error(t("dashboard.token.detail.copyFailed"));
   }
 };
@@ -118,7 +120,7 @@ onMounted(() => {
           variant="outline"
           :disabled="detailLoading"
           @click="
-            copyText(
+            handleCopy(
               displayText(rawDetail?.token_key, ''),
               t('dashboard.token.detail.copyTokenKeySuccess'),
             )
@@ -130,7 +132,7 @@ onMounted(() => {
         <Button
           :disabled="detailLoading"
           @click="
-            copyText(
+            handleCopy(
               formattedJson,
               t('dashboard.token.detail.copyFullJsonSuccess'),
             )
