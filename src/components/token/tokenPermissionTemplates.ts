@@ -26,6 +26,7 @@ type TokenPermissionTemplateConfig = {
 const AGENT_PERMISSIONS: PermissionEntry[] = [
   { static_monitoring: "write" },
   { dynamic_monitoring: "write" },
+  { dynamic_monitoring_summary: "write" },
   { task: "listen" },
 ];
 
