@@ -44,3 +44,6 @@ __screenshots__/
 
 # unplugin-vue-router
 src/types/typed-router.d.ts
+
+# Git worktrees
+.worktrees

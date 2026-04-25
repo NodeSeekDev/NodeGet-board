@@ -4,6 +4,7 @@ import { useBackendStore } from "./useBackendStore";
 import type {
   DynamicSummaryResponseItem,
   SummaryField,
+  DynamicDetailData,
 } from "@/types/monitoring";
 
 // Dynamic data state (separate from static)
@@ -309,6 +310,27 @@ const fetchSummaryAvg = async (
   ]);
 };
 
+const fetchDynamic = async (
+  serverUuid: string,
+  fields: string[],
+): Promise<DynamicDetailData | null> => {
+  if (!currentBackend.value) return null;
+  try {
+    const result = await sendRequest("agent_query_dynamic", [
+      currentBackend.value.token,
+      {
+        fields,
+        condition: [{ uuid: serverUuid }, { last: null }],
+      },
+    ]);
+    if (Array.isArray(result) && result.length > 0) return result[0];
+    return null;
+  } catch (e: any) {
+    console.error("[Dynamic] fetchDynamic failed:", e);
+    return null;
+  }
+};
+
 export function useDynamicData() {
   return {
     status: dynamicStatus,
@@ -316,5 +338,6 @@ export function useDynamicData() {
     servers: dynamicServers,
     connect,
     fetchSummaryAvg,
+    fetchDynamic,
   };
 }

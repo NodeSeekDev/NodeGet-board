@@ -91,3 +91,49 @@ export type SummaryField = keyof Omit<
   DynamicMonitoringSummaryData,
   "uuid" | "time"
 >;
+
+export interface DynamicCpuCore {
+  id: number;
+  cpu_usage: number;
+  frequency_mhz: number;
+}
+
+export interface DynamicCpu {
+  total_cpu_usage: number;
+  per_core: DynamicCpuCore[];
+}
+
+export interface DynamicDisk {
+  kind: "HDD" | "SSD" | "Unknown";
+  name: string;
+  file_system: string;
+  mount_point: string;
+  total_space: number;
+  available_space: number;
+  read_speed: number;
+  write_speed: number;
+  is_removable: boolean;
+  is_read_only: boolean;
+}
+
+export interface DynamicNetworkInterface {
+  interface_name: string;
+  total_received: number;
+  total_transmitted: number;
+  receive_speed: number;
+  transmit_speed: number;
+}
+
+export interface DynamicNetwork {
+  interfaces: DynamicNetworkInterface[];
+  tcp_connections: number;
+  udp_connections: number;
+}
+
+export interface DynamicDetailData {
+  uuid: string;
+  timestamp: number;
+  cpu?: DynamicCpu;
+  disk?: DynamicDisk[];
+  network?: DynamicNetwork;
+}
