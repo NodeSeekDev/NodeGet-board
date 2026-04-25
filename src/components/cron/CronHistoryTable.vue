@@ -151,7 +151,7 @@ const formatTime = (ts: number) => {
               v-if="taskType === 'agent'"
               class="font-mono text-sm text-foreground/80 py-3"
             >
-              <span v-if="record.task_id">{{ record.task_id }}</span>
+              <span v-if="record.relative_id">{{ record.relative_id }}</span>
               <span v-else class="text-muted-foreground/50">-</span>
             </TableCell>
 
