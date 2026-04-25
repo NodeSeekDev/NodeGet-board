@@ -515,6 +515,7 @@ export default {
       },
       tabBasic: "基本信息",
       tabConfig: "配置管理",
+      upstream: "上游管理",
       tabStorage: "储存管理",
       tabDelete: "删除节点",
       config: {

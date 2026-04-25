@@ -518,6 +518,7 @@ export default {
       },
       tabBasic: "Basic Info",
       tabConfig: "Configuration",
+      upstream: "upstream",
       tabStorage: "Storage",
       tabDelete: "Delete Node",
       config: {

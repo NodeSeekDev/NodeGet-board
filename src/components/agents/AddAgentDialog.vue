@@ -33,6 +33,7 @@ import { wsRpcCall } from "@/composables/useWsRpc";
 import { useCron, type BackendCron } from "@/composables/useCron";
 import { useBackendExtra } from "@/composables/useBackendExtra";
 import { useLifecycle } from "@/composables/useLifecycle";
+import { preGenerateToken } from "@/components/agents/generateToken";
 
 const open = defineModel<boolean>("open", { required: true });
 const emit = defineEmits<{
@@ -163,61 +164,14 @@ const copyInstallScript = async () => {
 
 onUnmounted(stopPolling);
 
-// 预生成 token
-const preGenerateToken = async () => {
-  if (!currentBackendInfo.value) return;
-  try {
-    const result = await wsRpcCall<{ key?: string; secret?: string }>(
-      currentBackendInfo.value.url,
-      "token_create",
-      {
-        father_token: currentBackendInfo.value.token,
-        token_creation: {
-          username: null,
-          password: null,
-          timestamp_from: null,
-          timestamp_to: null,
-          version: 1,
-          token_limit: [
-            {
-              // scopes: [{ global: null }],
-              scopes: [
-                {
-                  agent_uuid: nodeUuid.value,
-                },
-              ],
-              permissions: [
-                { static_monitoring: "write" },
-                { dynamic_monitoring: "write" },
-                { dynamic_monitoring_summary: "write" },
-                { task: "listen" },
-                { task: { write: "ping" } },
-                { task: { write: "tcp_ping" } },
-                { task: { write: "http_ping" } },
-                { task: { write: "web_shell" } },
-                { task: { write: "execute" } },
-                { task: { write: "edit_config" } },
-                { task: { write: "read_config" } },
-                { task: { write: "ip" } },
-              ],
-            },
-          ],
-        },
-      },
-    );
-    if (result?.key && result?.secret) {
-      generatedToken.value = `${result.key}:${result.secret}`;
-    }
-  } catch (e) {
-    console.error("Token pre-generation failed:", e);
-  }
-};
-
 // 安装脚本内容 (4 参数)
 const installScript = computed(() => {
   const uuid = nodeUuid.value || "{AGENT_UUID}";
   const token = generatedToken.value || "{TOKEN}";
-  const serverWs = currentBackendInfo.value?.url || "{Server_WS}";
+  const serverWs =
+    currentBackendInfo.value?.agentConfigWsUrl ||
+    currentBackendInfo.value?.url ||
+    "{Server_WS}";
   const serverName = currentBackendInfo.value?.name || "{Server_NAME}";
   return `bash <(curl -sL ${import.meta.env.VITE_INSTALL_URL}) install-agent  \\
   --agent-id ${uuid} \\
@@ -242,7 +196,8 @@ const canNext = computed(() => {
 
 const handleNext = async () => {
   if (step.value === 1) {
-    await preGenerateToken();
+    // 预生成 token
+    generatedToken.value = (await preGenerateToken(nodeUuid.value)) || "";
     step.value = 2;
     loadCrons();
   } else if (step.value === 2) {
@@ -343,7 +298,7 @@ const steps = [
           <div class="space-y-2">
             <Label>{{ t("dashboard.agents.fieldServerUrl") }}</Label>
             <Input
-              :model-value="currentBackendInfo?.url ?? '--'"
+              :model-value="currentBackendInfo?.agentConfigWsUrl ?? '--'"
               readonly
               class="text-muted-foreground"
             />

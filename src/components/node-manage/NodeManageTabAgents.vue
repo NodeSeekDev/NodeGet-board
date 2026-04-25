@@ -182,19 +182,6 @@ defineExpose({ fetchAgents });
           class="pl-8"
         />
       </div>
-      <Button
-        variant="outline"
-        size="sm"
-        :disabled="loading"
-        class="ml-auto"
-        @click="fetchAgents"
-      >
-        <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': loading }" />
-      </Button>
-      <Button @click="addAgentOpen = true">
-        <Plus class="h-4 w-4 mr-1.5" />
-        {{ t("dashboard.agents.addAgent") }}
-      </Button>
       <div v-if="hasSelection" class="flex items-center gap-2">
         <Button
           size="sm"
@@ -204,13 +191,19 @@ defineExpose({ fetchAgents });
           <ArrowUpFromLine class="h-4 w-4 mr-1.5" />
           {{ t("dashboard.agents.batchUpgrade") }}
         </Button>
-        <Button size="sm" variant="outline" @click="handleBatchAction('move')">
+        <!-- temp disabled -->
+        <Button
+          size="sm"
+          variant="outline"
+          @click="handleBatchAction('move')"
+          v-if="false"
+        >
           <FolderInput class="h-4 w-4 mr-1.5" />
           {{ t("dashboard.agents.batchMove") }}
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
-            <Button size="sm" variant="outline">
+            <Button size="sm" variant="outline" v-if="false">
               <Copy class="h-4 w-4 mr-1.5" />
               {{ t("dashboard.agents.batchCopy") }}
             </Button>
@@ -226,6 +219,19 @@ defineExpose({ fetchAgents });
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+      <Button
+        variant="outline"
+        size="sm"
+        :disabled="loading"
+        class="ml-auto"
+        @click="fetchAgents"
+      >
+        <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': loading }" />
+      </Button>
+      <Button @click="addAgentOpen = true">
+        <Plus class="h-4 w-4 mr-1.5" />
+        {{ t("dashboard.agents.addAgent") }}
+      </Button>
     </div>
 
     <div
@@ -249,8 +255,8 @@ defineExpose({ fetchAgents });
           <TableRow>
             <TableHead class="w-[40px]">
               <Checkbox
-                :checked="allSelected"
-                @update:checked="toggleSelectAll"
+                :modelValue="allSelected"
+                @update:modelValue="(v) => toggleSelectAll(!!v)"
               />
             </TableHead>
             <TableHead>{{ t("dashboard.agents.colId") }}</TableHead>
@@ -268,8 +274,12 @@ defineExpose({ fetchAgents });
           <TableRow v-for="agent in filteredAgents" :key="agent.uuid">
             <TableCell>
               <Checkbox
-                :checked="selectedUuids.has(agent.uuid)"
-                @update:checked="(v: boolean) => toggleSelect(agent.uuid, v)"
+                :modelValue="selectedUuids.has(agent.uuid)"
+                @update:modelValue="
+                  (v: any) => {
+                    toggleSelect(agent.uuid, !!v);
+                  }
+                "
               />
             </TableCell>
             <TableCell class="font-mono text-xs text-muted-foreground">

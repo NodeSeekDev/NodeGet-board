@@ -55,10 +55,12 @@ async function afterServerCreate(backend: Backend) {
       });
     }
     const cronResults = await cron.list();
-    const exist = cronResults.find((v) => v.name === baseWorkerName + "-cron");
+    const exist = cronResults.find(
+      (v) => v.name === baseWorkerName + "-update",
+    );
     if (!exist) {
       await cron.create({
-        name: baseWorkerName + "-cron",
+        name: baseWorkerName + "-update",
         cron_expression: "*/3 * * * * *",
         cron_type: {
           server: {
@@ -75,6 +77,14 @@ async function afterServerCreate(backend: Backend) {
     await runWorker(baseWorkerName, "call", {
       lifecycle: "server-create",
     });
+
+    // Initialize global KV namespace
+    const kvClient = useKv();
+    await kvClient.fetchNamespaces();
+    const existedNS = kvClient.namespaces.value.includes("global");
+    if (!existedNS) {
+      await kvClient.createNamespace("global");
+    }
   } catch (e: unknown) {
     toast.error(e instanceof Error ? e.message : "执行server安装后处理失败");
   }
