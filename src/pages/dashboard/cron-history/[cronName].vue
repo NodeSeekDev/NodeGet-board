@@ -206,6 +206,7 @@ onMounted(() => {
     <CronHistoryDetailDialog
       v-if="taskType === 'agent'"
       v-model:open="detailOpen"
+      :task-type="taskType"
       :record="selectedRecord"
     />
   </div>
