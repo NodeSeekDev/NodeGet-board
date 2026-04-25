@@ -6,6 +6,7 @@ import NodeSettingTabBasic from "@/components/node/setting/NodeSettingTabBasic.v
 import NodeSettingTabConfig from "@/components/node/setting/NodeSettingTabConfig.vue";
 import NodeSettingTabStorage from "@/components/node/setting/NodeSettingTabStorage.vue";
 import NodeSettingTabDelete from "@/components/node/setting/NodeSettingTabDelete.vue";
+import NodeSettingTabUpstream from "@/components/node/setting/NodeSettingTabUpstream.vue";
 
 definePage({
   meta: {
@@ -38,6 +39,9 @@ const activeTab = ref("basic");
           <TabsTrigger value="config">
             {{ $t("dashboard.node.tabConfig") }}
           </TabsTrigger>
+          <TabsTrigger value="upstream">
+            {{ $t("dashboard.node.upstream") }}
+          </TabsTrigger>
           <TabsTrigger value="storage">
             {{ $t("dashboard.node.tabStorage") }}
           </TabsTrigger>
@@ -51,6 +55,9 @@ const activeTab = ref("basic");
         </TabsContent>
         <TabsContent value="config">
           <NodeSettingTabConfig :uuid="uuid" />
+        </TabsContent>
+        <TabsContent value="upstream">
+          <NodeSettingTabUpstream :uuid="uuid" />
         </TabsContent>
         <TabsContent value="storage">
           <NodeSettingTabStorage :uuid="uuid" />

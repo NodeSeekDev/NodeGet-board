@@ -4,6 +4,7 @@ import { getWsConnection } from "@/composables/useWsConnection";
 import { type Backend } from "@/composables/useBackendStore";
 import type { JsWorker, JsResult, JsWorkerOptions } from "@/types/worker";
 import { unicodeToBase64 } from "@/lib/base64";
+import { delay } from "@/lib/delay";
 
 export type { JsWorker, JsResult, JsWorkerOptions };
 
@@ -196,6 +197,32 @@ export function useJsRuntime(backend = useBackendStore().currentBackend) {
   };
 
   /**
+   * 轮询 JS 运行结果
+   * API: js-result_query
+   */
+  const poolingWorkerLogs = async (
+    workerId: number,
+    timeout: number = 5000,
+  ): Promise<JsResult> => {
+    const delayPerTime = 100;
+    for (let t = 0; t < timeout; t += delayPerTime) {
+      await delay(delayPerTime);
+      const result = await getWorkerLogs([
+        {
+          id: workerId,
+        },
+        {
+          last: null,
+        },
+      ]);
+      if (result[0]?.finish_time) {
+        return result[0];
+      }
+    }
+    throw "failed to get js worker result";
+  };
+
+  /**
    * 删除 JS 运行结果
    * API: js-result_delete
    */
@@ -218,6 +245,7 @@ export function useJsRuntime(backend = useBackendStore().currentBackend) {
     updateWorker,
     runWorker,
     getWorkerLogs,
+    poolingWorkerLogs,
     deleteWorkerLog,
     backendUrl,
   };

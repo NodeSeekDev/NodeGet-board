@@ -15,6 +15,8 @@ import { Trash2, Loader2 } from "lucide-vue-next";
 import { RainbowButton } from "@/components/ui/rainbow-button";
 import { useI18n } from "vue-i18n";
 import { useLifecycle } from "@/composables/useLifecycle";
+import { delay } from "@/lib/delay";
+import { useBackendExtra } from "@/composables/useBackendExtra";
 
 const props = withDefaults(
   defineProps<{
@@ -52,6 +54,7 @@ const isOpen = computed({
 
 const { backends, currentBackend, addBackend, removeBackend, selectBackend } =
   useBackendStore();
+const { serverInfo, refreshAll } = useBackendExtra();
 
 const newName = ref(props.initForm.newName);
 const newUrl = ref(props.initForm.newUrl);
@@ -76,6 +79,20 @@ const handleAdd = async () => {
       token: newToken.value,
     };
     addBackend(backend);
+    // todo: 等待上线🤔
+    const maxTrial = 10;
+    for (let i = 0; i < maxTrial; i++) {
+      try {
+        // server online
+        if (serverInfo.value[backend.url]?.uuid) {
+          break;
+        }
+        await delay(500);
+        await refreshAll();
+      } catch (error) {
+        console.error(error);
+      }
+    }
     await afterServerCreate(backend);
     resetForm();
     if (props.showList === false) isOpen.value = false;

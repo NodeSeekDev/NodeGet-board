@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { ref, type Ref, computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import {
@@ -9,18 +9,22 @@ import {
   Copy,
   Check,
   Pencil,
+  Cable,
 } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+// import { RadioGroup, RadioGroupItem, } from '@/components/ui/radio-group'
 import { useBackendStore } from "@/composables/useBackendStore";
+import { useBackendExtra } from "@/composables/useBackendExtra";
 import { getWsConnection } from "@/composables/useWsConnection";
 import { useThemeStore } from "@/stores/theme";
 import { Codemirror } from "vue-codemirror";
 import { StreamLanguage } from "@codemirror/language";
 import { toml } from "@codemirror/legacy-modes/mode/toml";
 import { oneDark } from "@codemirror/theme-one-dark";
+import { Skeleton } from "@/components/ui/skeleton";
 
 definePage({
   meta: { title: "router.servers", hidden: true },
@@ -30,6 +34,8 @@ const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const { backends, currentBackend } = useBackendStore();
+const { serverInfo, saveAgentConfigWsUrl, refreshAll, serverInfoLoading } =
+  useBackendExtra();
 const themeStore = useThemeStore();
 
 const backend = computed(() => {
@@ -95,6 +101,22 @@ const fetchConfig = async () => {
   }
 };
 
+fetchConfig();
+
+const local_ws_port = computed(() => {
+  const line =
+    configContent.value
+      .split("\n")
+      .map((v) => v.trim())
+      .find((v) => v.startsWith("ws_listener")) || "";
+  if (!line) {
+    return "";
+  }
+  const sep = line.split(":");
+  const port = parseInt(sep[sep.length - 1] as string);
+  return port;
+});
+
 const saveConfig = async () => {
   if (!backend.value || configSaving.value) return;
   configSaving.value = true;
@@ -131,6 +153,34 @@ const copyText = (key: string, text: string | null | undefined) => {
   copiedKey.value = key;
   setTimeout(() => (copiedKey.value = null), 1500);
 };
+const setAgentConfigWsUrl = (key: string, text: string | null | undefined) => {
+  if (!text) return;
+  if (!backend.value) return;
+
+  copiedKey.value = key;
+
+  let url = "";
+  if (key === "ip-select") {
+    url = serverInfo.value[backend.value.url]?.ip || "";
+    if (local_ws_port.value) {
+      url = "ws://" + url + ":" + local_ws_port.value;
+    }
+  } else if (key === "url-select") {
+    url = backend.value.url;
+  }
+  saveAgentConfigWsUrl(ref(backend.value), url)
+    .then(() => {
+      return refreshAll();
+    })
+    .then(() => {
+      editingField.value = null;
+    })
+    .catch((e) => {
+      console.error(e);
+      editingField.value = null;
+    });
+  setTimeout(() => (copiedKey.value = null), 2500);
+};
 
 const editorExtensions = computed(() => [
   StreamLanguage.define(toml),
@@ -165,7 +215,21 @@ function saveEdit(field: string) {
   } else if (field === "token") {
     backends.value[idx]!.token = editValue.value;
   }
-  editingField.value = null;
+  if (field === "agent-url") {
+    saveAgentConfigWsUrl(ref(backend.value), editValue.value)
+      .then(() => {
+        return refreshAll();
+      })
+      .then(() => {
+        editingField.value = null;
+      })
+      .catch((e) => {
+        console.error(e);
+        editingField.value = null;
+      });
+  } else {
+    editingField.value = null;
+  }
 }
 </script>
 
@@ -205,6 +269,7 @@ function saveEdit(field: string) {
 
       <!-- Tab: 基本信息 -->
       <TabsContent value="info" class="mt-4">
+        <h2 class="mb-2">浏览器本地信息</h2>
         <div class="rounded-md border divide-y">
           <!-- 名称 -->
           <div class="flex items-center px-4 py-3 gap-4">
@@ -246,34 +311,15 @@ function saveEdit(field: string) {
               </Button>
             </template>
           </div>
-          <!-- UUID -->
-          <div class="flex items-center px-4 py-3 gap-4">
-            <span class="text-sm text-muted-foreground w-28 shrink-0">
-              {{ t("dashboard.servers.detail.infoId") }}
-            </span>
-            <div class="flex items-center gap-1.5 min-w-0">
-              <span class="text-sm font-mono">{{ serverUuid ?? "--" }}</span>
-              <Button
-                v-if="serverUuid"
-                size="icon"
-                variant="ghost"
-                class="h-6 w-6 shrink-0"
-                @click="copyText('uuid', serverUuid)"
-              >
-                <Check
-                  v-if="copiedKey === 'uuid'"
-                  class="h-3.5 w-3.5 text-green-500"
-                />
-                <Copy v-else class="h-3.5 w-3.5 text-muted-foreground" />
-              </Button>
-            </div>
-          </div>
           <!-- API 地址 -->
-          <div class="flex items-center px-4 py-3 gap-4">
+          <div class="flex flex-wrap items-center px-4 py-3 gap-4">
             <span class="text-sm text-muted-foreground w-28 shrink-0">
               {{ t("dashboard.servers.detail.infoEndpoint") }}
             </span>
-            <template v-if="editingField === 'url'">
+            <div
+              v-if="editingField === 'url'"
+              class="flex flex-wrap items-center py-1 gap-x-4 gap-y-1"
+            >
               <Input v-model="editValue" class="h-8 w-64" />
               <Button size="sm" variant="outline" @click="saveEdit('url')">
                 {{ t("dashboard.servers.detail.infoSave") }}
@@ -281,7 +327,18 @@ function saveEdit(field: string) {
               <Button size="sm" variant="ghost" @click="cancelEdit">
                 {{ t("dashboard.servers.detail.infoCancel") }}
               </Button>
-            </template>
+              <!-- <div class="w-full"></div>
+              <RadioGroup default-value="backend-also" class="flex mt-2">
+                <div class="flex items-center space-x-2">
+                  <RadioGroupItem id="r2" value="backend-also" />
+                  <Label for="r2" class="text-sm font-mono">Change agent config too</Label>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <RadioGroupItem id="r1" value="frontend-only" />
+                  <Label for="r1" class="text-sm font-mono">Only frontend</Label>
+                </div>
+              </RadioGroup> -->
+            </div>
             <template v-else>
               <div class="flex items-center gap-1.5 min-w-0">
                 <span class="text-sm font-mono">{{
@@ -308,16 +365,31 @@ function saveEdit(field: string) {
                 >
                   <Pencil class="h-3.5 w-3.5 text-muted-foreground" />
                 </Button>
+                <Button
+                  v-if="serverUuid"
+                  size="icon"
+                  variant="ghost"
+                  class="h-6 w-6 shrink-0"
+                  title="select as agent config address"
+                  @click="setAgentConfigWsUrl('url-select', backend?.url || '')"
+                >
+                  <template v-if="copiedKey === 'url-select'">
+                    <Check
+                      v-if="serverInfoLoading"
+                      class="h-3.5 w-3.5 text-green-500"
+                    />
+                    <Loader2 v-else class="h-3.5 w-3.5 animate-spin"></Loader2>
+                  </template>
+                  <Cable
+                    v-else
+                    class="h-3.5 w-3.5 text-muted-foreground"
+                    title="select as agent config address"
+                  />
+                </Button>
               </div>
             </template>
           </div>
-          <!-- 版本号 -->
-          <div class="flex items-center px-4 py-3 gap-4">
-            <span class="text-sm text-muted-foreground w-28 shrink-0">
-              {{ t("dashboard.servers.detail.infoVersion") }}
-            </span>
-            <span class="text-sm font-mono">{{ serverVersion ?? "--" }}</span>
-          </div>
+
           <!-- 状态 -->
           <div class="flex items-center px-4 py-3 gap-4">
             <span class="text-sm text-muted-foreground w-28 shrink-0">
@@ -380,6 +452,180 @@ function saveEdit(field: string) {
                 </Button>
               </div>
             </template>
+          </div>
+        </div>
+
+        <h2 class="my-2">远程信息</h2>
+        <div class="rounded-md border divide-y relative">
+          <div
+            v-if="serverInfoLoading"
+            class="absolute inset-0 z-10 bg-background/40 backdrop-blur-[1px] flex flex-col items-center justify-center rounded-md"
+          >
+            <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+          <!-- UUID -->
+          <div class="flex items-center px-4 py-3 gap-4">
+            <span class="text-sm text-muted-foreground w-28 shrink-0">
+              {{ t("dashboard.servers.detail.infoId") }}
+            </span>
+            <div class="flex items-center gap-1.5 min-w-0">
+              <span class="text-sm font-mono">{{ serverUuid ?? "--" }}</span>
+              <Button
+                v-if="serverUuid"
+                size="icon"
+                variant="ghost"
+                class="h-6 w-6 shrink-0"
+                @click="copyText('uuid', serverUuid)"
+              >
+                <Check
+                  v-if="copiedKey === 'uuid'"
+                  class="h-3.5 w-3.5 text-green-500"
+                />
+                <Copy v-else class="h-3.5 w-3.5 text-muted-foreground" />
+              </Button>
+            </div>
+          </div>
+
+          <!-- IP -->
+          <div class="flex items-center px-4 py-3 gap-4">
+            <span class="text-sm text-muted-foreground w-28 shrink-0">
+              IP
+            </span>
+            <div class="flex items-center gap-1.5 min-w-0">
+              <span class="text-sm font-mono">{{
+                (typeof backend?.url === "string" &&
+                  serverInfo[backend?.url]?.ip) ??
+                "--"
+              }}</span>
+              <span class="text-sm font-mono" v-if="local_ws_port"
+                >(:{{ local_ws_port }})</span
+              >
+              <Button
+                v-if="serverUuid"
+                size="icon"
+                variant="ghost"
+                class="h-6 w-6 shrink-0"
+                @click="
+                  copyText(
+                    'ip',
+                    (typeof backend?.url === 'string' &&
+                      serverInfo[backend?.url]?.ip) ||
+                      '',
+                  )
+                "
+              >
+                <Check
+                  v-if="copiedKey === 'ip'"
+                  class="h-3.5 w-3.5 text-green-500"
+                />
+                <Copy v-else class="h-3.5 w-3.5 text-muted-foreground" />
+              </Button>
+              <Button
+                v-if="serverUuid"
+                size="icon"
+                variant="ghost"
+                class="h-6 w-6 shrink-0"
+                title="select as agent config address"
+                @click="
+                  setAgentConfigWsUrl(
+                    'ip-select',
+                    (typeof backend?.url === 'string' &&
+                      serverInfo[backend?.url]?.ip) ||
+                      '',
+                  )
+                "
+              >
+                <template v-if="copiedKey === 'ip-select'">
+                  <Check
+                    v-if="serverInfoLoading"
+                    class="h-3.5 w-3.5 text-green-500"
+                  />
+                  <Loader2 v-else class="h-3.5 w-3.5 animate-spin"></Loader2>
+                </template>
+                <Cable
+                  v-else
+                  class="h-3.5 w-3.5 text-muted-foreground"
+                  title="select as agent config address"
+                />
+              </Button>
+            </div>
+          </div>
+
+          <!-- Agent Config API 地址 -->
+          <div class="flex flex-wrap items-center px-4 py-3 gap-4 gap-y-0.5">
+            <span class="text-sm text-muted-foreground w-28 shrink-0">
+              {{ t("dashboard.servers.detail.infoEndpoint") }} <br />[ for agent
+              ]
+            </span>
+            <div
+              v-if="editingField === 'agent-url'"
+              class="flex flex-wrap items-center py-1 gap-x-4 gap-y-1"
+            >
+              <Input v-model="editValue" class="h-8 w-64" />
+              <Button
+                size="sm"
+                variant="outline"
+                @click="saveEdit('agent-url')"
+              >
+                {{ t("dashboard.servers.detail.infoSave") }}
+              </Button>
+              <Button size="sm" variant="ghost" @click="cancelEdit">
+                {{ t("dashboard.servers.detail.infoCancel") }}
+              </Button>
+            </div>
+            <template v-else>
+              <div
+                class="flex items-center gap-1.5 min-w-0"
+                v-if="typeof backend?.url === 'string'"
+              >
+                <span class="text-sm font-mono">{{
+                  serverInfo[backend?.url]?.agentConfigWsUrl || "--"
+                }}</span>
+                <Button
+                  v-if="serverInfo[backend?.url]?.agentConfigWsUrl"
+                  size="icon"
+                  variant="ghost"
+                  class="h-6 w-6 shrink-0"
+                  @click="
+                    copyText(
+                      'agent-url',
+                      serverInfo[backend?.url]?.agentConfigWsUrl,
+                    )
+                  "
+                >
+                  <Check
+                    v-if="copiedKey === 'agent-url'"
+                    class="h-3.5 w-3.5 text-green-500"
+                  />
+                  <Copy v-else class="h-3.5 w-3.5 text-muted-foreground" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  class="h-6 w-6 shrink-0"
+                  @click="
+                    startEdit(
+                      'agent-url',
+                      serverInfo[backend?.url]?.agentConfigWsUrl || '',
+                    )
+                  "
+                >
+                  <Pencil class="h-3.5 w-3.5 text-muted-foreground" />
+                </Button>
+              </div>
+            </template>
+            <div class="w-full"></div>
+            <div class="text-xs font-mono text-muted-foreground ml-32">
+              添加新的 agent 时使用的 ws_url 配置
+            </div>
+          </div>
+
+          <!-- 版本号 -->
+          <div class="flex items-center px-4 py-3 gap-4">
+            <span class="text-sm text-muted-foreground w-28 shrink-0">
+              {{ t("dashboard.servers.detail.infoVersion") }}
+            </span>
+            <span class="text-sm font-mono">{{ serverVersion ?? "--" }}</span>
           </div>
         </div>
       </TabsContent>
