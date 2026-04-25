@@ -96,7 +96,7 @@ const loadDetail = async () => {
     diskSnapshots.value.push([...result.disk]);
     if (diskSnapshots.value.length > 30) diskSnapshots.value.shift();
     if (!selectedDisk.value && result.disk.length > 0) {
-      selectedDisk.value = result.disk[0].name;
+      selectedDisk.value = result.disk[0]?.name ?? "";
     }
   }
   if (result?.network?.interfaces) {
