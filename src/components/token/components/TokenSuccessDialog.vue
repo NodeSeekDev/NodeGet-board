@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { copyText } from "@/utils/copy";
 
 const open = defineModel<boolean>("open", { default: false });
 
@@ -23,13 +24,13 @@ const props = defineProps<{
 
 const { t } = useI18n();
 
-const copyText = async (value: string, successMessage: string) => {
+const handleCopy = async (value: string, successMessage: string) => {
   if (!value) return;
 
-  try {
-    await navigator.clipboard.writeText(value);
+  const copied = await copyText(value);
+  if (copied) {
     toast.success(successMessage);
-  } catch {
+  } else {
     toast.error(t("dashboard.token.create.createSuccessDialog.copyFailed"));
   }
 };
@@ -59,7 +60,7 @@ const copyText = async (value: string, successMessage: string) => {
               variant="outline"
               size="icon"
               @click="
-                copyText(
+                handleCopy(
                   props.tokenKey,
                   t(
                     'dashboard.token.create.createSuccessDialog.copyTokenKeySuccess',
@@ -88,7 +89,7 @@ const copyText = async (value: string, successMessage: string) => {
               variant="outline"
               size="icon"
               @click="
-                copyText(
+                handleCopy(
                   props.tokenSecret,
                   t(
                     'dashboard.token.create.createSuccessDialog.copyToeknSecretSuccess',
@@ -113,7 +114,7 @@ const copyText = async (value: string, successMessage: string) => {
           variant="secondary"
           class="w-full"
           @click="
-            copyText(
+            handleCopy(
               `${props.tokenKey}:${props.tokenSecret}`,
               t(
                 'dashboard.token.create.createSuccessDialog.copyFullTokenSuccess',
