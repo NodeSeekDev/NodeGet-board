@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useBackendStore, type Backend } from "@/composables/useBackendStore";
-import { Trash2, Loader2 } from "lucide-vue-next";
+import { Plus, Trash2, Loader2 } from "lucide-vue-next";
 import { RainbowButton } from "@/components/ui/rainbow-button";
 import { useI18n } from "vue-i18n";
 import { useLifecycle } from "@/composables/useLifecycle";
@@ -231,16 +231,21 @@ watch(
             />
           </div>
           <RainbowButton
+            v-if="(newName && newUrl && newToken) || isLoading"
             @click="handleAdd"
             :disabled="!newName || !newUrl || !newToken || isLoading"
           >
             <Loader2 v-if="isLoading" class="h-4 w-4 mr-2 animate-spin" />
+            <Plus v-else class="h-4 w-4 mr-2" />
             {{
               isLoading
                 ? t("dashboard.common.loading")
                 : t("dashboard.servers.addServer")
             }}
           </RainbowButton>
+          <Button v-else disabled variant="outline" class="h-11 rounded-xl">
+            <Plus class="h-4 w-4 mr-2" />{{ t("dashboard.servers.addServer") }}
+          </Button>
         </div>
       </div>
     </DialogContent>
