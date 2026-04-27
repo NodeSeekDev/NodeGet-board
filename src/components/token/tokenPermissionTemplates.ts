@@ -23,14 +23,23 @@ type TokenPermissionTemplateConfig = {
   };
 };
 
-const AGENT_PERMISSIONS: PermissionEntry[] = [
+export const AGENT_PERMISSIONS: PermissionEntry[] = [
   { static_monitoring: "write" },
   { dynamic_monitoring: "write" },
   { dynamic_monitoring_summary: "write" },
   { task: "listen" },
+  { task: { write: "ping" } },
+  { task: { write: "tcp_ping" } },
+  { task: { write: "http_ping" } },
+  { task: { write: "web_shell" } },
+  { task: { write: "execute" } },
+  { task: { write: "edit_config" } },
+  { task: { write: "read_config" } },
+  { task: { write: "http_request" } },
+  { task: { write: "ip" } },
 ];
 
-const VISITOR_PERMISSIONS: PermissionEntry[] = [
+export const VISITOR_PERMISSIONS: PermissionEntry[] = [
   { static_monitoring: { read: "cpu" } },
   { static_monitoring: { read: "system" } },
   { static_monitoring: { read: "gpu" } },
@@ -45,6 +54,7 @@ const VISITOR_PERMISSIONS: PermissionEntry[] = [
   { dynamic_monitoring: { read: "gpu" } },
   //   { dynamic_monitoring: "write" },
   //   { dynamic_monitoring: "delete" },
+  { dynamic_monitoring_summary: "read" },
   {
     kv: {
       read: "metadata_*",
