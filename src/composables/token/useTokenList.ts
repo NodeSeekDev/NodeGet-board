@@ -1,7 +1,7 @@
 ﻿import { computed, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useBackendStore } from "@/composables/useBackendStore";
-import { wsRpcCall } from "@/composables/useWsRpc";
+import { getWsConnection } from "@/composables/useWsConnection";
 import { toast } from "vue-sonner";
 import { type TokenDetail } from "@/components/token/type";
 
@@ -36,12 +36,9 @@ export const useTokenListHook = () => {
     const token = currentBackend.value?.token?.trim() || "";
     if (!url || !token) return [];
     try {
-      const result = await wsRpcCall<{ tokens?: Token[] }>(
-        url,
+      const result = await getWsConnection(url).call<{ tokens?: Token[] }>(
         "token_list_all_tokens",
-        {
-          token,
-        },
+        { token },
       );
       if (Array.isArray(result?.tokens) && result.tokens.length > 0) {
         return result.tokens;
@@ -61,10 +58,10 @@ export const useTokenListHook = () => {
     const target_token = tokenItem.token_key ?? tokenItem.username;
     if (!url || !token) return;
     try {
-      const result = await wsRpcCall<{ message: string }>(url, "token_delete", {
-        token,
-        target_token,
-      });
+      const result = await getWsConnection(url).call<{ message: string }>(
+        "token_delete",
+        { token, target_token },
+      );
       if (result?.message) {
         toast.success(t("dashboard.token.api.deleteSuccess"));
         getTokenList();
@@ -86,7 +83,7 @@ export const useTokenListHook = () => {
     if (!url || !token || !target_token) return null;
 
     try {
-      const result = await wsRpcCall<TokenDetail>(url, "token_get", {
+      const result = await getWsConnection(url).call<TokenDetail>("token_get", {
         supertoken: token,
         token: target_token,
       });

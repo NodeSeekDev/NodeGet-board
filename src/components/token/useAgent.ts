@@ -1,6 +1,5 @@
 import { computed } from "vue";
 import { useBackendStore } from "@/composables/useBackendStore";
-import { wsRpcCall } from "@/composables/useWsRpc";
 import { getWsConnection } from "@/composables/useWsConnection";
 import { toast } from "vue-sonner";
 
@@ -26,12 +25,9 @@ export const useAgentHook = () => {
     const token = currentBackend.value?.token?.trim() || "";
     if (!url || !token) return [];
     try {
-      const result = await wsRpcCall<{ uuids?: string[] }>(
-        url,
+      const result = await getWsConnection(url).call<{ uuids?: string[] }>(
         "nodeget-server_list_all_agent_uuid",
-        {
-          token,
-        },
+        { token },
       );
       if (Array.isArray(result.uuids) && result.uuids.length > 0) {
         return result.uuids;

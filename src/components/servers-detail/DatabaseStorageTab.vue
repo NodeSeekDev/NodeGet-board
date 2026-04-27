@@ -117,6 +117,7 @@ const renderChart = () => {
 onMounted(() => {
   if (chartRef.value) {
     chartInstance.value = echarts.init(chartRef.value);
+    renderChart();
     resizeObserver = new ResizeObserver(() => chartInstance.value?.resize());
     resizeObserver.observe(chartRef.value);
   }

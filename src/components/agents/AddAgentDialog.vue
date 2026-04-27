@@ -29,7 +29,6 @@ import { oneDark } from "@codemirror/theme-one-dark";
 import { useThemeStore } from "@/stores/theme";
 import { useBackendStore } from "@/composables/useBackendStore";
 import { getWsConnection } from "@/composables/useWsConnection";
-import { wsRpcCall } from "@/composables/useWsRpc";
 import { useCron, type BackendCron } from "@/composables/useCron";
 import { useBackendExtra } from "@/composables/useBackendExtra";
 import { useLifecycle } from "@/composables/useLifecycle";
