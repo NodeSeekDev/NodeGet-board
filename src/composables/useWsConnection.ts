@@ -10,6 +10,9 @@
  * the connection alive and detect silent network failures early.
  */
 
+import { useBackendStore } from "@/composables/useBackendStore";
+
+const { currentBackend } = useBackendStore();
 const HEARTBEAT_INTERVAL_MS = 30_000;
 
 interface RpcErrorShape {
@@ -169,7 +172,8 @@ class WsConnection {
       msg.result &&
       typeof msg.result === "object" &&
       !Array.isArray(msg.result) &&
-      "error_message" in (msg.result as Record<string, unknown>)
+      "error_message" in msg.result &&
+      msg.result.error_message !== null
     ) {
       const r = msg.result as Record<string, unknown>;
       req.reject(
@@ -254,4 +258,20 @@ export function releaseWsConnection(url: string) {
     conn.close();
     pool.delete(url);
   }
+}
+
+export function makeRpcFunction<T>(
+  backendUrl: string = currentBackend.value?.url as string,
+) {
+  if (typeof backendUrl !== "string") {
+    throw "backendUrl can't be empty";
+  }
+
+  const rpc = (
+    method: string,
+    params: unknown,
+    timeoutMs: number = 5000,
+  ): Promise<T> =>
+    getWsConnection(backendUrl).call<T>(method, params, timeoutMs);
+  return rpc;
 }

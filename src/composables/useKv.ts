@@ -4,10 +4,9 @@ import { getWsConnection } from "@/composables/useWsConnection";
 
 export type KvEntry = { key: string; value: unknown };
 
-export function useKv() {
-  const { currentBackend } = useBackendStore();
-  const backendUrl = computed(() => currentBackend.value?.url ?? "");
-  const backendToken = computed(() => currentBackend.value?.token ?? "");
+export function useKv(backend = useBackendStore().currentBackend) {
+  const backendUrl = computed(() => backend.value?.url ?? "");
+  const backendToken = computed(() => backend.value?.token ?? "");
 
   const namespace = ref("");
   const namespaces = ref<string[]>([]);
@@ -163,8 +162,12 @@ export function useKv() {
   const deleteNamespace = async (
     ns: string,
   ): Promise<{ partialFailures: string[] }> => {
-    const results = await getMultiValue([{ namespace: ns, key: "*" }]);
-    const keys = results.map((r) => r.key);
+    // const results = await getMultiValue([{ namespace: ns, key: "*" }]);
+    // const keys = results.map((r) => r.key);
+    const keys = await rpc<string[]>("kv_get_all_keys", {
+      token: backendToken.value,
+      namespace: ns,
+    });
 
     if (keys.length === 0) {
       namespaces.value = namespaces.value.filter((n) => n !== ns);

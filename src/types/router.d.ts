@@ -1,7 +1,7 @@
 declare module "vue-router" {
   interface RouteMeta {
     title: string;
-    icon?: import("vue").Component;
+    icon?: import("vue").Component | string;
     hidden?: boolean;
     order?: number;
     group?: string;

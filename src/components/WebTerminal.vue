@@ -7,7 +7,16 @@ import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { Button } from "@/components/ui/button";
 import { wsRpcCall } from "@/composables/useWsRpc";
 import { useFullscreen } from "@vueuse/core";
-import { Maximize, Minimize, Maximize2, Minimize2 } from "lucide-vue-next";
+import {
+  Maximize,
+  Minimize,
+  Maximize2,
+  Minimize2,
+  PanelRightClose,
+  FileTerminal,
+  Copy,
+  CopyCheck,
+} from "lucide-vue-next";
 
 const props = withDefaults(
   defineProps<{
@@ -365,12 +374,85 @@ defineExpose({
   disconnect,
   fit,
 });
+
+// Scripts
+import { useScripts } from "@/composables/useScripts";
+import type { Script } from "@/composables/useScripts";
+const { scripts, loading } = useScripts();
+import Switch from "./ui/switch/Switch.vue";
+import { toast } from "vue-sonner";
+
+const scriptsList = ref<(Script & { copyStatus: boolean })[]>([]);
+
+const scriptShow = ref(false);
+
+const autoRun = ref(false);
+const codeIn = (code: string) => {
+  if (autoRun.value) {
+    terminal?.paste(code);
+    terminal?.input("\r");
+  } else {
+    terminal?.paste(code);
+  }
+};
+
+const copyScript = async (s: string, index: number) => {
+  const item = scriptsList.value[index];
+  if (item) {
+    item.copyStatus = true;
+  }
+
+  if (!navigator.clipboard) {
+    toast.error("Clipboard API unsupported");
+  }
+
+  try {
+    await navigator.clipboard.writeText(s);
+    toast.success("copy success");
+  } catch (err) {
+    toast.error("copy failed");
+  }
+  // 兼容代码 - 不启用
+  // const textarea = document.createElement('textarea')
+  // textarea.value = s
+  // textarea.style.position = 'fixed'
+  // textarea.style.left = '-9999px'
+  // textarea.style.top = '0'
+  // document.body.appendChild(textarea)
+  // textarea.focus()
+  // textarea.select()
+
+  // const success = document.execCommand('copy')
+  // document.body.removeChild(textarea)
+
+  if (item) {
+    setTimeout(() => {
+      item.copyStatus = false;
+    }, 2000);
+  }
+};
+
+watch(
+  () => scripts.value,
+  (val) => {
+    scriptsList.value = val
+      .filter((item) => item.lang === "shell")
+      .map((item) => ({
+        ...item,
+        copyStatus: false,
+      }));
+  },
+  {
+    immediate: true,
+    deep: true,
+  },
+);
 </script>
 
 <template>
   <div
     ref="wrapperRef"
-    class="rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden flex flex-col box-border"
+    class="rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden flex flex-col box-border relative"
     :class="{
       'fixed inset-0 z-50 w-screen h-screen rounded-none border-0':
         isWindowFull,
@@ -383,6 +465,14 @@ defineExpose({
         Status: <span class="font-mono">{{ statusText }}</span>
       </div>
       <div class="flex items-center gap-2">
+        <Button
+          size="icon"
+          variant="ghost"
+          @click="scriptShow = !scriptShow"
+          :title="$t('dashboard.webterminal.scripts.name')"
+        >
+          <FileTerminal class="w-4 h-4" />
+        </Button>
         <Button
           size="icon"
           variant="ghost"
@@ -409,7 +499,64 @@ defineExpose({
     <div
       ref="containerRef"
       class="w-full bg-black"
-      :class="isFullscreen || isWindowFull ? 'flex-1 h-0' : 'h-[560px]'"
+      :class="isFullscreen || isWindowFull ? 'flex-1 h-0' : 'h-full'"
     />
+
+    <div
+      class="flex flex-col p-4 rounded-tl-lg rounded-bl-lg shadow-sm absolute top-11 bottom-0 right-0 bg-white dark:bg-[#1d1d20] w-[300px] transition-all duration-300 overflow-hidden z-1"
+      :class="scriptShow ? 'translate-x-0' : 'translate-x-full'"
+    >
+      <div
+        class="text-lg font-semibold text-gray-800 mb-3 dark:text-white items-end gap-2 justify-between flex"
+      >
+        <div class="flex items-center">
+          <PanelRightClose
+            @click="scriptShow = false"
+            class="mr-2 cursor-pointer w-5 h-5"
+          />
+          {{ $t("dashboard.webterminal.scripts.name") }}
+        </div>
+        <label class="flex items-center">
+          <span class="text-sm color-gray-500 mr-1 opacity-60">自动回车</span>
+          <Switch
+            v-model="autoRun"
+            :title="$t('dashboard.webterminal.scripts.autoRun')"
+          />
+        </label>
+      </div>
+      <div v-if="loading" class="text-gray-500">
+        {{ $t("dashboard.webterminal.scripts.loading") }}
+      </div>
+      <div v-else class="flex flex-wrap gap-2 flex-1 overflow-auto min-h-0">
+        <Button
+          variant="outline"
+          class="w-full flex flex-col gap-1 items-start h-auto border"
+          v-for="(script, index) in scriptsList"
+          @click="codeIn(script.content)"
+        >
+          <div class="flex flex-row gap-1 items-start w-full">
+            <div class="text-base font-blod flex-1 truncate text-left">
+              {{ script.name }}
+            </div>
+            <div
+              @click.stop="copyScript(script.content, index)"
+              :title="$t('dashboard.webterminal.scripts.copy')"
+              class="cursor-pointer"
+            >
+              <Copy
+                class="opacity-50 dark:opacity-65"
+                v-if="script.copyStatus == false"
+              ></Copy>
+              <CopyCheck class="opacity-80" v-else></CopyCheck>
+            </div>
+          </div>
+          <div class="flex flex-col gap-1 items-start w-full text-left">
+            <div class="truncate text-xs opacity-80 break-words w-full">
+              {{ script.content }}
+            </div>
+          </div>
+        </Button>
+      </div>
+    </div>
   </div>
 </template>

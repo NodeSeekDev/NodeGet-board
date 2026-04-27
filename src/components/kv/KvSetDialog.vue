@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, watch, computed } from "vue";
 import { Loader2 } from "lucide-vue-next";
-import { Mode } from "vanilla-jsoneditor";
-import JsonEditorVue from "json-editor-vue";
-import "vanilla-jsoneditor/themes/jse-theme-dark.css";
+import { Codemirror } from "vue-codemirror";
+import { json } from "@codemirror/lang-json";
+import { oneDark } from "@codemirror/theme-one-dark";
 import {
   Dialog,
   DialogContent,
@@ -32,7 +32,12 @@ const emit = defineEmits<{
 const themeStore = useThemeStore();
 
 const key = ref("");
-const editorValue = ref<unknown>(undefined);
+const editorValue = ref("");
+
+const extensions = computed(() => [
+  json(),
+  ...(themeStore.isDark ? [oneDark] : []),
+]);
 
 watch(
   () => props.open,
@@ -52,10 +57,7 @@ const isEditMode = () => props.editKey !== undefined;
 const handleSave = () => {
   let parsed: unknown;
   try {
-    parsed =
-      typeof editorValue.value === "string"
-        ? JSON.parse(editorValue.value)
-        : editorValue.value;
+    parsed = JSON.parse(editorValue.value);
   } catch {
     return;
   }
@@ -83,15 +85,13 @@ const close = () => emit("update:open", false);
 
         <div class="space-y-2">
           <Label>Value</Label>
-          <JsonEditorVue
-            v-model="editorValue"
-            :mode="Mode.text"
-            :debounce="0"
-            :class="themeStore.isDark ? 'jse-theme-dark' : ''"
-            :main-menu-bar="false"
-            :navigation-bar="false"
-            style="height: 240px"
-          />
+          <div class="rounded-md border overflow-hidden">
+            <Codemirror
+              v-model="editorValue"
+              :extensions="extensions"
+              :style="{ height: '240px', fontSize: '13px' }"
+            />
+          </div>
         </div>
       </div>
 

@@ -2,6 +2,10 @@ import { computed } from "vue";
 import { useBackendStore } from "@/composables/useBackendStore";
 import { getWsConnection } from "@/composables/useWsConnection";
 
+export interface workerCron {
+  js_worker: [string, object];
+}
+
 export interface BackendCron {
   id: number;
   name: string;
@@ -9,7 +13,7 @@ export interface BackendCron {
   cron_expression: string;
   cron_type:
     | { agent: [string[], { task: Record<string, unknown> }] }
-    | { server: string };
+    | { server: string | workerCron };
   last_run_time: number | null;
 }
 
@@ -32,7 +36,7 @@ export interface CronTask {
   agentTaskTarget: string;
   agentExecuteCommand: string;
   agentExecuteArgs: string[];
-  serverTask: string;
+  serverTask: string | workerCron;
 }
 
 const normalizeTimestamp = (value: number | null) => {
@@ -117,10 +121,9 @@ export function taskToCronType(
   return { server: task.serverTask };
 }
 
-export function useCron() {
-  const { currentBackend } = useBackendStore();
-  const backendUrl = computed(() => currentBackend.value?.url ?? "");
-  const backendToken = computed(() => currentBackend.value?.token ?? "");
+export function useCron(backend = useBackendStore().currentBackend) {
+  const backendUrl = computed(() => backend.value?.url ?? "");
+  const backendToken = computed(() => backend.value?.token ?? "");
 
   const rpc = <T>(method: string, params: unknown): Promise<T> =>
     getWsConnection(backendUrl.value).call<T>(method, params);

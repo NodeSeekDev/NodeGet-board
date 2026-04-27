@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { Box } from "lucide-vue-next";
-import WorkInProcessView from "@/components/WorkInProcessPage.vue";
 
 definePage({
+  redirect: "/dashboard/app-panel/list",
   meta: {
     title: "router.appPanel",
     icon: Box,
@@ -13,5 +13,5 @@ definePage({
 </script>
 
 <template>
-  <WorkInProcessView />
+  <router-view />
 </template>

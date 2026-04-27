@@ -27,6 +27,9 @@ import {
 import { REGIONS } from "@/data/regions";
 import { cn } from "@/lib/utils";
 import type { NodeMetadata } from "@/types/node";
+import { useI18n } from "vue-i18n";
+
+const { t } = useI18n();
 
 const PRICE_UNITS = [
   { symbol: "¥", label: "¥ 人民币" },
@@ -91,18 +94,18 @@ const filteredRegions = computed(() => {
   <div class="space-y-6">
     <!-- name -->
     <div class="space-y-2">
-      <Label for="nm-name">节点名称</Label>
+      <Label for="nm-name">{{ $t("dashboard.node.metadata.name") }}</Label>
       <Input
         id="nm-name"
         :model-value="modelValue.name"
-        placeholder="节点展示名称"
+        :placeholder="$t('dashboard.node.metadata.namePlaceholder')"
         @update:model-value="update({ name: String($event) })"
       />
     </div>
 
     <!-- tags -->
     <div class="space-y-2">
-      <Label>标签</Label>
+      <Label>{{ $t("dashboard.node.metadata.tags") }}</Label>
       <div class="flex flex-wrap gap-2 mb-2">
         <Badge
           v-for="(tag, i) in modelValue.tags"
@@ -122,7 +125,7 @@ const filteredRegions = computed(() => {
       </div>
       <Input
         v-model="tagInput"
-        placeholder="输入标签后按回车或空格添加"
+        :placeholder="$t('dashboard.node.metadata.tagsPlaceholder')"
         @keydown="handleTagKeydown"
         @blur="addTag"
       />
@@ -131,7 +134,7 @@ const filteredRegions = computed(() => {
     <!-- price & priceUnit -->
     <div class="grid grid-cols-2 gap-4">
       <div class="space-y-2">
-        <Label for="nm-price">价格</Label>
+        <Label for="nm-price">{{ $t("dashboard.node.metadata.price") }}</Label>
         <NumberField
           id="nm-price"
           :model-value="modelValue.price"
@@ -141,13 +144,15 @@ const filteredRegions = computed(() => {
         />
       </div>
       <div class="space-y-2">
-        <Label>价格单位</Label>
+        <Label>{{ $t("dashboard.node.metadata.priceUnit") }}</Label>
         <Select
           :model-value="modelValue.priceUnit"
           @update:model-value="update({ priceUnit: $event as string })"
         >
           <SelectTrigger>
-            <SelectValue placeholder="选择货币" />
+            <SelectValue
+              :placeholder="$t('dashboard.node.metadata.priceUnitPlaceholder')"
+            />
           </SelectTrigger>
           <SelectContent>
             <SelectItem
@@ -164,7 +169,9 @@ const filteredRegions = computed(() => {
 
     <!-- priceCycle -->
     <div class="space-y-2">
-      <Label for="nm-price-cycle">计费周期（天）</Label>
+      <Label for="nm-price-cycle">{{
+        $t("dashboard.node.metadata.priceCycle")
+      }}</Label>
       <NumberField
         id="nm-price-cycle"
         :model-value="modelValue.priceCycle"
@@ -174,9 +181,25 @@ const filteredRegions = computed(() => {
       />
     </div>
 
+    <!-- expireTime -->
+    <div class="space-y-2">
+      <Label for="nm-expire-time">{{
+        $t("dashboard.node.metadata.expireTime")
+      }}</Label>
+      <input
+        id="nm-expire-time"
+        type="date"
+        :value="modelValue.expireTime"
+        class="placeholder:text-muted-foreground border-input dark:bg-input/30 h-9 w-full rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[1px] md:text-sm"
+        @change="
+          update({ expireTime: ($event.target as HTMLInputElement).value })
+        "
+      />
+    </div>
+
     <!-- region -->
     <div class="space-y-2">
-      <Label for="nm-region">地区</Label>
+      <Label for="nm-region">{{ $t("dashboard.node.metadata.region") }}</Label>
       <AutocompleteRoot
         v-model="regionSearch"
         :ignore-filter="true"
@@ -186,7 +209,7 @@ const filteredRegions = computed(() => {
         <AutocompleteAnchor class="relative">
           <AutocompleteInput
             id="nm-region"
-            placeholder="搜索地区代码或名称…"
+            :placeholder="t('dashboard.node.metadata.regionPlaceholder')"
             :class="
               cn(
                 'placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 pr-8 text-base shadow-xs transition-[color,box-shadow] outline-none md:text-sm',
@@ -216,7 +239,7 @@ const filteredRegions = computed(() => {
               <AutocompleteEmpty
                 class="py-6 text-center text-sm text-muted-foreground"
               >
-                无匹配地区
+                {{ $t("dashboard.node.metadata.regionEmpty") }}
               </AutocompleteEmpty>
               <AutocompleteItem
                 v-for="r in filteredRegions"
@@ -250,9 +273,9 @@ const filteredRegions = computed(() => {
     <!-- hidden -->
     <div class="flex items-center justify-between">
       <div class="space-y-0.5">
-        <Label>隐藏节点</Label>
+        <Label>{{ $t("dashboard.node.metadata.hidden") }}</Label>
         <p class="text-sm text-muted-foreground">
-          隐藏后该节点不在公开列表中展示
+          {{ $t("dashboard.node.metadata.hiddenDesc") }}
         </p>
       </div>
       <SwitchRoot

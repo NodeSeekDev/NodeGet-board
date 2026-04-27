@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { Mode } from "vanilla-jsoneditor";
-import JsonEditorVue from "json-editor-vue";
-import "vanilla-jsoneditor/themes/jse-theme-dark.css";
+import { computed } from "vue";
+import { Codemirror } from "vue-codemirror";
+import { json } from "@codemirror/lang-json";
+import { oneDark } from "@codemirror/theme-one-dark";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +24,15 @@ const emit = defineEmits<{
 }>();
 
 const themeStore = useThemeStore();
+
+const extensions = computed(() => [
+  json(),
+  ...(themeStore.isDark ? [oneDark] : []),
+]);
+
+const displayValue = computed(() =>
+  props.value !== undefined ? JSON.stringify(props.value, null, 2) : "",
+);
 </script>
 
 <template>
@@ -36,16 +46,14 @@ const themeStore = useThemeStore();
       <div v-if="loading" class="text-center py-8 text-muted-foreground">
         加载中...
       </div>
-      <JsonEditorVue
-        v-else
-        :model-value="value"
-        :mode="Mode.text"
-        :class="themeStore.isDark ? 'jse-theme-dark' : ''"
-        :read-only="true"
-        :main-menu-bar="false"
-        :navigation-bar="false"
-        style="height: 280px"
-      />
+      <div v-else class="rounded-md border overflow-hidden">
+        <Codemirror
+          :model-value="displayValue"
+          :extensions="extensions"
+          :disabled="true"
+          :style="{ height: '280px', fontSize: '13px' }"
+        />
+      </div>
     </DialogContent>
   </Dialog>
 </template>

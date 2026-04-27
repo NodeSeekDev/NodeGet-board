@@ -1,45 +1,13 @@
 <script setup lang="ts">
-import { inject, type Ref } from "vue";
 import { RouterLink } from "vue-router";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Moon,
-  Sun,
-  Server as ServerIcon,
-  Sparkles,
-  Circle,
-  LayoutDashboard,
-  Languages,
-} from "lucide-vue-next";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useI18n } from "vue-i18n";
-import { useThemeStore } from "@/stores/theme";
+import { Server as ServerIcon, LayoutDashboard } from "lucide-vue-next";
+import SettingsDialog from "./SettingsDialog.vue";
 
 defineProps<{
   status: "disconnected" | "connecting" | "connected";
 }>();
-
-const background = inject<Ref<"default" | "flickering">>("background");
-const setBackground =
-  inject<(val: "default" | "flickering") => void>("setBackground");
-const openBackendSwitcher = inject<() => void>("openBackendSwitcher");
-const { locale } = useI18n();
-const themeStore = useThemeStore();
-
-const changeLanguage = (lang: string) => {
-  locale.value = lang;
-  localStorage.setItem("locale", lang);
-};
-
-const toggleTheme = () => {
-  themeStore.toggle();
-};
 </script>
 
 <template>
@@ -55,52 +23,8 @@ const toggleTheme = () => {
         </Button>
       </RouterLink>
 
-      <Button
-        variant="ghost"
-        size="icon"
-        @click="
-          setBackground?.(background === 'default' ? 'flickering' : 'default')
-        "
-        title="Toggle background"
-      >
-        <Circle v-if="background === 'default'" class="h-4 w-4" />
-        <Sparkles v-else class="h-4 w-4" />
-        <span class="sr-only">Toggle background</span>
-      </Button>
+      <SettingsDialog />
 
-      <Button variant="ghost" size="icon" @click="toggleTheme">
-        <Moon
-          v-if="!themeStore.isDark"
-          class="h-[1.2rem] w-[1rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0"
-        />
-        <Sun
-          v-else
-          class="h-[1.2rem] w-[1rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100"
-        />
-        <span class="sr-only">Toggle theme</span>
-      </Button>
-
-      <DropdownMenu>
-        <DropdownMenuTrigger as-child>
-          <Button variant="ghost" size="icon">
-            <Languages class="h-[1.2rem] w-[1rem]" />
-            <span class="sr-only">Toggle language</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem @click="changeLanguage('en')">
-            English
-          </DropdownMenuItem>
-          <DropdownMenuItem @click="changeLanguage('zh_cn')">
-            中文简体
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      <Button variant="ghost" size="icon" @click="openBackendSwitcher?.()">
-        <ServerIcon class="h-4 w-4" />
-        <span class="sr-only">Switch backend</span>
-      </Button>
       <Badge
         :variant="
           status === 'connected'

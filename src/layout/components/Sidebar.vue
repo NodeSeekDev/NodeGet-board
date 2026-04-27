@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, watch } from "vue";
+import { computed, watch, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import {
   PanelLeftClose,
@@ -17,9 +17,11 @@ import {
   Package,
   ChartNoAxesGantt,
   HardDrive,
+  LayoutGrid,
 } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import SidebarItem, { type SidebarRoute } from "./SidebarItem.vue";
+import { useExtensions } from "@/composables/useExtensions";
 
 const props = defineProps<{
   collapsed: boolean;
@@ -160,6 +162,7 @@ const nodeRoutes = computed<SidebarRoute[]>(() => {
         icon: Settings,
       },
     },
+    ...extensionNodeRoutes.value,
   ];
 });
 
@@ -184,6 +187,52 @@ function buildMenuTree(parentPath: string): SidebarRoute[] {
     }));
 }
 
+const { extensions, fetchExtensions, getStaticUrl } = useExtensions();
+
+onMounted(() => {
+  if (extensions.value.length === 0) fetchExtensions();
+});
+
+// 从已安装扩展中提取 global 路由，注入到侧边栏
+const extensionGlobalRoutes = computed<SidebarRoute[]>(() =>
+  extensions.value
+    .filter((ext) => !ext.disabled)
+    .flatMap((ext) =>
+      (ext.app.routes ?? [])
+        .filter((r) => r.type === "global")
+        .map((r) => ({
+          path: `/dashboard/app/${r.name}`,
+          meta: {
+            title: r.name,
+            icon: ext.app.icon
+              ? getStaticUrl(ext.id, ext.app.icon)
+              : LayoutGrid,
+            order: 100,
+          },
+        })),
+    ),
+);
+
+// 从已安装扩展中提取 node 路由，在节点详情侧边栏中追加
+const extensionNodeRoutes = computed<SidebarRoute[]>(() => {
+  if (!nodeUuid.value) return [];
+  return extensions.value
+    .filter((ext) => !ext.disabled)
+    .flatMap((ext) =>
+      (ext.app.routes ?? [])
+        .filter((r) => r.type === "node")
+        .map((r) => ({
+          path: `/dashboard/node/${nodeUuid.value}/${r.name}`,
+          meta: {
+            title: r.name,
+            icon: ext.app.icon
+              ? getStaticUrl(ext.id, ext.app.icon)
+              : LayoutGrid,
+          },
+        })),
+    );
+});
+
 const groupedRoutes = computed<[string, SidebarRoute[]][]>(() => {
   const routes = buildMenuTree("/dashboard");
   const map = new Map<string, SidebarRoute[]>();
@@ -192,6 +241,13 @@ const groupedRoutes = computed<[string, SidebarRoute[]][]>(() => {
     const key = (route.meta?.group as string) ?? "";
     if (!map.has(key)) map.set(key, []);
     map.get(key)!.push(route);
+  }
+
+  // 将扩展 global 路由追加到 appExtensions 分组
+  if (extensionGlobalRoutes.value.length > 0) {
+    const key = "router.group.appExtensions";
+    if (!map.has(key)) map.set(key, []);
+    map.get(key)!.push(...extensionGlobalRoutes.value);
   }
 
   return [...map.entries()];

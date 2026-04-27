@@ -10,6 +10,10 @@ import {
   SERIES_COLORS,
 } from "./utils";
 
+const emit = defineEmits<{
+  xRangeChange: [{ min: number; max: number } | null];
+}>();
+
 const props = withDefaults(
   defineProps<{
     data: TaskQueryResult[];
@@ -205,6 +209,27 @@ function makeOpts(
     },
     legend: { show: false },
     plugins: [tooltipPlugin()],
+    hooks: {
+      setSelect: [
+        (u: uPlot) => {
+          if (u.select.width > 0) {
+            const min = u.posToVal(u.select.left, "x");
+            const max = u.posToVal(u.select.left + u.select.width, "x");
+            userZoomRange = { min, max };
+            emit("xRangeChange", { min, max });
+          }
+          // width===0 是单击无拖拽，不处理
+        },
+      ],
+      init: [
+        (u: uPlot) => {
+          u.over.addEventListener("dblclick", () => {
+            userZoomRange = null;
+            emit("xRangeChange", null);
+          });
+        },
+      ],
+    },
   };
 }
 
@@ -213,6 +238,7 @@ const currentCronNames = shallowRef<string[]>([]);
 let chart: uPlot | null = null;
 let resizeObserver: ResizeObserver | null = null;
 let currentTimeoutFlags: boolean[][] = [];
+let userZoomRange: { min: number; max: number } | null = null;
 
 function destroy() {
   chart?.destroy();
@@ -259,6 +285,9 @@ function build(width: number, height: number) {
   );
   applyVisibility();
   applySeriesEmphasis();
+  if (userZoomRange != null) {
+    chart.setScale("x", { min: userZoomRange.min, max: userZoomRange.max });
+  }
 }
 
 onMounted(() => {
@@ -316,24 +345,10 @@ watch(
     ) {
       currentTimeoutFlags = timeoutFlags;
       applyVisibility();
-      const xs = aligned[0] as number[];
-      const dataMin = xs.length ? (xs[0] ?? null) : null;
-      const dataMax = xs.length ? (xs[xs.length - 1] ?? null) : null;
-      const savedMin = chart.scales["x"]?.min ?? null;
-      const savedMax = chart.scales["x"]?.max ?? null;
-      const isZoomed =
-        savedMin != null &&
-        savedMax != null &&
-        dataMin != null &&
-        dataMax != null &&
-        (savedMin !== dataMin || savedMax !== dataMax);
-
       chart.setData(aligned);
-
-      if (isZoomed) {
-        chart.setScale("x", { min: savedMin, max: savedMax });
+      if (userZoomRange != null) {
+        chart.setScale("x", { min: userZoomRange.min, max: userZoomRange.max });
       }
-
       applySeriesEmphasis();
     } else {
       const { width, height } = containerRef.value.getBoundingClientRect();

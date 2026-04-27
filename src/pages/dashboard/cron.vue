@@ -2,7 +2,7 @@
 import { ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { toast } from "vue-sonner";
-import { CalendarCheck, Plus } from "lucide-vue-next";
+import { CalendarCheck, Plus, RefreshCw } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import CronTable from "@/components/cron/CronTable.vue";
 import CronFormDialog from "@/components/cron/CronFormDialog.vue";
@@ -250,6 +250,14 @@ const handleUpdateNodes = async (name: string, agentIds: string[]) => {
           {{ t("dashboard.cron.desc") }}
         </p>
       </div>
+      <Button
+        variant="outline"
+        :disabled="loading"
+        class="ml-auto mr-2"
+        @click="() => loadTasks()"
+      >
+        <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': loading }" />
+      </Button>
       <Button @click="openCreate">
         <Plus class="h-4 w-4 mr-1.5" />
         {{ t("dashboard.cron.create") }}

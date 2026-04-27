@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Demo Extension</title>
+    <link rel="stylesheet" href="assets/style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <img src="assets/icon.svg" class="icon" alt="icon" />
+        <h1>Demo Extension</h1>
+        <p class="subtitle">NodeGet 扩展测试页面</p>
+      </header>
+
+      <section class="info-card">
+        <h2>环境参数</h2>
+        <div class="row">
+          <span class="label">Token</span>
+          <span id="token-val" class="value mono">—</span>
+        </div>
+        <div class="row">
+          <span class="label">Node UUID</span>
+          <span id="node-val" class="value mono">—</span>
+        </div>
+        <div class="row">
+          <span class="label">Theme</span>
+          <span id="theme-val" class="value mono">—</span>
+        </div>
+      </section>
+
+      <section class="info-card">
+        <h2>扩展状态</h2>
+        <div class="status ok">✓ 扩展加载成功</div>
+        <p class="hint">
+          此扩展通过 iframe 嵌入 NodeGet Dashboard。<br />
+          宿主通过 URL hash 注入 <code>token</code>、<code>node</code>、<code
+            >theme</code
+          >
+          参数， 并在主题切换时通过 <code>postMessage</code> 实时通知。
+        </p>
+      </section>
+    </div>
+
+    <script src="assets/main.js"></script>
+  </body>
+</html>

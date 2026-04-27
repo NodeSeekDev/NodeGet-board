@@ -52,7 +52,11 @@ const defaultForm = () => ({
   agentTaskTarget: "",
   agentExecuteCommand: "",
   agentExecuteArgsText: "",
+  serverTaskType: "string" as "string" | "js_worker",
   serverTask: "clean_up_database",
+  jsWorkerName: "",
+  jsWorkerTask: "",
+  jsWorkerParams: "{}",
 });
 
 const form = ref(defaultForm());
@@ -326,10 +330,6 @@ const validateForm = (): boolean => {
   }
 
   if (form.value.taskKind === "agent") {
-    if (!form.value.agentIds.length) {
-      errors.value.agentIds = t("dashboard.cron.nodesRequired");
-    }
-
     if (form.value.agentTaskType === "execute") {
       if (!form.value.agentExecuteCommand.trim()) {
         errors.value.agentExecuteCommand = t(
@@ -351,6 +351,9 @@ watch(
   (val) => {
     if (val) {
       if (props.task) {
+        const isJsWorker =
+          typeof props.task.serverTask === "object" &&
+          "js_worker" in props.task.serverTask;
         form.value = {
           name: props.mode === "duplicate" ? "" : props.task.name,
           cronExpression: props.task.cronExpression,
@@ -362,7 +365,24 @@ watch(
           agentExecuteArgsText: stringifyExecuteArgs(
             props.task.agentExecuteArgs,
           ),
-          serverTask: props.task.serverTask || "clean_up_database",
+          serverTaskType: isJsWorker ? "js_worker" : "string",
+          serverTask:
+            typeof props.task.serverTask === "string"
+              ? props.task.serverTask
+              : "clean_up_database",
+          jsWorkerName: isJsWorker
+            ? ((props.task.serverTask as any).js_worker?.[0] ?? "")
+            : "",
+          jsWorkerTask: isJsWorker
+            ? ((props.task.serverTask as any).js_worker?.[1]?.task ?? "")
+            : "",
+          jsWorkerParams: isJsWorker
+            ? JSON.stringify(
+                (props.task.serverTask as any).js_worker?.[1] ?? {},
+                null,
+                2,
+              )
+            : "{}",
         };
       } else {
         form.value = defaultForm();
@@ -378,6 +398,18 @@ const handleNodeConfirm = (ids: string[]) => {
 const handleSave = () => {
   if (props.saving) return;
   if (!validateForm()) return;
+
+  let serverTask: any = form.value.serverTask;
+  if (form.value.serverTaskType === "js_worker") {
+    try {
+      const params = JSON.parse(form.value.jsWorkerParams);
+      serverTask = { js_worker: [form.value.jsWorkerName, params] };
+    } catch (e) {
+      errors.value.jsWorkerParams = "Invalid JSON format";
+      return;
+    }
+  }
+
   emit("save", {
     id: isEditMode.value ? props.task?.id : undefined,
     name: form.value.name,
@@ -390,7 +422,7 @@ const handleSave = () => {
     agentTaskTarget: form.value.agentTaskTarget,
     agentExecuteCommand: form.value.agentExecuteCommand,
     agentExecuteArgs: parseExecuteArgs(form.value.agentExecuteArgsText),
-    serverTask: form.value.serverTask,
+    serverTask: serverTask as any,
   });
 };
 </script>
@@ -608,17 +640,60 @@ const handleSave = () => {
         <template v-else>
           <div class="space-y-1.5">
             <Label>{{ t("dashboard.cron.serverTaskType") }}</Label>
-            <Select v-model="form.serverTask">
+            <Select v-model="form.serverTaskType">
               <SelectTrigger class="w-full" :disabled="saving">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="clean_up_database"
-                  >clean_up_database</SelectItem
-                >
+                <SelectItem value="string">System Task</SelectItem>
+                <SelectItem value="js_worker">JS Worker</SelectItem>
               </SelectContent>
             </Select>
           </div>
+
+          <!-- System Task (String) -->
+          <template v-if="form.serverTaskType === 'string'">
+            <div class="space-y-1.5">
+              <Label>Task Name</Label>
+              <Select v-model="form.serverTask">
+                <SelectTrigger class="w-full" :disabled="saving">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="clean_up_database"
+                    >clean_up_database</SelectItem
+                  >
+                </SelectContent>
+              </Select>
+            </div>
+          </template>
+
+          <!-- JS Worker Task -->
+          <template v-else>
+            <div class="space-y-1.5">
+              <Label>Worker Name</Label>
+              <Input
+                v-model="form.jsWorkerName"
+                placeholder="e.g., base-worker"
+                :disabled="saving"
+              />
+            </div>
+            <div class="space-y-1.5">
+              <Label>Parameters (JSON)</Label>
+              <textarea
+                v-model="form.jsWorkerParams"
+                placeholder='{
+  "task": "update"
+}'
+                class="w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-sm text-foreground resize-none"
+                :disabled="saving"
+                rows="5"
+              ></textarea>
+              <p v-if="errors.jsWorkerParams" class="text-xs text-destructive">
+                {{ errors.jsWorkerParams }}
+              </p>
+            </div>
+          </template>
         </template>
       </div>
       <DialogFooter>

@@ -60,7 +60,14 @@ const routeTo = computed<RouteLocationRaw>(() =>
       } as RouteLocationRaw)
     : props.route.path,
 );
-const { t } = useI18n();
+const { t, te } = useI18n();
+
+const isIconUrl = computed(() => typeof props.route.meta?.icon === "string");
+
+function translateTitle(title: unknown): string {
+  if (typeof title !== "string" || !title) return "";
+  return te(title) ? t(title) : title;
+}
 </script>
 
 <template>
@@ -74,13 +81,20 @@ const { t } = useI18n();
             )
           "
         >
+          <img
+            v-if="isIconUrl && route.meta?.icon && level === 0"
+            :src="route.meta.icon as string"
+            alt=""
+            class="h-4 w-4 shrink-0 rounded-sm object-contain"
+            @error="($event.target as HTMLImageElement).style.display = 'none'"
+          />
           <component
             :is="route.meta?.icon"
-            v-if="route.meta?.icon && level === 0"
+            v-else-if="route.meta?.icon && level === 0"
             class="h-4 w-4 shrink-0"
           />
           <span class="flex-1 truncate text-left">{{
-            route.meta?.title ? t(route.meta.title as string) : ""
+            translateTitle(route.meta?.title)
           }}</span>
           <ChevronDown
             class="h-3.5 w-3.5 shrink-0 transition-transform duration-200"
@@ -107,9 +121,16 @@ const { t } = useI18n();
         class="flex w-full items-center justify-center rounded-md p-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
         @click="isOpen = !isOpen"
       >
+        <img
+          v-if="isIconUrl && route.meta?.icon"
+          :src="route.meta.icon as string"
+          alt=""
+          class="h-4 w-4 rounded-sm object-contain"
+          @error="($event.target as HTMLImageElement).style.display = 'none'"
+        />
         <component
           :is="route.meta?.icon"
-          v-if="route.meta?.icon"
+          v-else-if="route.meta?.icon"
           class="h-4 w-4"
         />
       </button>
@@ -123,16 +144,21 @@ const { t } = useI18n();
           <span
             class="flex items-center justify-center rounded-md p-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
           >
+            <img
+              v-if="isIconUrl && route.meta?.icon"
+              :src="route.meta.icon as string"
+              class="h-4 w-4 rounded-sm object-contain"
+            />
             <component
               :is="route.meta?.icon"
-              v-if="route.meta?.icon"
+              v-else-if="route.meta?.icon"
               class="h-4 w-4"
             />
           </span>
         </RouterLink>
       </TooltipTrigger>
       <TooltipContent side="right">{{
-        route.meta?.title ? t(route.meta.title as string) : ""
+        translateTitle(route.meta?.title)
       }}</TooltipContent>
     </Tooltip>
     <RouterLink
@@ -145,14 +171,17 @@ const { t } = useI18n();
       "
       active-class="bg-accent text-accent-foreground font-medium"
     >
+      <img
+        v-if="isIconUrl && route.meta?.icon && level === 0"
+        :src="route.meta.icon as string"
+        class="h-4 w-4 shrink-0 rounded-sm object-contain"
+      />
       <component
         :is="route.meta?.icon"
-        v-if="route.meta?.icon && level === 0"
+        v-else-if="route.meta?.icon && level === 0"
         class="h-4 w-4 shrink-0"
       />
-      <span class="truncate">{{
-        route.meta?.title ? t(route.meta.title as string) : ""
-      }}</span>
+      <span class="truncate">{{ translateTitle(route.meta?.title) }}</span>
     </RouterLink>
   </template>
 </template>

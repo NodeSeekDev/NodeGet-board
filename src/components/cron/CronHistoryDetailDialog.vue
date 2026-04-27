@@ -27,6 +27,7 @@ import {
 
 const props = defineProps<{
   open: boolean;
+  taskType: "agent" | "server";
   record: CrontabResult | null;
 }>();
 
@@ -49,11 +50,6 @@ const formatTime = (ts: number) => {
     minute: "2-digit",
     second: "2-digit",
   });
-};
-
-const extractTaskId = (message: string): number | null => {
-  const match = message.match(/Task ID:\s*(\d+)/);
-  return match && match[1] ? parseInt(match[1], 10) : null;
 };
 
 const formatResult = (taskType: string, result: any): string => {
@@ -95,9 +91,12 @@ const getTaskTarget = (taskEventType: Record<string, any>): string => {
   return "";
 };
 
-const loadTaskDetail = async (message: string) => {
+const loadTaskDetail = async (record: CrontabResult) => {
   taskResults.value = [];
-  const taskId = extractTaskId(message);
+  if (props.taskType === "server") {
+    return;
+  }
+  const taskId = record.relative_id;
   if (!taskId) return;
 
   loadingTask.value = true;
@@ -115,7 +114,7 @@ watch(
   () => props.open,
   (open) => {
     if (open && props.record) {
-      loadTaskDetail(props.record.message);
+      loadTaskDetail(props.record);
     }
   },
 );

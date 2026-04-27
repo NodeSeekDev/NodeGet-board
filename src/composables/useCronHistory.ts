@@ -10,7 +10,7 @@ export interface CrontabResult {
   run_time: number;
   success: boolean;
   message: string;
-  task_id?: number; // Agent 任务会有 task_id
+  relative_id?: number; // agent任务对应task id， js worker对应js result id
 }
 
 export interface TaskQueryResult {
