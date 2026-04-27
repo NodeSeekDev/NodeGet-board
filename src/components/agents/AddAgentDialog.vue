@@ -84,9 +84,11 @@ const agentTaskRetention = ref<number>(60 * 6);
 const loadCrons = async () => {
   if (!currentBackendInfo.value) return;
   try {
-    cronList.value = await listCrons().then((r) =>
+    const cv = await listCrons().then((r) =>
       r.filter((c) => "agent" in c.cron_type),
     );
+    cv.sort((a, b) => (a.name > b.name ? -1 : 1));
+    cronList.value = cv;
   } catch {
     cronList.value = [];
   }
@@ -106,7 +108,7 @@ const checkOnline = async () => {
       { token: currentBackendInfo.value.token },
     );
     if (result?.uuids?.includes(nodeUuid.value)) {
-      isOnline.value = true;
+      stopPolling();
       const formatMinute = (t: typeof dynamicRetention) => {
         const oneMinute = 60 * 1000; // ms
         if (typeof t.value == "undefined") {
@@ -128,7 +130,7 @@ const checkOnline = async () => {
           metadata_name: nodeName.value,
         },
       });
-      stopPolling();
+      isOnline.value = true;
       emit("added");
     }
   } catch {

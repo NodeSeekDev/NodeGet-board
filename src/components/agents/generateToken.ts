@@ -1,8 +1,8 @@
 import { useBackendStore } from "@/composables/useBackendStore";
 import { wsRpcCall } from "@/composables/useWsRpc";
+import { AGENT_PERMISSIONS } from "@/components/token/tokenPermissionTemplates";
 
 const { currentBackend } = useBackendStore();
-
 // 预生成 token
 export async function preGenerateToken(
   nodeUuid: string,
@@ -29,20 +29,7 @@ export async function preGenerateToken(
                   agent_uuid: nodeUuid,
                 },
               ],
-              permissions: [
-                { static_monitoring: "write" },
-                { dynamic_monitoring: "write" },
-                { dynamic_monitoring_summary: "write" },
-                { task: "listen" },
-                { task: { write: "ping" } },
-                { task: { write: "tcp_ping" } },
-                { task: { write: "http_ping" } },
-                { task: { write: "web_shell" } },
-                { task: { write: "execute" } },
-                { task: { write: "edit_config" } },
-                { task: { write: "read_config" } },
-                { task: { write: "ip" } },
-              ],
+              permissions: AGENT_PERMISSIONS,
             },
           ],
         },

@@ -332,6 +332,7 @@ const handleDelete = async (index: number) => {
     </div>
 
     <UpstreamFormDialog
+      v-if="formOpen"
       v-model:open="formOpen"
       :upstream="editingUpstream"
       :saving="saving"

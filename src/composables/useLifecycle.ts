@@ -98,6 +98,7 @@ async function afterAgentCreate(
   if (createdAgent.has(agentUUID)) {
     return;
   }
+  const { runWorker } = useJsRuntime();
 
   try {
     const { currentBackend } = useBackendStore();
@@ -147,8 +148,12 @@ async function afterAgentCreate(
         });
       }
     }
-
     createdAgent.add(agentUUID);
+
+    await runWorker("ip-location-update", "call", {
+      uuids: [agentUUID],
+    });
+
     toast.success("Agent post-processing completed successfully");
   } catch (e: unknown) {
     const errorMsg =
