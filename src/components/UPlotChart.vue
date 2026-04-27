@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, watch, nextTick } from "vue";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
+import Spinner from "@/components/ui/spinner/Spinner.vue";
 
 interface UPlotChartProps {
   data: number[];
@@ -15,6 +16,7 @@ interface UPlotChartProps {
   timestamps?: number[];
   label1?: string;
   label2?: string;
+  loading?: boolean;
 }
 
 const props = withDefaults(defineProps<UPlotChartProps>(), {
@@ -27,11 +29,14 @@ const props = withDefaults(defineProps<UPlotChartProps>(), {
   timestamps: () => [],
   label1: "Value",
   label2: "Value2",
+  loading: false,
 });
 
 const chartRef = ref<HTMLDivElement | null>(null);
 let uplot: uPlot | null = null;
 let resizeObserver: ResizeObserver | null = null;
+let userZoomRange: { min: number; max: number } | null = null;
+let chartIsTimeAxis: boolean | null = null;
 
 const useTimeAxis = () => props.timestamps.length > 0;
 
@@ -45,7 +50,7 @@ const formatBytes = (bytes: number): string => {
   if (bytes === 0) return "0 B";
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB", "TB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  const i = Math.max(0, Math.floor(Math.log(bytes) / Math.log(k)));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
 };
 
@@ -131,10 +136,32 @@ const buildAlignedData = (): uPlot.AlignedData => {
   return data;
 };
 
+const autoYRange = (u: uPlot, range: { min: number; max: number } | null) => {
+  if (range) {
+    const xs = u.data[0] as number[];
+    const lo = range.min;
+    const hi = range.max;
+    let peak = 0;
+    for (let i = 0; i < xs.length; i++) {
+      if (xs[i]! >= lo && xs[i]! <= hi) {
+        const v1 = (u.data[1] as (number | null)[])[i];
+        if (v1 != null && v1 > peak) peak = v1;
+        if (u.data[2]) {
+          const v2 = (u.data[2] as (number | null)[])[i];
+          if (v2 != null && v2 > peak) peak = v2;
+        }
+      }
+    }
+    u.setScale("y", { min: 0, max: peak || 1 });
+  } else {
+    u.setScale("y", { min: 0, max: props.maxValue });
+  }
+};
+
 const initChart = () => {
   if (!chartRef.value) return;
 
-  const chartHeight = props.height - 40;
+  const chartHeight = chartRef.value.clientHeight || props.height;
   const isTime = useTimeAxis();
 
   const opts: uPlot.Options = {
@@ -142,10 +169,10 @@ const initChart = () => {
     height: chartHeight,
     padding: [8, 12, 16, 48],
     cursor: {
-      drag: { x: false, y: false },
+      drag: { x: true, y: false },
       points: { show: false },
     },
-    select: { show: false, left: 0, top: 0, width: 0, height: 0 },
+    select: { show: true, left: 0, top: 0, width: 0, height: 0 },
     legend: { show: false },
     scales: {
       x: { time: isTime },
@@ -187,6 +214,27 @@ const initChart = () => {
       },
     ],
     plugins: [tooltipPlugin()],
+    hooks: {
+      setSelect: [
+        (u: uPlot) => {
+          if (u.select.width > 0) {
+            const min = u.posToVal(u.select.left, "x");
+            const max = u.posToVal(u.select.left + u.select.width, "x");
+            userZoomRange = { min, max };
+            u.setScale("x", { min, max });
+            autoYRange(u, userZoomRange);
+          }
+        },
+      ],
+      init: [
+        (u: uPlot) => {
+          u.over.addEventListener("dblclick", () => {
+            userZoomRange = null;
+            autoYRange(u, null);
+          });
+        },
+      ],
+    },
   };
 
   if (props.data2.length > 0) {
@@ -199,23 +247,31 @@ const initChart = () => {
     });
   }
 
+  chartIsTimeAxis = isTime;
   uplot = new uPlot(opts, buildAlignedData(), chartRef.value);
 };
 
 const updateChart = () => {
   if (!uplot) return;
   uplot.setData(buildAlignedData());
+  if (userZoomRange) {
+    uplot.setScale("x", { min: userZoomRange.min, max: userZoomRange.max });
+    autoYRange(uplot, userZoomRange);
+  }
 };
 
 onMounted(() => {
   nextTick(() => {
-    initChart();
+    // Only initialize if data is already available; otherwise wait for first data in the watch
+    if (props.data.length > 0 || props.timestamps.length > 0) {
+      initChart();
+    }
     if (chartRef.value) {
       resizeObserver = new ResizeObserver(([entry]) => {
         if (!entry || !uplot) return;
         uplot.setSize({
           width: entry.contentRect.width,
-          height: props.height - 40,
+          height: entry.contentRect.height,
         });
       });
       resizeObserver.observe(chartRef.value);
@@ -233,21 +289,23 @@ onUnmounted(() => {
 
 watch(
   () => [props.data, props.data2, props.timestamps],
-  (newVal, oldVal) => {
-    const wasTime = (oldVal?.[2] as number[] | undefined)?.length ?? 0 > 0;
-    const isTime = props.timestamps.length > 0;
-    if (isTime !== wasTime) {
-      // Time axis mode changed, need to reinitialize chart
-      if (uplot) {
-        uplot.destroy();
-        uplot = null;
-      }
+  () => {
+    if (!uplot) {
+      // Chart not yet initialized (no data on mount), initialize now
+      nextTick(() => initChart());
+      return;
+    }
+    const isTime = useTimeAxis();
+    if (isTime !== chartIsTimeAxis) {
+      // Time axis mode changed, reinitialize
+      uplot.destroy();
+      uplot = null;
+      chartIsTimeAxis = null;
       nextTick(() => initChart());
     } else {
       updateChart();
     }
   },
-  { deep: true },
 );
 
 watch(
@@ -259,7 +317,17 @@ watch(
 </script>
 
 <template>
-  <div ref="chartRef" class="w-full h-full" />
+  <div class="relative w-full h-full">
+    <div ref="chartRef" class="w-full h-full" />
+    <Transition name="uplot-loading">
+      <div
+        v-if="props.loading"
+        class="absolute inset-0 flex items-center justify-center bg-background/40"
+      >
+        <Spinner class="size-5 text-muted-foreground" />
+      </div>
+    </Transition>
+  </div>
 </template>
 
 <style scoped>
@@ -268,6 +336,17 @@ watch(
 }
 
 :deep(.u-select) {
-  background: hsl(var(--primary) / 0.1);
+  background: rgba(0, 0, 0, 0.08);
+  border-left: 1px solid rgba(0, 0, 0, 0.2);
+  border-right: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.uplot-loading-enter-active,
+.uplot-loading-leave-active {
+  transition: opacity 0.2s ease;
+}
+.uplot-loading-enter-from,
+.uplot-loading-leave-to {
+  opacity: 0;
 }
 </style>
