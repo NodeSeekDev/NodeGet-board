@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { onMounted, computed, ref, watch } from "vue";
+import { onMounted, onUnmounted, computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useDynamicData } from "@/composables/useDynamicData";
 import { useStaticData } from "@/composables/useStaticData";
-import { useBackendStore } from "@/composables/useBackendStore";
 import { colors } from "@/composables/color";
 import {
   formatLoad,
@@ -18,19 +17,12 @@ import {
   showRamPercent,
   showRamText,
   showNetworkSpeed,
-  showDiskUsage,
   showDiskPercent,
   showDiskDisplay,
 } from "@/utils/show";
 
 import { useRoute, useRouter } from "vue-router";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-  CardDescription,
-} from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import HeaderView from "@/components/HeaderView.vue";
 import { Button } from "@/components/ui/button";
@@ -52,13 +44,16 @@ import {
   Container,
   Fish,
 } from "lucide-vue-next";
-import { usePermissionStore } from "@/stores/permission";
+import type {
+  DynamicDetailData,
+  DynamicDisk,
+  DynamicNetworkInterface,
+} from "@/types/monitoring";
 
 definePage({
   path: "/s/:uuid",
 });
 
-const { hasPermission } = usePermissionStore();
 const { t } = useI18n();
 
 const route = useRoute();
@@ -66,22 +61,17 @@ const router = useRouter();
 const uuid = (route.params as { uuid: string }).uuid;
 
 const isSidebarOpen = ref(false);
-const { currentBackend } = useBackendStore();
 
 const {
   status: dynamicStatus,
   error: dynamicError,
   servers: dynamicServers,
   connect: connectDynamic,
-  fetchCpuHistory,
+  fetchDynamic,
+  fetchSummaryAvg,
 } = useDynamicData();
 
-const {
-  status: staticStatus,
-  error: staticError,
-  servers: staticServers,
-  connect: connectStatic,
-} = useStaticData();
+const { servers: staticServers, connect: connectStatic } = useStaticData();
 
 const activeTab = ref("cpu");
 
@@ -89,16 +79,14 @@ const server = computed(() => {
   const dServer = dynamicServers.value.find((s) => s.uuid === uuid);
   const sServer = staticServers.value.find((s) => s.uuid === uuid);
 
-  if (dServer && sServer) {
-    return {
-      ...dServer,
-      cpu: { ...dServer.cpu },
-      cpu_static: { ...sServer.cpu },
-      system: { ...sServer.system, ...dServer.system },
-      gpu: sServer.gpu || [],
-    };
-  }
-  return dServer;
+  if (!dServer) return undefined;
+
+  return {
+    ...dServer,
+    cpu_static: sServer?.cpu,
+    system: sServer?.system,
+    gpu: sServer?.gpu || [],
+  };
 });
 
 const getcolors = (id: string) => {
@@ -126,14 +114,9 @@ const tabs = [
 
 const activeTheme = computed(() => getcolors(activeTab.value));
 
-onMounted(() => {
-  connectDynamic();
-  connectStatic();
-});
-
 const cpuHistory = ref<number[]>([]);
 const cpuMode = ref("realtime");
-const historyData = ref<any[]>([]);
+const historyData = ref<{ timestamp: number; cpu_usage: number }[]>([]);
 const isLoadingHistory = ref(false);
 
 watch(server, (newServer: any) => {
@@ -150,9 +133,20 @@ const loadHistory = async () => {
   if (!uuid) return;
   isLoadingHistory.value = true;
   try {
-    const res = await fetchCpuHistory(uuid);
+    const now = Date.now();
+    const from = now - 10 * 60 * 1000;
+    const res = await fetchSummaryAvg(
+      uuid,
+      { timestamp_from: from, timestamp_to: now },
+      ["cpu_usage"],
+    );
     if (Array.isArray(res)) {
-      historyData.value = res.reverse(); //oldest first for chart
+      historyData.value = res
+        .map((r: any) => ({
+          timestamp: r.timestamp ?? r.time ?? 0,
+          cpu_usage: r.cpu_usage ?? 0,
+        }))
+        .sort((a, b) => a.timestamp - b.timestamp);
     }
   } catch (e) {
     console.error("Failed to fetch history", e);
@@ -169,7 +163,7 @@ watch(cpuMode, (newMode) => {
 
 const displayData = computed(() => {
   if (cpuMode.value === "history") {
-    return historyData.value.map((item) => item.cpu.total_cpu_usage);
+    return historyData.value.map((item) => item.cpu_usage);
   }
   return cpuHistory.value;
 });
@@ -218,6 +212,70 @@ const historyAreaPath = computed(() => {
   const path = historyPath.value;
 
   return `${path} L 100,40 L 0,40 Z`;
+});
+
+// Per-disk array (flat summary API doesn't expose it; fetch via dynamic detail)
+const diskList = ref<DynamicDisk[]>([]);
+const networkInterfaces = ref<DynamicNetworkInterface[]>([]);
+let diskTimer: ReturnType<typeof setInterval> | null = null;
+let networkTimer: ReturnType<typeof setInterval> | null = null;
+
+const fetchDiskDetail = async () => {
+  if (!uuid) return;
+  try {
+    const result: DynamicDetailData[] = await fetchDynamic(uuid, ["disk"]);
+    const last = result[result.length - 1];
+    diskList.value = last?.disk ?? [];
+  } catch (e) {
+    console.error("[ServerDetail] Failed to fetch disk detail", e);
+  }
+};
+
+const fetchNetworkDetail = async () => {
+  if (!uuid) return;
+  try {
+    const result: DynamicDetailData[] = await fetchDynamic(uuid, ["network"]);
+    const last = result[result.length - 1];
+    networkInterfaces.value = last?.network?.interfaces ?? [];
+  } catch (e) {
+    console.error("[ServerDetail] Failed to fetch network detail", e);
+  }
+};
+
+const stopDiskTimer = () => {
+  if (diskTimer) {
+    clearInterval(diskTimer);
+    diskTimer = null;
+  }
+};
+
+const stopNetworkTimer = () => {
+  if (networkTimer) {
+    clearInterval(networkTimer);
+    networkTimer = null;
+  }
+};
+
+watch(activeTab, (tab) => {
+  stopDiskTimer();
+  stopNetworkTimer();
+  if (tab === "disk") {
+    fetchDiskDetail();
+    diskTimer = setInterval(fetchDiskDetail, 3000);
+  } else if (tab === "network") {
+    fetchNetworkDetail();
+    networkTimer = setInterval(fetchNetworkDetail, 3000);
+  }
+});
+
+onMounted(() => {
+  connectDynamic();
+  connectStatic();
+});
+
+onUnmounted(() => {
+  stopDiskTimer();
+  stopNetworkTimer();
 });
 </script>
 
@@ -428,7 +486,7 @@ const historyAreaPath = computed(() => {
               <Badge variant="outline" class="font-mono text-xs">
                 <Clock class="h-3 w-3 mr-1" />
                 System Uptime:
-                {{ formatUptime(server.system.uptime) }}
+                {{ formatUptime(server.uptime ?? 0) }}
               </Badge>
             </div>
 
@@ -567,7 +625,7 @@ const historyAreaPath = computed(() => {
                         v-if="cpuMode === 'history' && historyData.length > 0"
                         class="absolute bottom-1 left-12 text-[10px] text-muted-foreground font-mono"
                       >
-                        {{ formatTimestamp(historyData[0].timestamp) }}
+                        {{ formatTimestamp(historyData[0]!.timestamp) }}
                       </div>
                       <div
                         v-if="cpuMode === 'history' && historyData.length > 0"
@@ -575,7 +633,7 @@ const historyAreaPath = computed(() => {
                       >
                         {{
                           formatTimestamp(
-                            historyData[historyData.length - 1].timestamp,
+                            historyData[historyData.length - 1]!.timestamp,
                           )
                         }}
                       </div>
@@ -591,7 +649,7 @@ const historyAreaPath = computed(() => {
                       {{ $t("serverDetail.cpu.loadAverage") }}
                     </div>
                     <div class="text-lg font-mono">
-                      {{ formatLoad(server.load) }}
+                      {{ formatLoad(server) }}
                     </div>
                   </div>
                   <div
@@ -601,7 +659,7 @@ const historyAreaPath = computed(() => {
                       {{ $t("serverDetail.cpu.cores") }}
                     </div>
                     <div class="text-lg font-mono">
-                      {{ server.cpu.per_core.length }}
+                      {{ server.cpu_static?.per_core?.length ?? "-" }}
                     </div>
                   </div>
                   <div
@@ -707,9 +765,7 @@ const historyAreaPath = computed(() => {
                               $t("serverDetail.memory.used")
                             }}</span>
                             <span class="font-mono font-medium">{{
-                              formatBytes(
-                                server.ram.used_memory || server.ram.used,
-                              )
+                              formatBytes(server.used_memory ?? 0)
                             }}</span>
                           </div>
                           <div class="flex justify-between text-sm">
@@ -718,8 +774,9 @@ const historyAreaPath = computed(() => {
                             }}</span>
                             <span class="font-mono font-medium">{{
                               formatBytes(
-                                (server.ram.total_memory || server.ram.total) -
-                                  (server.ram.used_memory || server.ram.used),
+                                server.available_memory ??
+                                  (server.total_memory ?? 0) -
+                                    (server.used_memory ?? 0),
                               )
                             }}</span>
                           </div>
@@ -749,7 +806,7 @@ const historyAreaPath = computed(() => {
                         >
                           <!-- Inactive: dashed ring / Active: solid ring -->
                           <circle
-                            v-if="!server.ram.total_swap"
+                            v-if="!server.total_swap"
                             cx="65"
                             cy="65"
                             r="54"
@@ -780,11 +837,8 @@ const historyAreaPath = computed(() => {
                               :stroke-dasharray="339.29"
                               :stroke-dashoffset="
                                 339.29 -
-                                (339.29 *
-                                  (server.ram.used_swap /
-                                    server.ram.total_swap) *
-                                  100) /
-                                  100
+                                339.29 *
+                                  ((server.used_swap ?? 0) / server.total_swap)
                               "
                               class="transition-all duration-700 ease-out"
                               :style="{
@@ -797,7 +851,7 @@ const historyAreaPath = computed(() => {
                         <div
                           class="absolute inset-0 flex flex-col items-center justify-center"
                         >
-                          <template v-if="!server.ram.total_swap">
+                          <template v-if="!server.total_swap">
                             <span
                               class="text-sm font-medium text-muted-foreground/60"
                               >Inactive</span
@@ -809,8 +863,8 @@ const historyAreaPath = computed(() => {
                               :style="{ color: activeTheme.color }"
                               >{{
                                 (
-                                  (server.ram.used_swap /
-                                    server.ram.total_swap) *
+                                  ((server.used_swap ?? 0) /
+                                    server.total_swap) *
                                   100
                                 ).toFixed(1)
                               }}%</span
@@ -825,8 +879,8 @@ const historyAreaPath = computed(() => {
                           <span class="text-lg font-semibold">Swap</span>
                         </div>
                         <div class="text-xs text-muted-foreground font-mono">
-                          {{ formatBytes(server.ram.used_swap || 0) }} /
-                          {{ formatBytes(server.ram.total_swap || 0) }}
+                          {{ formatBytes(server.used_swap ?? 0) }} /
+                          {{ formatBytes(server.total_swap ?? 0) }}
                         </div>
                         <div class="space-y-2">
                           <div class="flex justify-between text-sm">
@@ -834,7 +888,7 @@ const historyAreaPath = computed(() => {
                               $t("serverDetail.memory.used")
                             }}</span>
                             <span class="font-mono font-medium">{{
-                              formatBytes(server.ram.used_swap || 0)
+                              formatBytes(server.used_swap ?? 0)
                             }}</span>
                           </div>
                           <div class="flex justify-between text-sm">
@@ -843,8 +897,8 @@ const historyAreaPath = computed(() => {
                             }}</span>
                             <span class="font-mono font-medium">{{
                               formatBytes(
-                                (server.ram.total_swap || 0) -
-                                  (server.ram.used_swap || 0),
+                                (server.total_swap ?? 0) -
+                                  (server.used_swap ?? 0),
                               )
                             }}</span>
                           </div>
@@ -861,9 +915,15 @@ const historyAreaPath = computed(() => {
                 key="disk"
                 class="space-y-6"
               >
-                <div class="grid md:grid-cols-2 gap-8">
+                <div
+                  v-if="diskList.length === 0"
+                  class="text-sm text-muted-foreground text-center py-12"
+                >
+                  {{ $t("common.loading") }}
+                </div>
+                <div v-else class="grid md:grid-cols-2 gap-8">
                   <div
-                    v-for="(disk, index) in server.disk"
+                    v-for="(disk, index) in diskList"
                     :key="index"
                     class="relative rounded-2xl border border-white/10 dark:border-white/[0.06] bg-gradient-to-br from-card/80 to-card/40 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.3)] px-8 py-7 overflow-hidden transition-all hover:shadow-[0_12px_40px_rgba(251,146,60,0.1)]"
                   >
@@ -903,7 +963,9 @@ const historyAreaPath = computed(() => {
                             :stroke-dashoffset="
                               339.29 -
                               339.29 *
-                                (1 - disk.available_space / disk.total_space)
+                                (disk.total_space
+                                  ? 1 - disk.available_space / disk.total_space
+                                  : 0)
                             "
                             class="transition-all duration-700 ease-out"
                             :style="{
@@ -918,10 +980,13 @@ const historyAreaPath = computed(() => {
                             class="text-2xl font-bold tracking-tight"
                             :style="{ color: activeTheme.color }"
                             >{{
-                              (
-                                (1 - disk.available_space / disk.total_space) *
-                                100
-                              ).toFixed(0)
+                              disk.total_space
+                                ? (
+                                    (1 -
+                                      disk.available_space / disk.total_space) *
+                                    100
+                                  ).toFixed(0)
+                                : 0
                             }}%</span
                           >
                         </div>
@@ -940,9 +1005,7 @@ const historyAreaPath = computed(() => {
                         <div
                           class="text-xs text-muted-foreground font-mono truncate"
                         >
-                          {{
-                            disk.device_name || $t("common.disk") + " " + index
-                          }}
+                          {{ disk.name || $t("common.disk") + " " + index }}
                           · {{ disk.kind }}
                         </div>
                         <div class="space-y-2">
@@ -1050,10 +1113,17 @@ const historyAreaPath = computed(() => {
                   {{ $t("serverDetail.network.interfaces") }}
                 </div>
                 <div
+                  v-if="networkInterfaces.length === 0"
+                  class="text-sm text-muted-foreground text-center py-8"
+                >
+                  {{ $t("common.loading") }}
+                </div>
+                <div
+                  v-else
                   class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
                 >
                   <div
-                    v-for="(iface, index) in server.network.interfaces"
+                    v-for="(iface, index) in networkInterfaces"
                     :key="index"
                     class="relative rounded-xl border border-white/10 dark:border-white/[0.06] bg-gradient-to-br from-card/60 to-card/30 backdrop-blur-lg p-4 space-y-3 transition-all hover:shadow-[0_4px_20px_rgba(0,0,0,0.06)]"
                   >
@@ -1081,12 +1151,6 @@ const historyAreaPath = computed(() => {
                       <div class="min-w-0">
                         <div class="font-semibold text-sm truncate">
                           {{ iface.interface_name }}
-                        </div>
-                        <div
-                          v-if="iface.ip_address"
-                          class="text-[10px] text-muted-foreground font-mono truncate"
-                        >
-                          {{ iface.ip_address }}
                         </div>
                       </div>
                     </div>
