@@ -3,6 +3,9 @@ export default {
     theme: "深色模式",
     background: "动态背景",
     language: "语言",
+    colorTheme: "主题色",
+    colorThemeDesc: "为仪表盘选择一个主色调",
+    customColor: "自定义",
   },
   common: {
     cpu: "处理器",

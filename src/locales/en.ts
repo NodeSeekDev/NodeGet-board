@@ -3,6 +3,9 @@ export default {
     theme: "Themes",
     background: "Animated Background",
     language: "Language",
+    colorTheme: "Color theme",
+    colorThemeDesc: "Pick a primary accent color for the dashboard.",
+    customColor: "Custom",
   },
   common: {
     cpu: "CPU",
