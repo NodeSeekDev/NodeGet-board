@@ -1,4 +1,5 @@
 import { ref, watch, computed, type Ref, version } from "vue";
+import { toast } from "vue-sonner";
 import { useBackendStore, type Backend } from "@/composables/useBackendStore";
 import { getWsConnection } from "@/composables/useWsConnection";
 import { useKv } from "@/composables/useKv";
@@ -99,6 +100,9 @@ function getSingleBackendProperty(
     })
     .catch((e) => {
       console.error(e);
+      toast.error("获取服务器信息失败", {
+        description: typeof e === "string" ? e : e.message || JSON.stringify(e),
+      });
       serverInfo.value[backend.url] = {
         ...ServerInfoPlaceholder,
         ...backend,
