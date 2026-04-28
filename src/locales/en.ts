@@ -1021,4 +1021,10 @@ export default {
       system: "System",
     },
   },
+  pwa: {
+    newVersion: "New version available",
+    refreshToUpdate: "Reload to apply the latest update.",
+    update: "Update",
+    offlineReady: "App is ready to work offline",
+  },
 };

@@ -1016,4 +1016,10 @@ export default {
       system: "系统",
     },
   },
+  pwa: {
+    newVersion: "发现新版本",
+    refreshToUpdate: "点击更新加载最新版本",
+    update: "更新",
+    offlineReady: "应用已可离线使用",
+  },
 };

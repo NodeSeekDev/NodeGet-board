@@ -5,6 +5,7 @@ import { createI18n } from "vue-i18n";
 import App from "./App.vue";
 import router from "./router";
 import routePrefetchPlugin from "./router/prefetchPlugin";
+import { setupPwa } from "./pwa";
 import "./style/app.css";
 import en from "./locales/en";
 import zh_cn from "./locales/zh_cn";
@@ -37,3 +38,5 @@ app.use(routePrefetchPlugin(router));
 app.use(i18n);
 
 app.mount("#app");
+
+setupPwa((key) => i18n.global.t(key));
