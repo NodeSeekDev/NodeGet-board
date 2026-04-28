@@ -18,11 +18,7 @@ import {
   Fish,
 } from "lucide-vue-next";
 import UPlotChart from "@/components/UPlotChart.vue";
-import type {
-  DynamicSummaryResponseItem,
-  DynamicDetailData,
-  SummaryField,
-} from "@/types/monitoring";
+import type { DynamicDetailData } from "@/types/monitoring";
 
 definePage({
   meta: {
@@ -38,7 +34,6 @@ const {
   status: dynamicStatus,
   servers: dynamicServers,
   connect: connectDynamic,
-  fetchSummaryAvg,
   fetchDynamic,
 } = useDynamicData();
 
@@ -329,6 +324,7 @@ const tabs = [
 
 const MAIN_COLOR = "#3e8eff";
 const SUB_COLOR = "#e46e0a";
+const LOAD15_COLOR = "#22c55e";
 
 const WINDOWS = [
   { label: "7天", value: 7 * 24 * 60 * 60 * 1000 },
@@ -398,10 +394,24 @@ const detailEffectiveRefresh = (tab: DetailTab) => {
 
 type TabId = "cpu" | "memory" | "disk" | "network";
 
+type TabAvgRow = {
+  timestamp: number;
+  cpu?: { total_cpu_usage?: number };
+  load?: { load_one?: number; load_five?: number; load_fifteen?: number };
+  system?: { process_count?: number };
+  ram?: { used_memory?: number; total_memory?: number };
+  disk?: { read_speed?: number; write_speed?: number }[];
+  network?: {
+    interfaces?: { receive_speed?: number; transmit_speed?: number }[];
+    tcp_connections?: number;
+    udp_connections?: number;
+  };
+};
+
 interface TabAvgState {
   windowMs: number;
   refreshInterval: number;
-  data: DynamicSummaryResponseItem[];
+  data: TabAvgRow[];
   loading: boolean;
   timer: ReturnType<typeof setInterval> | null;
 }
@@ -423,16 +433,30 @@ const tabState = ref<Record<TabId, TabAvgState>>({
   network: createTabState(),
 });
 
-const TAB_FIELDS_AVG: Record<TabId, SummaryField[]> = {
-  cpu: ["cpu_usage"],
-  memory: ["used_memory", "total_memory"],
-  disk: ["read_speed", "write_speed"],
-  network: [
-    "transmit_speed",
-    "receive_speed",
-    "tcp_connections",
-    "udp_connections",
-  ],
+const cpuSyncAxes = ref(true);
+const netSyncAxes = ref(true);
+const cpuZoom = ref<{ min: number; max: number } | null>(null);
+const netZoom = ref<{ min: number; max: number } | null>(null);
+
+const onCpuZoom = (v: { min: number; max: number } | null) => {
+  if (cpuSyncAxes.value) cpuZoom.value = v;
+};
+const onNetZoom = (v: { min: number; max: number } | null) => {
+  if (netSyncAxes.value) netZoom.value = v;
+};
+
+watch(cpuSyncAxes, (v) => {
+  if (!v) cpuZoom.value = null;
+});
+watch(netSyncAxes, (v) => {
+  if (!v) netZoom.value = null;
+});
+
+const TAB_FIELDS_AVG: Record<TabId, string[]> = {
+  cpu: ["cpu", "load", "system"],
+  memory: ["ram"],
+  disk: ["disk"],
+  network: ["network"],
 };
 
 const fetchTabAvg = async (tab: TabId, showLoading = true) => {
@@ -442,14 +466,11 @@ const fetchTabAvg = async (tab: TabId, showLoading = true) => {
   const now = Date.now();
   const from = now - state.windowMs;
   try {
-    const result = await fetchSummaryAvg(
-      uuid.value,
-      { timestamp_from: from, timestamp_to: now },
-      TAB_FIELDS_AVG[tab],
-    );
-    if (Array.isArray(result)) {
-      state.data = result;
-    }
+    const result = await fetchDynamic(uuid.value, TAB_FIELDS_AVG[tab], {
+      timestamp_from: from,
+      timestamp_to: now,
+    });
+    state.data = result as unknown as TabAvgRow[];
   } catch (e: any) {
     console.error(`[Status] Failed to fetch ${tab} avg data:`, e);
     toast.error("数据查询失败", {
@@ -592,59 +613,90 @@ watch([summaryLimit, dynamicLimit], () => {
   });
 });
 
-// CPU chart data
 const cpuAvgTimestamps = computed(() =>
   tabState.value.cpu.data.map((d) => d.timestamp / 1000),
 );
 const cpuAvgValues = computed(() =>
-  tabState.value.cpu.data.map((d) => d.cpu_usage ?? 0),
+  tabState.value.cpu.data.map((d) => d.cpu?.total_cpu_usage ?? 0),
 );
 
-// Memory chart data
+const load1Values = computed(() =>
+  tabState.value.cpu.data.map((d) => d.load?.load_one ?? 0),
+);
+const load5Values = computed(() =>
+  tabState.value.cpu.data.map((d) => d.load?.load_five ?? 0),
+);
+const load15Values = computed(() =>
+  tabState.value.cpu.data.map((d) => d.load?.load_fifteen ?? 0),
+);
+const maxLoad = computed(() =>
+  Math.max(
+    ...load1Values.value,
+    ...load5Values.value,
+    ...load15Values.value,
+    1,
+  ),
+);
+
+const procValues = computed(() =>
+  tabState.value.cpu.data.map((d) => d.system?.process_count ?? 0),
+);
+const maxProc = computed(() => Math.max(...procValues.value, 1));
+
 const ramAvgTimestamps = computed(() =>
   tabState.value.memory.data.map((d) => d.timestamp / 1000),
 );
 const ramAvgValues = computed(() =>
   tabState.value.memory.data.map((d) => {
-    const used = d.used_memory ?? 0;
-    const total = d.total_memory ?? 1;
+    const used = d.ram?.used_memory ?? 0;
+    const total = d.ram?.total_memory ?? 1;
     return (used / total) * 100;
   }),
 );
 
-// Disk chart data
 const diskAvgTimestamps = computed(() =>
   tabState.value.disk.data.map((d) => d.timestamp / 1000),
 );
 const diskReadAvgValues = computed(() =>
-  tabState.value.disk.data.map((d) => d.read_speed ?? 0),
+  tabState.value.disk.data.map(
+    (d) => d.disk?.reduce((s, x) => s + (x.read_speed ?? 0), 0) ?? 0,
+  ),
 );
 const diskWriteAvgValues = computed(() =>
-  tabState.value.disk.data.map((d) => d.write_speed ?? 0),
+  tabState.value.disk.data.map(
+    (d) => d.disk?.reduce((s, x) => s + (x.write_speed ?? 0), 0) ?? 0,
+  ),
 );
 const maxDiskSpeed = computed(() =>
   Math.max(...diskReadAvgValues.value, ...diskWriteAvgValues.value, 1),
 );
 
-// Network chart data
 const netAvgTimestamps = computed(() =>
   tabState.value.network.data.map((d) => d.timestamp / 1000),
 );
 const netRxAvgValues = computed(() =>
-  tabState.value.network.data.map((d) => d.receive_speed ?? 0),
+  tabState.value.network.data.map(
+    (d) =>
+      d.network?.interfaces?.reduce((s, x) => s + (x.receive_speed ?? 0), 0) ??
+      0,
+  ),
 );
 const netTxAvgValues = computed(() =>
-  tabState.value.network.data.map((d) => d.transmit_speed ?? 0),
+  tabState.value.network.data.map(
+    (d) =>
+      d.network?.interfaces?.reduce((s, x) => s + (x.transmit_speed ?? 0), 0) ??
+      0,
+  ),
 );
 const maxNetSpeed = computed(() =>
   Math.max(...netRxAvgValues.value, ...netTxAvgValues.value, 1),
 );
 
 const tcpConnAvgValues = computed(() =>
-  tabState.value.network.data.map((d) => d.tcp_connections ?? 0),
+  tabState.value.network.data.map((d) => d.network?.tcp_connections ?? 0),
 );
 const udpConnAvgValues = computed(() =>
-  tabState.value.network.data.map((d) => d.udp_connections ?? 0),
+  tabState.value.network.data.map((d) => d.network?.udp_connections ?? 0),
 );
 const maxConnCount = computed(() =>
   Math.max(...tcpConnAvgValues.value, ...udpConnAvgValues.value, 1),
@@ -763,6 +815,16 @@ const maxConnCount = computed(() =>
                 </select>
                 更新
               </span>
+              <label
+                class="text-xs text-muted-foreground inline-flex items-center gap-1.5 cursor-pointer select-none"
+              >
+                <input
+                  type="checkbox"
+                  v-model="cpuSyncAxes"
+                  class="h-3 w-3 cursor-pointer accent-current"
+                />
+                同步坐标轴
+              </label>
             </div>
             <div>
               <div
@@ -805,6 +867,95 @@ const maxConnCount = computed(() =>
                   :maxValue="100"
                   yLabel="%"
                   :loading="tabState.cpu.loading"
+                  :zoom-range="cpuSyncAxes ? cpuZoom : undefined"
+                  @update:zoom-range="onCpuZoom"
+                />
+              </div>
+            </div>
+
+            <div>
+              <div
+                class="flex items-center gap-3 mb-3 text-xs font-mono flex-wrap"
+              >
+                <span class="text-sm font-medium text-muted-foreground mr-1"
+                  >Load Average</span
+                >
+                <span class="status-main-text"
+                  >1m {{ (server.load_one ?? 0).toFixed(2) }}</span
+                >
+                <span class="status-sub-text"
+                  >5m {{ (server.load_five ?? 0).toFixed(2) }}</span
+                >
+                <span :style="{ color: LOAD15_COLOR }"
+                  >15m {{ (server.load_fifteen ?? 0).toFixed(2) }}</span
+                >
+              </div>
+              <div class="h-[260px] w-full relative overflow-hidden">
+                <UPlotChart
+                  :data="load1Values"
+                  :data2="load5Values"
+                  :data3="load15Values"
+                  :timestamps="cpuAvgTimestamps"
+                  :color="MAIN_COLOR"
+                  :color2="SUB_COLOR"
+                  :color3="LOAD15_COLOR"
+                  :maxValue="maxLoad"
+                  label1="1m"
+                  label2="5m"
+                  label3="15m"
+                  :loading="tabState.cpu.loading"
+                  :zoom-range="cpuSyncAxes ? cpuZoom : undefined"
+                  @update:zoom-range="onCpuZoom"
+                />
+              </div>
+              <div
+                class="flex items-center gap-4 mt-2 text-xs font-mono text-muted-foreground"
+              >
+                <span class="flex items-center gap-1">
+                  <span
+                    class="inline-block w-3 h-0.5"
+                    :style="{ backgroundColor: MAIN_COLOR }"
+                  ></span>
+                  1m
+                </span>
+                <span class="flex items-center gap-1">
+                  <span
+                    class="inline-block w-3 h-0.5"
+                    :style="{ backgroundColor: SUB_COLOR }"
+                  ></span>
+                  5m
+                </span>
+                <span class="flex items-center gap-1">
+                  <span
+                    class="inline-block w-3 h-0.5"
+                    :style="{ backgroundColor: LOAD15_COLOR }"
+                  ></span>
+                  15m
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <div
+                class="flex items-center gap-3 mb-3 text-xs font-mono flex-wrap"
+              >
+                <span class="text-sm font-medium text-muted-foreground mr-1"
+                  >Processes</span
+                >
+                <span class="status-main-text">
+                  {{ server.process_count ?? 0 }}
+                </span>
+              </div>
+              <div class="h-[260px] w-full relative overflow-hidden">
+                <UPlotChart
+                  :data="procValues"
+                  :timestamps="cpuAvgTimestamps"
+                  :color="MAIN_COLOR"
+                  :maxValue="maxProc"
+                  label1="Processes"
+                  :loading="tabState.cpu.loading"
+                  :zoom-range="cpuSyncAxes ? cpuZoom : undefined"
+                  @update:zoom-range="onCpuZoom"
                 />
               </div>
             </div>
@@ -1416,6 +1567,16 @@ const maxConnCount = computed(() =>
                 </select>
                 更新
               </span>
+              <label
+                class="text-xs text-muted-foreground inline-flex items-center gap-1.5 cursor-pointer select-none"
+              >
+                <input
+                  type="checkbox"
+                  v-model="netSyncAxes"
+                  class="h-3 w-3 cursor-pointer accent-current"
+                />
+                同步坐标轴
+              </label>
             </div>
             <!-- Chart -->
             <div>
@@ -1451,6 +1612,8 @@ const maxConnCount = computed(() =>
                   label1="Download"
                   label2="Upload"
                   :loading="tabState.network.loading"
+                  :zoom-range="netSyncAxes ? netZoom : undefined"
+                  @update:zoom-range="onNetZoom"
                 />
               </div>
               <!-- Legend -->
@@ -1519,6 +1682,8 @@ const maxConnCount = computed(() =>
                   label1="TCP"
                   label2="UDP"
                   :loading="tabState.network.loading"
+                  :zoom-range="netSyncAxes ? netZoom : undefined"
+                  @update:zoom-range="onNetZoom"
                 />
               </div>
               <div
