@@ -1,7 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { Plus, RefreshCw, Trash2, Settings, RotateCcw } from "lucide-vue-next";
+import {
+  Plus,
+  RefreshCw,
+  Trash2,
+  Settings,
+  RotateCcw,
+  Zap,
+} from "lucide-vue-next";
 import { toast } from "vue-sonner";
 import { Button } from "@/components/ui/button";
 import { PopConfirm } from "@/components/ui/pop-confirm";
@@ -15,6 +22,7 @@ import {
 } from "@/components/ui/table";
 import ExtensionInstallDialog from "@/components/extensions/ExtensionInstallDialog.vue";
 import ExtensionIcon from "@/components/extensions/ExtensionIcon.vue";
+import QuickExtensionDialog from "@/components/extensions/QuickExtensionDialog.vue";
 import { useExtensions } from "@/composables/useExtensions";
 import type { Extension } from "@/composables/useExtensions";
 
@@ -42,6 +50,7 @@ const installDialogRef = ref<InstanceType<
 > | null>(null);
 const reinstallTarget = ref<Extension | null>(null);
 const deletingId = ref<string | null>(null);
+const quickDialogOpen = ref(false);
 
 const handleInstall = async (files: File[]) => {
   try {
@@ -128,6 +137,10 @@ onMounted(() => fetchExtensions());
           @click="fetchExtensions"
         >
           <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': loading }" />
+        </Button>
+        <Button variant="outline" size="sm" @click="quickDialogOpen = true">
+          <Zap class="h-4 w-4 mr-1" />
+          快捷 Extension
         </Button>
         <Button size="sm" @click="installDialogOpen = true">
           <Plus class="h-4 w-4 mr-1" />
@@ -274,6 +287,12 @@ onMounted(() => fetchExtensions());
       "
       @install="handleInstall"
       @reinstall="handleReinstallConfirm"
+    />
+
+    <QuickExtensionDialog
+      :open="quickDialogOpen"
+      @update:open="quickDialogOpen = $event"
+      @created="fetchExtensions"
     />
   </div>
 </template>
