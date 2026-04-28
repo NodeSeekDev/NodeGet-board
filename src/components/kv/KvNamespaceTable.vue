@@ -2,8 +2,10 @@
 import { ref, computed } from "vue";
 import { Trash2, Plus, Search, Loader2, RefreshCw } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { PopConfirm } from "@/components/ui/pop-confirm";
 import { Input } from "@/components/ui/input";
+import { useI18n } from "vue-i18n";
 import {
   Table,
   TableBody,
@@ -17,6 +19,7 @@ const props = defineProps<{
   namespaces: string[];
   loading?: boolean;
   deletingNs?: string | null;
+  agentUuids?: Set<string>;
 }>();
 
 const emit = defineEmits<{
@@ -26,13 +29,21 @@ const emit = defineEmits<{
   refresh: [];
 }>();
 
+const { t } = useI18n();
 const searchQuery = ref("");
+const onlyAgents = ref(false);
 
 const filteredNamespaces = computed(() => {
-  if (!searchQuery.value.trim()) return props.namespaces;
-  return props.namespaces.filter((ns) =>
-    ns.toLowerCase().includes(searchQuery.value.toLowerCase()),
-  );
+  let list = props.namespaces;
+  if (onlyAgents.value && props.agentUuids) {
+    const set = props.agentUuids;
+    list = list.filter((ns) => set.has(ns));
+  }
+  const q = searchQuery.value.trim().toLowerCase();
+  if (q) {
+    list = list.filter((ns) => ns.toLowerCase().includes(q));
+  }
+  return list;
 });
 </script>
 
@@ -49,6 +60,16 @@ const filteredNamespaces = computed(() => {
           class="pl-8"
         />
       </div>
+      <label
+        v-if="agentUuids"
+        class="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer select-none"
+      >
+        <Checkbox
+          :model-value="onlyAgents"
+          @update:model-value="(v: any) => (onlyAgents = !!v)"
+        />
+        {{ t("dashboard.kv.onlyAgents") }}
+      </label>
       <div class="flex-1" />
       <Button
         variant="outline"

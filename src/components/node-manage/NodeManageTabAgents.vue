@@ -34,17 +34,21 @@ import {
 import { useBackendStore } from "@/composables/useBackendStore";
 import { useBackendExtra } from "@/composables/useBackendExtra";
 import { getWsConnection } from "@/composables/useWsConnection";
+import { useTask, type IpResult } from "@/composables/useTask";
 import AddAgentDialog from "@/components/agents/AddAgentDialog.vue";
 
 const { t } = useI18n();
 const router = useRouter();
 const { backends, currentBackend } = useBackendStore();
 const { serverInfo } = useBackendExtra();
+const task = useTask();
 
 interface AgentInfo {
   uuid: string;
   customName: string;
   serverCount: number;
+  // undefined = 任务进行中，null = 拿不到，string = IP
+  ip: string | null | undefined;
 }
 
 const agents = ref<AgentInfo[]>([]);
@@ -114,9 +118,25 @@ const fetchAgents = async () => {
     uuid,
     customName: nameMap.get(uuid) ?? uuid.slice(0, 8),
     serverCount: 1,
+    ip: undefined,
   }));
 
   loading.value = false;
+
+  // 每个 agent 单独发任务，谁先回来谁先刷新自己那行；不阻塞列表渲染。
+  for (const agent of agents.value) {
+    void fetchAgentIp(agent);
+  }
+};
+
+const fetchAgentIp = async (agent: AgentInfo) => {
+  try {
+    const res = await task.createTaskBlocking(agent.uuid, "ip", 8000);
+    const ip = (res.task_event_result as IpResult | null)?.ip;
+    agent.ip = ip ? ip[0] || ip[1] || null : null;
+  } catch {
+    agent.ip = null;
+  }
 };
 
 watch(currentBackend, fetchAgents, { immediate: true });
@@ -261,6 +281,7 @@ defineExpose({ fetchAgents });
             </TableHead>
             <TableHead>{{ t("dashboard.agents.colId") }}</TableHead>
             <TableHead>{{ t("dashboard.agents.colName") }}</TableHead>
+            <TableHead>{{ t("dashboard.agents.colIp") }}</TableHead>
             <TableHead>{{ t("dashboard.agents.colVersion") }}</TableHead>
             <TableHead class="text-right">{{
               t("dashboard.agents.colActions")
@@ -268,7 +289,7 @@ defineExpose({ fetchAgents });
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableEmpty v-if="filteredAgents.length === 0" :colspan="5">
+          <TableEmpty v-if="filteredAgents.length === 0" :colspan="6">
             {{ t("dashboard.agents.noAgents") }}
           </TableEmpty>
           <TableRow v-for="agent in filteredAgents" :key="agent.uuid">
@@ -286,6 +307,16 @@ defineExpose({ fetchAgents });
               {{ agent.uuid.slice(0, 8) }}
             </TableCell>
             <TableCell class="font-medium">{{ agent.customName }}</TableCell>
+            <TableCell>
+              <Loader2
+                v-if="agent.ip === undefined"
+                class="h-3.5 w-3.5 animate-spin text-muted-foreground"
+              />
+              <span v-else-if="agent.ip" class="font-mono text-xs">{{
+                agent.ip
+              }}</span>
+              <span v-else class="text-muted-foreground">--</span>
+            </TableCell>
             <TableCell class="text-muted-foreground">--</TableCell>
             <TableCell class="text-right">
               <Button
