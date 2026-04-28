@@ -264,7 +264,7 @@ const initChart = () => {
         (u: uPlot) => {
           u.over.addEventListener("dblclick", () => {
             setZoom(null);
-            u.setScale("x", { min: null, max: null });
+            u.setScale("x", { min: null as any, max: null as any });
             autoYRange(u, null);
           });
         },
@@ -369,7 +369,7 @@ watch(
       uplot.setScale("x", { min: v.min, max: v.max });
       autoYRange(uplot, v);
     } else {
-      uplot.setScale("x", { min: null, max: null });
+      uplot.setScale("x", { min: null as any, max: null as any });
       autoYRange(uplot, null);
     }
   },

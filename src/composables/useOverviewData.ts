@@ -73,14 +73,15 @@ export interface OverviewServer {
   tags: string[];
 }
 
-// --- 模块级单例状态，所有组件共享 ---
 const servers = ref<OverviewServer[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
+const inactive = ref(false);
 
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 let staticPollTimer: ReturnType<typeof setInterval> | null = null;
 let pollConn: WsConnection | null = null;
+let visibilityListenerAttached = false;
 let uuids: string[] = [];
 let metaMap = new Map<
   string,
@@ -205,6 +206,12 @@ function initFunctions() {
         dynamicMap.set(d.uuid, d);
       }
 
+      if (
+        typeof document === "undefined" ||
+        document.visibilityState === "visible"
+      ) {
+        inactive.value = false;
+      }
       servers.value = uuids.map((uuid) => {
         const d = dynamicMap.get(uuid) ?? { uuid };
         const s = staticMap.get(uuid) ?? { uuid };
@@ -372,6 +379,18 @@ function initFunctions() {
 export function useOverviewData() {
   initFunctions();
 
+  if (!visibilityListenerAttached && typeof document !== "undefined") {
+    visibilityListenerAttached = true;
+    document.addEventListener("visibilitychange", () => {
+      if (refCount <= 0) return;
+      if (document.visibilityState === "hidden") {
+        inactive.value = true;
+      } else {
+        _fetchDynamic?.();
+      }
+    });
+  }
+
   const start = async () => {
     refCount++;
     if (pollTimer) return; // 已在运行，直接共享现有状态
@@ -415,5 +434,5 @@ export function useOverviewData() {
     }
   };
 
-  return { servers, loading, error, start, stop };
+  return { servers, loading, error, inactive, start, stop };
 }

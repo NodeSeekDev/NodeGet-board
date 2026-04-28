@@ -63,7 +63,7 @@ definePage({
 
 const router = useRouter();
 
-const { servers, loading, error, start, stop } = useOverviewData();
+const { servers, loading, error, inactive, start, stop } = useOverviewData();
 
 const selectedTag = ref("all");
 
@@ -173,19 +173,27 @@ const goToServerDetail = (uuid: string) => {
             v-for="server in filteredServers"
             :key="server.uuid"
             class="cursor-pointer hover:bg-muted/50 transition-colors"
-            :class="{ 'opacity-60': !isOnline(server) }"
+            :class="{ 'opacity-60': !inactive && !isOnline(server) }"
             @click="goToServerDetail(server.uuid)"
           >
             <!-- Online dot -->
             <TableCell>
               <div class="flex items-center justify-center">
                 <span
-                  :title="isOnline(server) ? 'Online' : 'Offline'"
+                  :title="
+                    inactive
+                      ? 'Inactive'
+                      : isOnline(server)
+                        ? 'Online'
+                        : 'Offline'
+                  "
                   class="inline-block w-2 h-2 rounded-full shrink-0"
                   :class="
-                    isOnline(server)
-                      ? 'bg-emerald-500 ring-2 ring-emerald-500/25'
-                      : 'bg-rose-500 ring-2 ring-rose-500/25'
+                    inactive
+                      ? 'bg-gray-400 ring-2 ring-gray-400/25'
+                      : isOnline(server)
+                        ? 'bg-emerald-500 ring-2 ring-emerald-500/25'
+                        : 'bg-rose-500 ring-2 ring-rose-500/25'
                   "
                 />
               </div>
