@@ -5,7 +5,7 @@ import "@xterm/xterm/css/xterm.css";
 
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { Button } from "@/components/ui/button";
-import { wsRpcCall } from "@/composables/useWsRpc";
+import { getWsConnection } from "@/composables/useWsConnection";
 import { useFullscreen } from "@vueuse/core";
 import {
   Maximize,
@@ -162,8 +162,7 @@ const createTask = async () => {
   if (!token) throw new Error("Token is required");
   if (!targetUuid) throw new Error("Target UUID is required");
   if (!taskWebShellUrl) throw new Error("Task WebShell URL is invalid");
-  await wsRpcCall(
-    rpcUrl,
+  await getWsConnection(rpcUrl).call(
     "task_create_task",
     {
       token,
@@ -175,7 +174,7 @@ const createTask = async () => {
         },
       },
     },
-    { timeoutMs: 10000 },
+    10000,
   );
 };
 

@@ -1,7 +1,7 @@
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { useBackendStore } from "@/composables/useBackendStore";
-import { wsRpcCall } from "@/composables/useWsRpc";
+import { getWsConnection } from "@/composables/useWsConnection";
 import { toast } from "vue-sonner";
 import { type Token } from "@/components/token/type";
 import {
@@ -35,11 +35,11 @@ export const useEditTokenHook = () => {
 
     const serializedToken = serializeTokenPayload(tokenData);
     try {
-      const result = await wsRpcCall<{
+      const result = await getWsConnection(url).call<{
         success?: string;
         token_key?: string;
         message?: string;
-      }>(url, "token_edit", {
+      }>("token_edit", {
         token,
         target_token,
         version: serializedToken.version,

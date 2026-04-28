@@ -25,6 +25,7 @@ import { StreamLanguage } from "@codemirror/language";
 import { toml } from "@codemirror/legacy-modes/mode/toml";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { Skeleton } from "@/components/ui/skeleton";
+import DatabaseStorageTab from "@/components/servers-detail/DatabaseStorageTab.vue";
 
 definePage({
   meta: { title: "router.servers", hidden: true },
@@ -103,6 +104,26 @@ const fetchConfig = async () => {
 
 fetchConfig();
 
+// --- Database storage ---
+const storageData = ref<{
+  tables: Record<string, number>;
+  total: number;
+} | null>(null);
+const storageLoading = ref(false);
+
+const fetchStorage = async () => {
+  if (!backend.value) return;
+  storageLoading.value = true;
+  try {
+    storageData.value = await getWsConnection(backend.value.url).call(
+      "nodeget-server_database_storage",
+      { token: backend.value.token },
+    );
+  } finally {
+    storageLoading.value = false;
+  }
+};
+
 const local_ws_port = computed(() => {
   const line =
     configContent.value
@@ -142,6 +163,7 @@ watch(
 const handleTabChange = (tab: string) => {
   activeTab.value = tab;
   if (tab === "config") fetchConfig();
+  if (tab === "storage" && !storageData.value) fetchStorage();
 };
 
 const activeTab = ref("info");
@@ -258,6 +280,9 @@ function saveEdit(field: string) {
       <TabsList>
         <TabsTrigger value="info">{{
           t("dashboard.servers.detail.tabInfo")
+        }}</TabsTrigger>
+        <TabsTrigger value="storage">{{
+          t("dashboard.servers.detail.tabStorage")
         }}</TabsTrigger>
         <TabsTrigger value="config">{{
           t("dashboard.servers.detail.tabConfig")
@@ -628,6 +653,15 @@ function saveEdit(field: string) {
             <span class="text-sm font-mono">{{ serverVersion ?? "--" }}</span>
           </div>
         </div>
+      </TabsContent>
+
+      <!-- Tab: 数据库占用 -->
+      <TabsContent value="storage" class="mt-4">
+        <DatabaseStorageTab
+          :data="storageData"
+          :loading="storageLoading"
+          @refresh="fetchStorage"
+        />
       </TabsContent>
 
       <!-- Tab: 配置管理 -->

@@ -27,15 +27,28 @@ const matched = computed(() => {
   return null;
 });
 
-const iframeUrl = computed(() => {
-  if (!matched.value) return "";
-  const { ext, route: r } = matched.value;
-  return getIframeUrl(ext.id, r.entry, ext.token, nodeUuid.value);
-});
-
+const iframeUrl = ref("");
 const ready = ref(false);
 const iframeEl = ref<HTMLIFrameElement | null>(null);
 const themeStore = useThemeStore();
+
+watch(
+  matched,
+  async (m) => {
+    if (!m) {
+      iframeUrl.value = "";
+      return;
+    }
+    iframeUrl.value = await getIframeUrl(
+      m.ext.id,
+      m.route.entry,
+      m.ext.token,
+      nodeUuid.value,
+      m.ext.worker_name,
+    );
+  },
+  { immediate: true },
+);
 
 onMounted(async () => {
   if (extensions.value.length === 0) await fetchExtensions();

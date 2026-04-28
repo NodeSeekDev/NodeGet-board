@@ -1,6 +1,6 @@
 import { ref } from "vue";
 import { useBackendStore } from "@/composables/useBackendStore";
-import { getWsConnection } from "@/composables/useWsConnection";
+import { WsConnection, getWsConnection } from "@/composables/useWsConnection";
 import { useKv } from "@/composables/useKv";
 import type { SummaryField } from "@/types/monitoring";
 
@@ -79,6 +79,7 @@ const error = ref<string | null>(null);
 
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 let staticPollTimer: ReturnType<typeof setInterval> | null = null;
+let pollConn: WsConnection | null = null;
 let uuids: string[] = [];
 let metaMap = new Map<
   string,
@@ -184,7 +185,8 @@ function initFunctions() {
     fetchDynamicInFlight = true;
 
     try {
-      const results = await conn().call<AgentRow[]>(
+      if (!pollConn) pollConn = new WsConnection(currentBackend.value.url);
+      const results = await pollConn.call<AgentRow[]>(
         "agent_dynamic_summary_multi_last_query",
         { token: currentBackend.value.token, uuids, fields: SUMMARY_FIELDS },
       );
@@ -384,6 +386,10 @@ export function useOverviewData() {
     if (staticPollTimer) {
       clearInterval(staticPollTimer);
       staticPollTimer = null;
+    }
+    if (pollConn) {
+      pollConn.close();
+      pollConn = null;
     }
   };
 

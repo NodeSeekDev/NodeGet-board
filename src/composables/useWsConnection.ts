@@ -242,6 +242,8 @@ class WsConnection {
   }
 }
 
+export { WsConnection };
+
 // Module-level pool: one connection per backend URL
 const pool = new Map<string, WsConnection>();
 

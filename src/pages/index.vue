@@ -103,7 +103,7 @@ onUnmounted(() => stop());
                       >
                     </span>
                     <span
-                      class="text-[10px] text-muted-foreground font-normal mt-1 flex items-center gap-1"
+                      class="text-xs text-muted-foreground font-normal mt-1 flex items-center gap-1"
                     >
                       <Clock class="h-3 w-3" />
                       {{ formatUptime(server.uptime ?? 0) }}
@@ -201,11 +201,11 @@ onUnmounted(() => stop());
                     />{{ $t("common.network") }}</span
                   >
                   <div class="flex flex-col text-xs font-mono">
-                    <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-2">
                       <span class="text-muted-foreground">↓</span>
                       <span>{{ showNetworkSpeed(server, "rx") }}</span>
                     </div>
-                    <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-2">
                       <span class="text-muted-foreground">↑</span>
                       <span>{{ showNetworkSpeed(server, "tx") }}</span>
                     </div>

@@ -510,10 +510,10 @@ function rebuildMarkers() {
       }),
     );
     const baseSize = 0.09 + Math.min(point.count * 0.018, 0.1);
-    glow.scale.setScalar(baseSize * 2.2);
+    glow.scale.setScalar(baseSize * 1.4);
 
     const core = new THREE.Mesh(
-      new THREE.SphereGeometry(baseSize * 0.35, 20, 20),
+      new THREE.SphereGeometry(baseSize * 0.2, 20, 20),
       new THREE.MeshBasicMaterial({
         color: colors.markerCore,
       }),
@@ -711,6 +711,26 @@ function resizeRenderer() {
 function animate() {
   frameId = window.requestAnimationFrame(animate);
   controls?.update();
+
+  // 边缘渐隐：标识点朝向摄像机的 dot product 接近 0 时淡出光圈，避免球边悬空圆片
+  if (markerGroup && camera) {
+    const cameraDir = camera.position.clone().normalize();
+    const worldPos = new THREE.Vector3();
+    for (const marker of markerGroup.children) {
+      const glow = (marker as THREE.Group).userData.glow as
+        | THREE.Sprite
+        | undefined;
+      if (!glow) continue;
+      marker.getWorldPosition(worldPos);
+      const dot = worldPos.clone().normalize().dot(cameraDir);
+      // dot < 0.12 完全隐藏，dot > 0.28 完全显示，中间线性过渡
+      const limbFade = Math.max(0, Math.min(1, (dot - 0.12) / 0.16));
+      const baseOpacity =
+        ((marker as THREE.Group).userData.selected ? 1 : 0.9) * limbFade;
+      (glow.material as THREE.SpriteMaterial).opacity = baseOpacity;
+    }
+  }
+
   if (scene && camera && renderer) renderer.render(scene, camera);
 }
 

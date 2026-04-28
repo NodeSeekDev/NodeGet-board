@@ -1,7 +1,7 @@
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { useBackendStore } from "@/composables/useBackendStore";
-import { wsRpcCall } from "@/composables/useWsRpc";
+import { getWsConnection } from "@/composables/useWsConnection";
 import { toast } from "vue-sonner";
 import { type token } from "@/components/token/type";
 import { serializeTokenPayload } from "@/components/token/scopeCodec";
@@ -27,14 +27,13 @@ export const useCreatTokenHook = () => {
     if (!url || !token) return {};
     const normalizedTokenCreation = serializeTokenPayload(token_creation);
     try {
-      const result = await wsRpcCall<{ key?: string; secret?: string }>(
-        url,
-        "token_create",
-        {
-          father_token: token,
-          token_creation: normalizedTokenCreation,
-        },
-      );
+      const result = await getWsConnection(url).call<{
+        key?: string;
+        secret?: string;
+      }>("token_create", {
+        father_token: token,
+        token_creation: normalizedTokenCreation,
+      });
       if (result.key && result.secret) {
         toast.success(t("dashboard.token.api.createSuccess"));
         return result;

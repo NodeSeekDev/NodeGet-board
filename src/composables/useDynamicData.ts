@@ -1,25 +1,17 @@
 import { ref, watch } from "vue";
 import { toast } from "vue-sonner";
 import { useBackendStore } from "./useBackendStore";
+import { WsConnection, getWsConnection } from "./useWsConnection";
+import { useKv } from "./useKv";
 import type {
   DynamicSummaryResponseItem,
   SummaryField,
   DynamicDetailData,
 } from "@/types/monitoring";
 
-// Dynamic data state (separate from static)
-const dynamicStatus = ref<"disconnected" | "connecting" | "connected">(
-  "disconnected",
-);
-const dynamicError = ref("");
-const dynamicServers = ref<DynamicSummaryResponseItem[]>([]);
-const dynamicWs = ref<WebSocket | null>(null);
-let dynamicPollInterval: any = null;
-let dynamicReconnectTimeout: any = null;
-let dynamicRetryTimeout: any = null;
-let dynamicNextId = 1;
-
-const { currentBackend } = useBackendStore();
+const POLL_INTERVAL_MS = 1000;
+const UUIDS_REFRESH_MS = 60_000;
+const RETRY_DELAY_MS = 10_000;
 
 const summaryFields: SummaryField[] = [
   "cpu_usage",
@@ -47,100 +39,118 @@ const summaryFields: SummaryField[] = [
   "receive_speed",
 ];
 
-const scheduleReconnect = () => {
-  if (dynamicReconnectTimeout) clearTimeout(dynamicReconnectTimeout);
-  dynamicReconnectTimeout = setTimeout(() => {
-    connect();
-  }, 3000);
-};
+const dynamicStatus = ref<"disconnected" | "connecting" | "connected">(
+  "disconnected",
+);
+const dynamicError = ref("");
+const dynamicServers = ref<DynamicSummaryResponseItem[]>([]);
 
-const isTransientError = (e: any): boolean => {
-  if (e?.code === 102) return true;
-  const msg = String(e?.message || "").toLowerCase();
+const { currentBackend } = useBackendStore();
+
+let pollConn: WsConnection | null = null;
+let pollTimer: ReturnType<typeof setInterval> | null = null;
+let uuidsTimer: ReturnType<typeof setInterval> | null = null;
+let retryTimer: ReturnType<typeof setTimeout> | null = null;
+let pollInFlight = false;
+let knownUuids: string[] = [];
+
+function isTransientError(e: unknown): boolean {
+  if (!e || typeof e !== "object") return false;
+  if ((e as { code?: number }).code === 102) return true;
+  const msg = String((e as { message?: unknown }).message || "").toLowerCase();
   return (
     msg.includes("connection pool") ||
     msg.includes("pool timed out") ||
     msg.includes("database error")
   );
-};
+}
 
-const scheduleRetry = () => {
-  if (dynamicRetryTimeout) clearTimeout(dynamicRetryTimeout);
-  dynamicRetryTimeout = setTimeout(() => {
-    dynamicRetryTimeout = null;
-    sendQuery();
-  }, 10000);
-};
+function stopAllTimers() {
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+  if (uuidsTimer) {
+    clearInterval(uuidsTimer);
+    uuidsTimer = null;
+  }
+  if (retryTimer) {
+    clearTimeout(retryTimer);
+    retryTimer = null;
+  }
+}
 
-const sendQuery = async () => {
-  if (
-    !dynamicWs.value ||
-    dynamicStatus.value !== "connected" ||
-    !currentBackend.value
-  )
-    return;
+function closeConnection() {
+  stopAllTimers();
+  if (pollConn) {
+    pollConn.close();
+    pollConn = null;
+  }
+  knownUuids = [];
+}
 
-  const queryObj = {
-    fields: summaryFields,
-    condition: [{ last: null }],
-  };
+async function refreshUuids() {
+  const { listAgentUuids } = useKv();
+  knownUuids = await listAgentUuids();
+}
 
+async function poll() {
+  if (pollInFlight || !pollConn || !currentBackend.value) return;
+  pollInFlight = true;
   try {
-    const result = await sendRequest("agent_query_dynamic_summary", [
-      currentBackend.value.token,
-      queryObj,
-    ]);
-
+    if (knownUuids.length === 0) {
+      await refreshUuids();
+      if (knownUuids.length === 0) {
+        dynamicServers.value = [];
+        dynamicError.value = "";
+        dynamicStatus.value = "connected";
+        return;
+      }
+    }
+    const result = await pollConn.call<DynamicSummaryResponseItem[]>(
+      "agent_dynamic_summary_multi_last_query",
+      {
+        token: currentBackend.value.token,
+        uuids: knownUuids,
+        fields: summaryFields,
+      },
+    );
     if (Array.isArray(result)) {
       dynamicServers.value = result;
-      if (dynamicError.value) dynamicError.value = "";
-      // 如果是从 retry 恢复过来的（interval 已停），重启轮询
-      if (!dynamicPollInterval) {
-        dynamicPollInterval = setInterval(sendQuery, 1000);
-      }
-    } else if (result && result.error_message) {
-      dynamicError.value = result.error_message;
-      stopPolling();
+      dynamicError.value = "";
+      dynamicStatus.value = "connected";
     }
-  } catch (e: any) {
-    console.error("[Dynamic] Send failed", e);
-    if (e.message === "Request timed out") {
-      // 忽略，interval 会继续下一次
-    } else if (isTransientError(e)) {
-      const msg = typeof e === "string" ? e : e.message || JSON.stringify(e);
-      dynamicError.value = msg;
+  } catch (e) {
+    console.error("[Dynamic] poll failed", e);
+    const msg = e instanceof Error ? e.message : String(e);
+    dynamicError.value = msg;
+    if (isTransientError(e)) {
       toast.error("数据查询失败", { description: msg });
-      stopPolling();
-      scheduleRetry();
+      stopAllTimers();
+      retryTimer = setTimeout(() => {
+        retryTimer = null;
+        startPolling();
+      }, RETRY_DELAY_MS);
     } else {
-      const msg = typeof e === "string" ? e : e.message || JSON.stringify(e);
-      dynamicError.value = msg;
-      toast.error("数据查询失败", { description: msg });
-      stopPolling();
+      dynamicStatus.value = "disconnected";
     }
+  } finally {
+    pollInFlight = false;
   }
-};
+}
 
-const startPolling = () => {
-  if (dynamicPollInterval) clearInterval(dynamicPollInterval);
-  sendQuery();
-  dynamicPollInterval = setInterval(sendQuery, 1000);
-};
-
-const stopPolling = () => {
-  if (dynamicPollInterval) clearInterval(dynamicPollInterval);
-  dynamicPollInterval = null;
-  if (dynamicRetryTimeout) clearTimeout(dynamicRetryTimeout);
-  dynamicRetryTimeout = null;
-};
+function startPolling() {
+  stopAllTimers();
+  void poll();
+  pollTimer = setInterval(poll, POLL_INTERVAL_MS);
+  uuidsTimer = setInterval(() => {
+    refreshUuids().catch((e) => {
+      console.error("[Dynamic] periodic refreshUuids failed", e);
+    });
+  }, UUIDS_REFRESH_MS);
+}
 
 const connect = () => {
-  if (
-    dynamicStatus.value === "connected" ||
-    dynamicStatus.value === "connecting"
-  )
-    return;
-
   if (!currentBackend.value) {
     dynamicError.value = "No backend selected.";
     dynamicStatus.value = "disconnected";
@@ -154,139 +164,24 @@ const connect = () => {
     return;
   }
 
+  closeConnection();
   dynamicStatus.value = "connecting";
   dynamicError.value = "";
-
-  try {
-    const socket = new WebSocket(url);
-    dynamicWs.value = socket;
-
-    socket.onopen = () => {
-      dynamicStatus.value = "connected";
-      dynamicError.value = "";
-      startPolling();
-    };
-
-    socket.onmessage = (event) => {
-      try {
-        const msg = JSON.parse(event.data);
-
-        // Check if it's a response to a pending request
-        if (msg.id && pendingRequests.has(msg.id)) {
-          const { resolve, reject } = pendingRequests.get(msg.id)!;
-          pendingRequests.delete(msg.id);
-
-          if (msg.error) {
-            reject(msg.error);
-          } else {
-            resolve(msg.result);
-          }
-          return;
-        }
-
-        if (msg.result && Array.isArray(msg.result)) {
-          dynamicServers.value = msg.result;
-          if (dynamicError.value) dynamicError.value = "";
-        } else if (msg.result && msg.result.error_message) {
-          dynamicError.value = msg.result.error_message;
-          stopPolling();
-        } else if (msg.error) {
-          console.error("[Dynamic] RPC Error:", msg.error);
-          const errMsg =
-            typeof msg.error === "string"
-              ? msg.error
-              : msg.error.message || JSON.stringify(msg.error);
-          dynamicError.value = errMsg;
-          toast.error("数据查询失败", { description: errMsg });
-          stopPolling();
-        }
-      } catch (e) {
-        console.error("[Dynamic] Failed to parse message:", event.data);
-      }
-    };
-
-    socket.onclose = () => {
-      dynamicStatus.value = "disconnected";
-      dynamicWs.value = null;
-      stopPolling();
-      if (currentBackend.value) {
-        scheduleReconnect();
-      }
-    };
-
-    socket.onerror = (e) => {
-      console.error("[Dynamic] WebSocket Error:", e);
-      dynamicStatus.value = "disconnected";
-      toast.error("服务器连接失败", {
-        description: `无法连接到 ${url}，将在 3 秒后重试。`,
-      });
-    };
-  } catch (e: any) {
-    console.error("[Dynamic] Connection failed:", e);
-    dynamicStatus.value = "disconnected";
-    scheduleReconnect();
-  }
+  pollConn = new WsConnection(url);
+  startPolling();
 };
 
-// Watch for backend changes
 watch(
   currentBackend,
   (newVal, oldVal) => {
-    if (newVal?.url !== oldVal?.url || newVal?.token !== oldVal?.token) {
-      if (dynamicWs.value) {
-        dynamicWs.value.close();
-        dynamicWs.value = null;
-      }
-      dynamicStatus.value = "disconnected";
-      if (dynamicReconnectTimeout) clearTimeout(dynamicReconnectTimeout);
-      if (dynamicRetryTimeout) clearTimeout(dynamicRetryTimeout);
-      dynamicRetryTimeout = null;
-
-      if (newVal) {
-        connect();
-      }
-    }
+    if (newVal?.url === oldVal?.url && newVal?.token === oldVal?.token) return;
+    closeConnection();
+    dynamicStatus.value = "disconnected";
+    dynamicServers.value = [];
+    if (newVal) connect();
   },
   { deep: true },
 );
-
-const pendingRequests = new Map<
-  number,
-  { resolve: (value: any) => void; reject: (reason: any) => void }
->();
-
-const sendRequest = (method: string, params: any): Promise<any> => {
-  return new Promise((resolve, reject) => {
-    if (!dynamicWs.value || dynamicStatus.value !== "connected") {
-      reject(new Error("WebSocket not connected"));
-      return;
-    }
-
-    const id = dynamicNextId++;
-    pendingRequests.set(id, { resolve, reject });
-
-    const payload = {
-      jsonrpc: "2.0",
-      id,
-      method,
-      params,
-    };
-
-    try {
-      dynamicWs.value.send(JSON.stringify(payload));
-      // Timeout after 10 seconds
-      setTimeout(() => {
-        if (pendingRequests.has(id)) {
-          pendingRequests.get(id)?.reject(new Error("Request timed out"));
-          pendingRequests.delete(id);
-        }
-      }, 10000);
-    } catch (e) {
-      pendingRequests.delete(id);
-      reject(e);
-    }
-  });
-};
 
 const fetchSummaryAvg = async (
   serverUuid: string,
@@ -309,23 +204,18 @@ const fetchSummaryAvg = async (
     "receive_speed",
   ];
 
-  const condition: Record<string, any>[] = [{ uuid: serverUuid }];
-
+  const condition: Record<string, unknown>[] = [{ uuid: serverUuid }];
   if (options?.timestamp_from != null && options?.timestamp_to != null) {
     condition.push({
       timestamp_from_to: [options.timestamp_from, options.timestamp_to],
     });
   }
-
   if (options?.limit != null) condition.push({ limit: options.limit });
 
-  return sendRequest("agent_query_dynamic_summary", [
-    currentBackend.value.token,
-    {
-      fields: queryFields,
-      condition,
-    },
-  ]);
+  return getWsConnection(currentBackend.value.url).call(
+    "agent_query_dynamic_summary",
+    [currentBackend.value.token, { fields: queryFields, condition }],
+  );
 };
 
 const fetchDynamic = async (
@@ -334,29 +224,28 @@ const fetchDynamic = async (
   options?: { timestamp_from?: number; timestamp_to?: number; limit?: number },
 ): Promise<DynamicDetailData[]> => {
   if (!currentBackend.value) return [];
+  const condition: Record<string, unknown>[] = [{ uuid: serverUuid }];
+  if (options?.timestamp_from != null && options?.timestamp_to != null) {
+    condition.push({
+      timestamp_from_to: [options.timestamp_from, options.timestamp_to],
+    });
+  } else {
+    condition.push({ last: null });
+  }
+  if (options?.limit != null) condition.push({ limit: options.limit });
+
   try {
-    const condition: Record<string, any>[] = [{ uuid: serverUuid }];
-
-    if (options?.timestamp_from != null && options?.timestamp_to != null) {
-      condition.push({
-        timestamp_from_to: [options.timestamp_from, options.timestamp_to],
-      });
-    } else {
-      condition.push({ last: null });
-    }
-
-    if (options?.limit != null) condition.push({ limit: options.limit });
-
-    const result = await sendRequest("agent_query_dynamic", [
+    const result = await getWsConnection(currentBackend.value.url).call<
+      DynamicDetailData[]
+    >("agent_query_dynamic", [
       currentBackend.value.token,
       { fields, condition },
     ]);
-    if (Array.isArray(result)) return result;
-    return [];
-  } catch (e: any) {
+    return Array.isArray(result) ? result : [];
+  } catch (e) {
     console.error("[Dynamic] fetchDynamic failed:", e);
     toast.error("数据查询失败", {
-      description: typeof e === "string" ? e : e.message || JSON.stringify(e),
+      description: e instanceof Error ? e.message : String(e),
     });
     return [];
   }

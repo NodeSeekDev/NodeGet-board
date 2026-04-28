@@ -31,6 +31,7 @@ import {
   Trash2,
   Eye,
   EyeOff,
+  Cpu,
 } from "lucide-vue-next";
 import { toast } from "vue-sonner";
 import { Button } from "@/components/ui/button";
@@ -45,6 +46,7 @@ import {
 } from "@/components/ui/popover";
 import type { Extension } from "@/composables/useExtensions";
 import { useExtensions } from "@/composables/useExtensions";
+import { useJsRuntime } from "@/composables/useJsRuntime";
 import { useBackendStore } from "@/composables/useBackendStore";
 import { getWsConnection } from "@/composables/useWsConnection";
 
@@ -63,6 +65,7 @@ const router = useRouter();
 
 const { saveExtension, deleteExtension, getStaticUrl, uploadFile } =
   useExtensions();
+const { getWorker } = useJsRuntime();
 
 const backendToken = computed(() => currentBackend.value?.token ?? "");
 
@@ -113,8 +116,19 @@ const themeStore = useThemeStore();
 const selectedFile = ref<string | null>(null);
 const fileContent = ref<string>("");
 
+const VIRTUAL = {
+  APP_JSON: "virtual:app.json",
+  README: "virtual:readme.md",
+  WORKER: "virtual:worker",
+} as const;
+
 const editorExtensions = computed(() => {
-  const ext = selectedFile.value?.split(".").pop()?.toLowerCase() ?? "";
+  const path = selectedFile.value ?? "";
+  const virtualLang: Record<string, string> = {
+    [VIRTUAL.APP_JSON]: "json",
+    [VIRTUAL.WORKER]: "js",
+  };
+  const ext = virtualLang[path] ?? path.split(".").pop()?.toLowerCase() ?? "";
   const langMap: Record<string, () => CMExtension> = {
     json: () => json(),
     js: () => StreamLanguage.define(javascript),
@@ -123,6 +137,7 @@ const editorExtensions = computed(() => {
     css: () => StreamLanguage.define(css),
     html: () => StreamLanguage.define(xml),
     xml: () => StreamLanguage.define(xml),
+    svg: () => StreamLanguage.define(xml),
     sh: () => StreamLanguage.define(shell),
     bash: () => StreamLanguage.define(shell),
     yaml: () => StreamLanguage.define(yaml),
@@ -137,11 +152,15 @@ const editedContent = ref("");
 const fileSaving = ref(false);
 const fileUploadInputRef = ref<HTMLInputElement | null>(null);
 
-const isSpecialFile = computed(
-  () =>
-    selectedFile.value === "__app.json__" ||
-    selectedFile.value === "__readme__",
-);
+const workerDisplayName = computed(() => {
+  if (!props.extension.worker_name) return null;
+  return props.extension.app.worker?.filename ?? props.extension.worker_name;
+});
+
+const isSpecialFile = computed(() => {
+  const f = selectedFile.value;
+  return f === VIRTUAL.APP_JSON || f === VIRTUAL.README || f === VIRTUAL.WORKER;
+});
 const isDirty = computed(() => editedContent.value !== fileContent.value);
 
 watch(fileContent, (val) => {
@@ -229,12 +248,13 @@ const editableRoutes = ref<EditableRoute[]>([
   emptyRow(),
 ]);
 
-// 最后一行有内容时自动追加新空行
+const isRowEmpty = (r: (typeof editableRoutes.value)[number]) =>
+  !r.name && !r.type && !r.entry && !r.icon;
+
 const onRouteInput = () => {
-  const last = editableRoutes.value[editableRoutes.value.length - 1];
-  if (last && (last.name || last.type || last.entry || last.icon)) {
-    editableRoutes.value.push(emptyRow());
-  }
+  const rows = editableRoutes.value;
+  const nonEmpty = rows.filter((r) => !isRowEmpty(r));
+  editableRoutes.value = [...nonEmpty, emptyRow()];
 };
 
 const handleSaveRoutes = async () => {
@@ -300,20 +320,37 @@ const resourceFiles = computed(() =>
 );
 
 const specialFiles = [
-  { name: "app.json", path: "__app.json__", isDir: false },
-  { name: "readme.md", path: "__readme__", isDir: false },
+  { name: "app.json", path: VIRTUAL.APP_JSON, isDir: false },
+  { name: "readme.md", path: VIRTUAL.README, isDir: false },
 ];
 
 const loadFileContent = async (path: string) => {
   selectedFile.value = path;
   fileError.value = null;
 
-  if (path === "__app.json__") {
+  if (path === VIRTUAL.APP_JSON) {
     fileContent.value = JSON.stringify(props.extension.app, null, 2);
     return;
   }
-  if (path === "__readme__") {
+  if (path === VIRTUAL.README) {
     fileContent.value = props.extension.readme || "（无 README）";
+    return;
+  }
+  if (path === VIRTUAL.WORKER) {
+    if (!props.extension.worker_name) {
+      fileContent.value = "";
+      return;
+    }
+    fileLoading.value = true;
+    try {
+      const worker = await getWorker(props.extension.worker_name);
+      fileContent.value = worker?.content ?? "// 无法获取 worker 内容";
+    } catch (e: unknown) {
+      fileError.value = e instanceof Error ? e.message : String(e);
+      fileContent.value = "";
+    } finally {
+      fileLoading.value = false;
+    }
     return;
   }
 
@@ -614,6 +651,17 @@ const ExtensionFileNode = defineComponent({
             >
               <File class="h-3 w-3 text-muted-foreground" />{{ sf.name }}
             </button>
+            <template v-if="workerDisplayName">
+              <button
+                class="flex items-center gap-1.5 w-full text-left text-xs px-2 py-1 rounded hover:bg-muted transition-colors mt-0.5"
+                :class="{ 'bg-muted': selectedFile === VIRTUAL.WORKER }"
+                @click="loadFileContent(VIRTUAL.WORKER)"
+              >
+                <Cpu class="h-3 w-3 text-muted-foreground" />{{
+                  workerDisplayName
+                }}
+              </button>
+            </template>
           </div>
         </div>
 
