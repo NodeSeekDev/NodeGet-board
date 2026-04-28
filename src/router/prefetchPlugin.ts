@@ -26,9 +26,18 @@ type PrefetchMeta = {
 
 /** 内部维护的可预加载路由组件条目。 */
 type LoaderEntry = {
+  /** 包装后的 loader，暴露给 vue-router 与 preload 队列调用，失败可重试。 */
   loader: Loader;
+  /** 原始 `() => import(...)`，仅在 wrapper 内部触发实际加载。 */
+  original: Loader;
   path: string;
   priority: number;
+  /** 当前正在进行的加载 promise，用于去重并发请求。 */
+  inFlight?: Promise<unknown>;
+  /** prefetch 失败累计次数；用户主动导航不计入。 */
+  prefetchAttempts: number;
+  /** 时间戳：在此之前 prefetch 队列跳过本条目（指数退避用）。 */
+  prefetchRetryAt?: number;
 };
 
 /** 优先级计算结果，同时包含跳过原因说明。 */
@@ -133,6 +142,7 @@ let isPreloading = false;
 let devtoolsApi: DevtoolsApi | null = null;
 let devtoolsLayerAdded = false;
 let devtoolsInspectorAdded = false;
+let visibilityListenerAttached = false;
 const installedRouters = new WeakSet<Router>();
 
 /** 在 Devtools 中注册插件时使用的稳定插件标识。 */
@@ -145,6 +155,10 @@ const DEVTOOLS_INSPECTOR_ID = "nodeget:router-prefetch:inspector";
 const DEVTOOLS_INSPECTOR_NODE_ID = "summary";
 /** `requestIdleCallback` 最长等待时间，超过后允许以超时形式执行预加载。 */
 const IDLE_CALLBACK_TIMEOUT = 1000;
+/** 单条目 prefetch 最大尝试次数；超过后等待 visibility/导航事件重置。 */
+const PREFETCH_MAX_ATTEMPTS = 3;
+/** prefetch 失败后的退避时长（毫秒），按尝试次数取索引。 */
+const PREFETCH_BACKOFF_MS = [5_000, 15_000, 30_000];
 
 /** Devtools 中各优先级分组对应的人类可读标签。 */
 const PRIORITY_BUCKET_LABELS: Record<PriorityBucket, string> = {
@@ -508,8 +522,15 @@ function scheduleIdle(fn: (deadline?: IdleDeadline) => void) {
 }
 
 function getPendingLoaders() {
+  const now = Date.now();
   return [...loaders.values()]
-    .filter(({ loader }) => !loaded.has(loader))
+    .filter((entry) => {
+      if (loaded.has(entry.loader)) return false;
+      if (entry.inFlight) return false;
+      if (entry.prefetchAttempts >= PREFETCH_MAX_ATTEMPTS) return false;
+      if (entry.prefetchRetryAt && now < entry.prefetchRetryAt) return false;
+      return true;
+    })
     .sort((a, b) => b.priority - a.priority || a.path.localeCompare(b.path));
 }
 
@@ -526,23 +547,36 @@ function preload(deadline?: IdleDeadline) {
   }
 
   isPreloading = true;
+  next.prefetchAttempts++;
   log("start preload", {
     path: next.path,
     priority: next.priority,
+    attempt: next.prefetchAttempts,
     didTimeout: deadline?.didTimeout ?? false,
     remainingTime: deadline?.timeRemaining(),
   });
 
+  // next.loader 是 wrapped 版本：成功会自动写入 loaded，失败会清空 inFlight 以便重试。
   next
     .loader()
     .then(() => {
-      loaded.add(next.loader);
+      next.prefetchAttempts = 0;
+      next.prefetchRetryAt = undefined;
       log("preload success", { path: next.path, priority: next.priority });
     })
     .catch((error) => {
+      const idx = Math.min(
+        next.prefetchAttempts - 1,
+        PREFETCH_BACKOFF_MS.length - 1,
+      );
+      const backoff = PREFETCH_BACKOFF_MS[idx]!;
+      next.prefetchRetryAt = Date.now() + backoff;
       logWarn("preload failed", {
         path: next.path,
         priority: next.priority,
+        attempts: next.prefetchAttempts,
+        backoffMs: backoff,
+        givenUp: next.prefetchAttempts >= PREFETCH_MAX_ATTEMPTS,
         error,
       });
     })
@@ -555,6 +589,27 @@ function preload(deadline?: IdleDeadline) {
         log("all queued routes have been preloaded");
       }
     });
+}
+
+function makeWrappedLoader(entry: LoaderEntry): Loader {
+  return () => {
+    // 同一加载请求并发去重；若上一轮成功，inFlight 仍指向已 resolve 的 promise，复用即可。
+    if (entry.inFlight) return entry.inFlight;
+
+    const p = entry.original();
+    entry.inFlight = p;
+    p.then(
+      () => {
+        loaded.add(entry.loader);
+      },
+      () => {
+        // 失败时丢弃 promise 缓存，让下次调用（用户点击或下次 prefetch tick）重新发起 import()。
+        if (entry.inFlight === p) entry.inFlight = undefined;
+        loaded.delete(entry.loader);
+      },
+    );
+    return p;
+  };
 }
 
 function registerLoader<T = unknown>(
@@ -575,19 +630,26 @@ function registerLoader<T = unknown>(
         priority: nextPriority,
       });
     }
-    existing.priority = Math.max(existing.priority, priority);
+    existing.priority = nextPriority;
     existing.path = path;
-  } else {
-    loaders.set(loader as Loader, {
-      loader: loader as Loader,
-      path,
-      priority,
-    });
-    log("register preload target", { path, priority });
+    debouncePreload();
+    return existing.loader as Loader<T>;
   }
 
+  // loaders 仍以 original loader 为 key 用于去重；entry.loader 是返回给 vue-router 的 wrapped 版本。
+  const entry: LoaderEntry = {
+    loader: undefined as unknown as Loader,
+    original: loader as Loader,
+    path,
+    priority,
+    prefetchAttempts: 0,
+  };
+  entry.loader = makeWrappedLoader(entry);
+  loaders.set(loader as Loader, entry);
+  log("register preload target", { path, priority });
+
   debouncePreload();
-  return loader;
+  return entry.loader as Loader<T>;
 }
 
 function wrapLoader(
@@ -748,6 +810,32 @@ function processRoutes(routes: RouteRecordRaw[], parentPath = "") {
   }
 }
 
+function setupVisibilityListener() {
+  if (typeof document === "undefined") return;
+  if (visibilityListenerAttached) return;
+  visibilityListenerAttached = true;
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible") return;
+
+    // 标签页长时间隐藏后可能错过 prefetch 时机或卡在退避中；
+    // 重新可见时重置所有未加载条目的失败计数，让队列可以再走一遍。
+    let resetCount = 0;
+    for (const entry of loaders.values()) {
+      if (loaded.has(entry.loader)) continue;
+      if (entry.prefetchAttempts > 0 || entry.prefetchRetryAt) {
+        entry.prefetchAttempts = 0;
+        entry.prefetchRetryAt = undefined;
+        resetCount++;
+      }
+    }
+
+    if (resetCount > 0 || getPendingLoaders().length > 0) {
+      requestPreload("tab became visible", { resetCount });
+    }
+  });
+}
+
 function attachRoutePrefetchDevtools(app: App) {
   if (typeof window === "undefined") return;
 
@@ -805,6 +893,7 @@ export default function routePrefetchPlugin(router: Router): Plugin {
       installedRouters.add(router);
 
       attachRoutePrefetchDevtools(app);
+      setupVisibilityListener();
       log("apply route prefetch plugin");
       processRoutes(router.options.routes as RouteRecordRaw[]);
       if (loaders.size === 0) {
