@@ -42,6 +42,10 @@ import FooterView from "@/components/FooterView.vue";
 
 const { servers, loading, error, start, stop } = useOverviewData();
 
+const sortedServers = computed(() =>
+  [...servers.value].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
+);
+
 const status = computed(() =>
   loading.value ? "connecting" : error.value ? "disconnected" : "connected",
 );
@@ -74,7 +78,7 @@ onUnmounted(() => stop());
         class="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
       >
         <router-link
-          v-for="server in servers"
+          v-for="server in sortedServers"
           :key="server.uuid"
           :to="{ name: '/server-detail', params: { uuid: server.uuid } }"
           class="block h-full"
