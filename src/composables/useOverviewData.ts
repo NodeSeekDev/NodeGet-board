@@ -3,6 +3,7 @@ import { useBackendStore } from "@/composables/useBackendStore";
 import { WsConnection, getWsConnection } from "@/composables/useWsConnection";
 import { useKv } from "@/composables/useKv";
 import type { SummaryField } from "@/types/monitoring";
+import { OFFLINE_AFTER_MS } from "@/utils/show";
 
 const SUMMARY_FIELDS: SummaryField[] = [
   "cpu_usage",
@@ -82,6 +83,7 @@ let pollTimer: ReturnType<typeof setInterval> | null = null;
 let staticPollTimer: ReturnType<typeof setInterval> | null = null;
 let pollConn: WsConnection | null = null;
 let visibilityListenerAttached = false;
+let lastFetchTime = 0;
 let uuids: string[] = [];
 let metaMap = new Map<
   string,
@@ -209,6 +211,7 @@ function initFunctions() {
         dynamicMap.set(d.uuid, d);
       }
 
+      lastFetchTime = Date.now();
       if (
         startedVisible &&
         (typeof document === "undefined" ||
@@ -393,6 +396,10 @@ export function useOverviewData() {
         _fetchDynamic?.();
       }
     });
+  }
+
+  if (lastFetchTime && Date.now() - lastFetchTime >= OFFLINE_AFTER_MS) {
+    servers.value = [];
   }
 
   const start = async () => {
