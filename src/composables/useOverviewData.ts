@@ -3,6 +3,7 @@ import { useBackendStore } from "@/composables/useBackendStore";
 import { WsConnection, getWsConnection } from "@/composables/useWsConnection";
 import { useKv } from "@/composables/useKv";
 import type { SummaryField } from "@/types/monitoring";
+import { OFFLINE_AFTER_MS } from "@/utils/show";
 
 const SUMMARY_FIELDS: SummaryField[] = [
   "cpu_usage",
@@ -70,16 +71,20 @@ export interface OverviewServer {
   region?: string;
   latitude?: number | null;
   longitude?: number | null;
+  tags: string[];
+  order: number;
 }
 
-// --- 模块级单例状态，所有组件共享 ---
 const servers = ref<OverviewServer[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
+const inactive = ref(false);
 
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 let staticPollTimer: ReturnType<typeof setInterval> | null = null;
 let pollConn: WsConnection | null = null;
+let visibilityListenerAttached = false;
+let lastFetchTime = 0;
 let uuids: string[] = [];
 let metaMap = new Map<
   string,
@@ -89,6 +94,8 @@ let metaMap = new Map<
     region: string;
     latitude: number | null;
     longitude: number | null;
+    tags: string[];
+    order: number;
   }
 >();
 let staticMap = new Map<string, AgentRow>();
@@ -126,6 +133,8 @@ function initFunctions() {
         { namespace: uuid, key: "metadata_region" },
         { namespace: uuid, key: "metadata_latitude" },
         { namespace: uuid, key: "metadata_longitude" },
+        { namespace: uuid, key: "metadata_tags" },
+        { namespace: uuid, key: "metadata_order" },
       ]);
       const results = await kv.getMultiValue(namespaceKeys);
       metaMap = new Map();
@@ -134,6 +143,8 @@ function initFunctions() {
         const parsed = Number(value);
         return Number.isFinite(parsed) ? parsed : null;
       };
+      const parseTags = (value: unknown): string[] =>
+        Array.isArray(value) ? value.map((v) => String(v)).filter(Boolean) : [];
       for (const uuid of uuids) {
         const nameEntry = results.find(
           (r) => r.namespace === uuid && r.key === "metadata_name",
@@ -150,12 +161,20 @@ function initFunctions() {
         const longitudeEntry = results.find(
           (r) => r.namespace === uuid && r.key === "metadata_longitude",
         );
+        const tagsEntry = results.find(
+          (r) => r.namespace === uuid && r.key === "metadata_tags",
+        );
+        const orderEntry = results.find(
+          (r) => r.namespace === uuid && r.key === "metadata_order",
+        );
         metaMap.set(uuid, {
           customName: nameEntry ? String(nameEntry.value ?? "") : "",
           hidden: hiddenEntry ? Boolean(hiddenEntry.value) : false,
           region: regionEntry ? String(regionEntry.value ?? "") : "",
           latitude: parseNullableNumber(latitudeEntry?.value),
           longitude: parseNullableNumber(longitudeEntry?.value),
+          tags: parseTags(tagsEntry?.value),
+          order: Number(orderEntry?.value ?? 0),
         });
       }
     } catch {
@@ -184,6 +203,9 @@ function initFunctions() {
     if (fetchDynamicInFlight) return;
     fetchDynamicInFlight = true;
 
+    const startedVisible =
+      typeof document === "undefined" || document.visibilityState === "visible";
+
     try {
       if (!pollConn) pollConn = new WsConnection(currentBackend.value.url);
       const results = await pollConn.call<AgentRow[]>(
@@ -196,6 +218,14 @@ function initFunctions() {
         dynamicMap.set(d.uuid, d);
       }
 
+      lastFetchTime = Date.now();
+      if (
+        startedVisible &&
+        (typeof document === "undefined" ||
+          document.visibilityState === "visible")
+      ) {
+        inactive.value = false;
+      }
       servers.value = uuids.map((uuid) => {
         const d = dynamicMap.get(uuid) ?? { uuid };
         const s = staticMap.get(uuid) ?? { uuid };
@@ -205,11 +235,14 @@ function initFunctions() {
           region: "",
           latitude: null,
           longitude: null,
+          tags: [],
+          order: 0,
         };
 
         return {
           uuid,
           // summary flat fields
+          timestamp: d.timestamp as number | undefined,
           cpu_usage: d.cpu_usage as number | undefined,
           gpu_usage: d.gpu_usage as number | undefined,
           used_swap: d.used_swap as number | undefined,
@@ -242,6 +275,8 @@ function initFunctions() {
           region: meta.region,
           latitude: meta.latitude,
           longitude: meta.longitude,
+          tags: meta.tags,
+          order: meta.order,
         };
       });
 
@@ -295,6 +330,8 @@ function initFunctions() {
           { namespace: uuid, key: "metadata_region" },
           { namespace: uuid, key: "metadata_latitude" },
           { namespace: uuid, key: "metadata_longitude" },
+          { namespace: uuid, key: "metadata_tags" },
+          { namespace: uuid, key: "metadata_order" },
         ]);
         const kvResults = await kv.getMultiValue(namespaceKeys);
         const parseNullableNumber = (value: unknown): number | null => {
@@ -303,6 +340,10 @@ function initFunctions() {
           const parsed = Number(value);
           return Number.isFinite(parsed) ? parsed : null;
         };
+        const parseTags = (value: unknown): string[] =>
+          Array.isArray(value)
+            ? value.map((v) => String(v)).filter(Boolean)
+            : [];
         for (const uuid of newUuids) {
           const nameEntry = kvResults.find(
             (r) => r.namespace === uuid && r.key === "metadata_name",
@@ -319,12 +360,20 @@ function initFunctions() {
           const longitudeEntry = kvResults.find(
             (r) => r.namespace === uuid && r.key === "metadata_longitude",
           );
+          const tagsEntry = kvResults.find(
+            (r) => r.namespace === uuid && r.key === "metadata_tags",
+          );
+          const orderEntry = kvResults.find(
+            (r) => r.namespace === uuid && r.key === "metadata_order",
+          );
           metaMap.set(uuid, {
             customName: nameEntry ? String(nameEntry.value ?? "") : "",
             hidden: hiddenEntry ? Boolean(hiddenEntry.value) : false,
             region: regionEntry ? String(regionEntry.value ?? "") : "",
             latitude: parseNullableNumber(latitudeEntry?.value),
             longitude: parseNullableNumber(longitudeEntry?.value),
+            tags: parseTags(tagsEntry?.value),
+            order: Number(orderEntry?.value ?? 0),
           });
         }
       } catch {
@@ -335,6 +384,8 @@ function initFunctions() {
             region: "",
             latitude: null,
             longitude: null,
+            tags: [],
+            order: 0,
           });
         }
       }
@@ -349,6 +400,22 @@ function initFunctions() {
 
 export function useOverviewData() {
   initFunctions();
+
+  if (!visibilityListenerAttached && typeof document !== "undefined") {
+    visibilityListenerAttached = true;
+    document.addEventListener("visibilitychange", () => {
+      if (refCount <= 0) return;
+      if (document.visibilityState === "hidden") {
+        inactive.value = true;
+      } else {
+        _fetchDynamic?.();
+      }
+    });
+  }
+
+  if (lastFetchTime && Date.now() - lastFetchTime >= OFFLINE_AFTER_MS) {
+    servers.value = [];
+  }
 
   const start = async () => {
     refCount++;
@@ -393,5 +460,5 @@ export function useOverviewData() {
     }
   };
 
-  return { servers, loading, error, start, stop };
+  return { servers, loading, error, inactive, start, stop };
 }

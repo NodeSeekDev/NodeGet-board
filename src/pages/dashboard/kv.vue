@@ -30,6 +30,16 @@ const activeTab = ref<"list" | "flat" | "node">("list");
 const deletingNs = ref<string | null>(null);
 const selectedNamespace = ref<string | null>(null);
 const tabKeys = ref({ list: 0, flat: 0, node: 0 });
+const agentUuids = ref<Set<string>>(new Set());
+
+const refreshAgentUuids = async () => {
+  try {
+    const list = await kv.listAgentUuids();
+    agentUuids.value = new Set(list);
+  } catch {
+    agentUuids.value = new Set();
+  }
+};
 
 const handleTabChange = (tab: string) => {
   activeTab.value = tab as "list" | "flat" | "node";
@@ -56,7 +66,10 @@ const editKey = ref<string | undefined>(undefined);
 const editValue = ref<unknown>(undefined);
 const saveLoading = ref(false);
 
-onMounted(() => kv.init());
+onMounted(() => {
+  kv.init();
+  refreshAgentUuids();
+});
 
 const enterNamespace = async (ns: string) => {
   selectedNamespace.value = ns;
@@ -183,10 +196,16 @@ const openAddKey = () => {
           :namespaces="kv.namespaces.value"
           :loading="kv.namespacesLoading.value"
           :deleting-ns="deletingNs"
+          :agent-uuids="agentUuids"
           @select="enterNamespace"
           @open-create="createOpen = true"
           @delete="handleNsDelete"
-          @refresh="() => kv.fetchNamespaces()"
+          @refresh="
+            () => {
+              kv.fetchNamespaces();
+              refreshAgentUuids();
+            }
+          "
         />
       </TabsContent>
 

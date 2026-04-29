@@ -19,8 +19,8 @@ import {
 } from "lucide-vue-next";
 import UPlotChart from "@/components/UPlotChart.vue";
 import type {
-  DynamicSummaryResponseItem,
   DynamicDetailData,
+  DynamicSummaryResponseItem,
   SummaryField,
 } from "@/types/monitoring";
 
@@ -87,7 +87,8 @@ const startDetailTimer = (tab: string) => {
     cpuDetailTimer = setInterval(() => fetchCpuDetail(), 1_000);
     return;
   }
-  const detailTab = tab as DetailTab;
+  if (tab !== "disk" && tab !== "network") return;
+  const detailTab = tab;
   stopDetailTimer(detailTab);
   const state = detailState.value[detailTab];
   state.timer = setInterval(
@@ -104,7 +105,8 @@ const stopDetailTimer = (tab: string) => {
     }
     return;
   }
-  const state = detailState.value[tab as DetailTab];
+  if (tab !== "disk" && tab !== "network") return;
+  const state = detailState.value[tab];
   if (state.timer) {
     clearInterval(state.timer);
     state.timer = null;
@@ -327,6 +329,7 @@ const tabs = [
 
 const MAIN_COLOR = "#3e8eff";
 const SUB_COLOR = "#e46e0a";
+const LOAD15_COLOR = "#22c55e";
 
 const WINDOWS = [
   { label: "7天", value: 7 * 24 * 60 * 60 * 1000 },
@@ -421,11 +424,36 @@ const tabState = ref<Record<TabId, TabAvgState>>({
   network: createTabState(),
 });
 
-const TAB_FIELDS_AVG: Record<TabId, SummaryField[]> = {
-  cpu: ["cpu_usage"],
-  memory: ["used_memory", "total_memory"],
-  disk: ["read_speed", "write_speed"],
-  network: ["transmit_speed", "receive_speed"],
+const cpuSyncAxes = ref(true);
+const netSyncAxes = ref(true);
+const cpuZoom = ref<{ min: number; max: number } | null>(null);
+const netZoom = ref<{ min: number; max: number } | null>(null);
+
+const onCpuZoom = (v: { min: number; max: number } | null) => {
+  if (cpuSyncAxes.value) cpuZoom.value = v;
+};
+const onNetZoom = (v: { min: number; max: number } | null) => {
+  if (netSyncAxes.value) netZoom.value = v;
+};
+
+watch(cpuSyncAxes, (v) => {
+  if (!v) cpuZoom.value = null;
+});
+watch(netSyncAxes, (v) => {
+  if (!v) netZoom.value = null;
+});
+
+const TAB_FIELDS_AVG: Record<TabId, SummaryField[][]> = {
+  cpu: [
+    ["cpu_usage", "process_count"],
+    ["load_one", "load_five", "load_fifteen"],
+  ],
+  memory: [["used_memory", "total_memory"]],
+  disk: [["read_speed", "write_speed"]],
+  network: [
+    ["transmit_speed", "receive_speed"],
+    ["tcp_connections", "udp_connections"],
+  ],
 };
 
 const fetchTabAvg = async (tab: TabId, showLoading = true) => {
@@ -435,14 +463,25 @@ const fetchTabAvg = async (tab: TabId, showLoading = true) => {
   const now = Date.now();
   const from = now - state.windowMs;
   try {
-    const result = await fetchSummaryAvg(
-      uuid.value,
-      { timestamp_from: from, timestamp_to: now },
-      TAB_FIELDS_AVG[tab],
+    const groups = await Promise.all(
+      TAB_FIELDS_AVG[tab].map((fields) =>
+        fetchSummaryAvg(
+          uuid.value,
+          { timestamp_from: from, timestamp_to: now },
+          fields,
+        ),
+      ),
     );
-    if (Array.isArray(result)) {
-      state.data = result;
+    const merged = new Map<number, DynamicSummaryResponseItem>();
+    for (const g of groups) {
+      if (!Array.isArray(g)) continue;
+      for (const row of g as DynamicSummaryResponseItem[]) {
+        const cur = merged.get(row.timestamp);
+        if (cur) Object.assign(cur, row);
+        else merged.set(row.timestamp, { ...row });
+      }
     }
+    state.data = [...merged.values()].sort((a, b) => a.timestamp - b.timestamp);
   } catch (e: any) {
     console.error(`[Status] Failed to fetch ${tab} avg data:`, e);
     toast.error("数据查询失败", {
@@ -585,7 +624,6 @@ watch([summaryLimit, dynamicLimit], () => {
   });
 });
 
-// CPU chart data
 const cpuAvgTimestamps = computed(() =>
   tabState.value.cpu.data.map((d) => d.timestamp / 1000),
 );
@@ -593,7 +631,29 @@ const cpuAvgValues = computed(() =>
   tabState.value.cpu.data.map((d) => d.cpu_usage ?? 0),
 );
 
-// Memory chart data
+const load1Values = computed(() =>
+  tabState.value.cpu.data.map((d) => d.load_one ?? 0),
+);
+const load5Values = computed(() =>
+  tabState.value.cpu.data.map((d) => d.load_five ?? 0),
+);
+const load15Values = computed(() =>
+  tabState.value.cpu.data.map((d) => d.load_fifteen ?? 0),
+);
+const maxLoad = computed(() =>
+  Math.max(
+    ...load1Values.value,
+    ...load5Values.value,
+    ...load15Values.value,
+    1,
+  ),
+);
+
+const procValues = computed(() =>
+  tabState.value.cpu.data.map((d) => d.process_count ?? 0),
+);
+const maxProc = computed(() => Math.max(...procValues.value, 1));
+
 const ramAvgTimestamps = computed(() =>
   tabState.value.memory.data.map((d) => d.timestamp / 1000),
 );
@@ -605,7 +665,6 @@ const ramAvgValues = computed(() =>
   }),
 );
 
-// Disk chart data
 const diskAvgTimestamps = computed(() =>
   tabState.value.disk.data.map((d) => d.timestamp / 1000),
 );
@@ -619,7 +678,6 @@ const maxDiskSpeed = computed(() =>
   Math.max(...diskReadAvgValues.value, ...diskWriteAvgValues.value, 1),
 );
 
-// Network chart data
 const netAvgTimestamps = computed(() =>
   tabState.value.network.data.map((d) => d.timestamp / 1000),
 );
@@ -631,6 +689,16 @@ const netTxAvgValues = computed(() =>
 );
 const maxNetSpeed = computed(() =>
   Math.max(...netRxAvgValues.value, ...netTxAvgValues.value, 1),
+);
+
+const tcpConnAvgValues = computed(() =>
+  tabState.value.network.data.map((d) => d.tcp_connections ?? 0),
+);
+const udpConnAvgValues = computed(() =>
+  tabState.value.network.data.map((d) => d.udp_connections ?? 0),
+);
+const maxConnCount = computed(() =>
+  Math.max(...tcpConnAvgValues.value, ...udpConnAvgValues.value, 1),
 );
 </script>
 
@@ -746,6 +814,16 @@ const maxNetSpeed = computed(() =>
                 </select>
                 更新
               </span>
+              <label
+                class="text-xs text-muted-foreground inline-flex items-center gap-1.5 cursor-pointer select-none"
+              >
+                <input
+                  type="checkbox"
+                  v-model="cpuSyncAxes"
+                  class="h-3 w-3 cursor-pointer accent-current"
+                />
+                同步坐标轴
+              </label>
             </div>
             <div>
               <div
@@ -788,6 +866,95 @@ const maxNetSpeed = computed(() =>
                   :maxValue="100"
                   yLabel="%"
                   :loading="tabState.cpu.loading"
+                  :zoom-range="cpuSyncAxes ? cpuZoom : undefined"
+                  @update:zoom-range="onCpuZoom"
+                />
+              </div>
+            </div>
+
+            <div>
+              <div
+                class="flex items-center gap-3 mb-3 text-xs font-mono flex-wrap"
+              >
+                <span class="text-sm font-medium text-muted-foreground mr-1"
+                  >Load Average</span
+                >
+                <span class="status-main-text"
+                  >1m {{ (server.load_one ?? 0).toFixed(2) }}</span
+                >
+                <span class="status-sub-text"
+                  >5m {{ (server.load_five ?? 0).toFixed(2) }}</span
+                >
+                <span :style="{ color: LOAD15_COLOR }"
+                  >15m {{ (server.load_fifteen ?? 0).toFixed(2) }}</span
+                >
+              </div>
+              <div class="h-[260px] w-full relative overflow-hidden">
+                <UPlotChart
+                  :data="load1Values"
+                  :data2="load5Values"
+                  :data3="load15Values"
+                  :timestamps="cpuAvgTimestamps"
+                  :color="MAIN_COLOR"
+                  :color2="SUB_COLOR"
+                  :color3="LOAD15_COLOR"
+                  :maxValue="maxLoad"
+                  label1="1m"
+                  label2="5m"
+                  label3="15m"
+                  :loading="tabState.cpu.loading"
+                  :zoom-range="cpuSyncAxes ? cpuZoom : undefined"
+                  @update:zoom-range="onCpuZoom"
+                />
+              </div>
+              <div
+                class="flex items-center gap-4 mt-2 text-xs font-mono text-muted-foreground"
+              >
+                <span class="flex items-center gap-1">
+                  <span
+                    class="inline-block w-3 h-0.5"
+                    :style="{ backgroundColor: MAIN_COLOR }"
+                  ></span>
+                  1m
+                </span>
+                <span class="flex items-center gap-1">
+                  <span
+                    class="inline-block w-3 h-0.5"
+                    :style="{ backgroundColor: SUB_COLOR }"
+                  ></span>
+                  5m
+                </span>
+                <span class="flex items-center gap-1">
+                  <span
+                    class="inline-block w-3 h-0.5"
+                    :style="{ backgroundColor: LOAD15_COLOR }"
+                  ></span>
+                  15m
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <div
+                class="flex items-center gap-3 mb-3 text-xs font-mono flex-wrap"
+              >
+                <span class="text-sm font-medium text-muted-foreground mr-1"
+                  >Processes</span
+                >
+                <span class="status-main-text">
+                  {{ server.process_count ?? 0 }}
+                </span>
+              </div>
+              <div class="h-[260px] w-full relative overflow-hidden">
+                <UPlotChart
+                  :data="procValues"
+                  :timestamps="cpuAvgTimestamps"
+                  :color="MAIN_COLOR"
+                  :maxValue="maxProc"
+                  label1="Processes"
+                  :loading="tabState.cpu.loading"
+                  :zoom-range="cpuSyncAxes ? cpuZoom : undefined"
+                  @update:zoom-range="onCpuZoom"
                 />
               </div>
             </div>
@@ -1399,6 +1566,16 @@ const maxNetSpeed = computed(() =>
                 </select>
                 更新
               </span>
+              <label
+                class="text-xs text-muted-foreground inline-flex items-center gap-1.5 cursor-pointer select-none"
+              >
+                <input
+                  type="checkbox"
+                  v-model="netSyncAxes"
+                  class="h-3 w-3 cursor-pointer accent-current"
+                />
+                同步坐标轴
+              </label>
             </div>
             <!-- Chart -->
             <div>
@@ -1434,6 +1611,8 @@ const maxNetSpeed = computed(() =>
                   label1="Download"
                   label2="Upload"
                   :loading="tabState.network.loading"
+                  :zoom-range="netSyncAxes ? netZoom : undefined"
+                  @update:zoom-range="onNetZoom"
                 />
               </div>
               <!-- Legend -->
@@ -1475,6 +1654,55 @@ const maxNetSpeed = computed(() =>
                   formatBytes(server.total_transmitted ?? 0)
                 }}</span>
               </span>
+            </div>
+
+            <div>
+              <div
+                class="flex items-center gap-3 mb-3 text-xs font-mono flex-wrap"
+              >
+                <span class="text-sm font-medium text-muted-foreground mr-1"
+                  >Connections</span
+                >
+                <span class="status-main-text"
+                  >TCP {{ server.tcp_connections ?? 0 }}</span
+                >
+                <span class="status-sub-text"
+                  >UDP {{ server.udp_connections ?? 0 }}</span
+                >
+              </div>
+              <div class="h-[260px] w-full relative overflow-hidden">
+                <UPlotChart
+                  :data="tcpConnAvgValues"
+                  :data2="udpConnAvgValues"
+                  :timestamps="netAvgTimestamps"
+                  :color="MAIN_COLOR"
+                  :color2="SUB_COLOR"
+                  :maxValue="maxConnCount"
+                  label1="TCP"
+                  label2="UDP"
+                  :loading="tabState.network.loading"
+                  :zoom-range="netSyncAxes ? netZoom : undefined"
+                  @update:zoom-range="onNetZoom"
+                />
+              </div>
+              <div
+                class="flex items-center gap-4 mt-2 text-xs font-mono text-muted-foreground"
+              >
+                <span class="flex items-center gap-1">
+                  <span
+                    class="inline-block w-3 h-0.5"
+                    :style="{ backgroundColor: MAIN_COLOR }"
+                  ></span>
+                  TCP
+                </span>
+                <span class="flex items-center gap-1">
+                  <span
+                    class="inline-block w-3 h-0.5"
+                    :style="{ backgroundColor: SUB_COLOR }"
+                  ></span>
+                  UDP
+                </span>
+              </div>
             </div>
 
             <!-- Detail divider -->

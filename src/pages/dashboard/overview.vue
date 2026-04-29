@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useOverviewData } from "@/composables/useOverviewData";
 import { colors } from "@/composables/color";
@@ -14,11 +14,22 @@ import {
   showDiskUsage,
   showDiskPercent,
   showDiskDisplay,
+  isOnline,
+  distroLogo,
+  virtLabel,
+  flagUrl,
 } from "@/utils/show";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -52,7 +63,25 @@ definePage({
 
 const router = useRouter();
 
-const { servers, loading, error, start, stop } = useOverviewData();
+const { servers, loading, error, inactive, start, stop } = useOverviewData();
+
+const selectedTag = ref("all");
+
+const allTags = computed(() => {
+  const set = new Set<string>();
+  for (const s of servers.value) {
+    for (const t of s.tags ?? []) set.add(t);
+  }
+  return Array.from(set).sort();
+});
+
+const filteredServers = computed(() => {
+  const list =
+    selectedTag.value === "all"
+      ? servers.value
+      : servers.value.filter((s) => (s.tags ?? []).includes(selectedTag.value));
+  return [...list].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+});
 
 onMounted(() => {
   start();
@@ -72,12 +101,27 @@ const goToServerDetail = (uuid: string) => {
 
 <template>
   <div class="h-full flex flex-col space-y-6">
-    <div class="flex items-center justify-between">
+    <div class="flex items-center justify-between gap-4">
       <div>
         <h2 class="text-2xl font-bold tracking-tight">Servers</h2>
         <p class="text-muted-foreground">
           Manage and monitor your servers in a list layout.
         </p>
+      </div>
+      <div v-if="allTags.length > 0" class="w-40 shrink-0">
+        <Select v-model="selectedTag">
+          <SelectTrigger class="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{{
+              $t("dashboard.batchExec.selectTag")
+            }}</SelectItem>
+            <SelectItem v-for="t in allTags" :key="t" :value="t">{{
+              t
+            }}</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
     </div>
 
@@ -101,31 +145,72 @@ const goToServerDetail = (uuid: string) => {
       No servers found.
     </div>
 
-    <div class="border rounded-md bg-card" v-if="servers.length > 0">
+    <div
+      v-if="servers.length > 0 && filteredServers.length === 0"
+      class="text-center py-10 text-muted-foreground"
+    >
+      No servers match the selected tag.
+    </div>
+
+    <div class="border rounded-md bg-card" v-if="filteredServers.length > 0">
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead class="w-8" />
             <TableHead>Server</TableHead>
+            <TableHead class="w-12 text-center">Region</TableHead>
             <TableHead>OS</TableHead>
+            <TableHead class="w-[80px]">Virt</TableHead>
             <TableHead>Uptime</TableHead>
             <TableHead>Load</TableHead>
             <TableHead class="w-[15%]">CPU</TableHead>
             <TableHead class="w-[15%]">RAM</TableHead>
             <TableHead class="w-[15%]">Disk</TableHead>
-            <TableHead>Network</TableHead>
+            <TableHead class="w-[150px]">Network</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           <TableRow
-            v-for="server in servers"
+            v-for="server in filteredServers"
             :key="server.uuid"
             class="cursor-pointer hover:bg-muted/50 transition-colors"
+            :class="{ 'opacity-60': !inactive && !isOnline(server) }"
             @click="goToServerDetail(server.uuid)"
           >
+            <!-- Online dot -->
+            <TableCell>
+              <div class="flex items-center justify-center">
+                <span
+                  :title="
+                    inactive
+                      ? 'Inactive'
+                      : isOnline(server)
+                        ? 'Online'
+                        : 'Offline'
+                  "
+                  class="inline-block w-2 h-2 rounded-full shrink-0"
+                  :class="
+                    inactive
+                      ? 'bg-gray-400 ring-2 ring-gray-400/25'
+                      : isOnline(server)
+                        ? 'bg-emerald-500 ring-2 ring-emerald-500/25'
+                        : 'bg-rose-500 ring-2 ring-rose-500/25'
+                  "
+                />
+              </div>
+            </TableCell>
+
             <!-- Server Info -->
             <TableCell>
               <div class="flex items-center gap-3">
-                <div class="p-2 bg-primary/10 rounded-lg">
+                <img
+                  v-if="distroLogo(server)"
+                  :src="distroLogo(server)"
+                  alt=""
+                  class="w-5 h-5 shrink-0 object-contain"
+                  loading="lazy"
+                />
+                <div v-else class="p-2 bg-primary/10 rounded-lg">
                   <Server class="h-4 w-4 text-primary" />
                 </div>
                 <div class="flex flex-col">
@@ -150,6 +235,19 @@ const goToServerDetail = (uuid: string) => {
               </div>
             </TableCell>
 
+            <!-- Region (flag) -->
+            <TableCell class="text-center">
+              <img
+                v-if="flagUrl(server.region)"
+                :src="flagUrl(server.region)"
+                :alt="server.region"
+                :title="server.region"
+                loading="lazy"
+                class="inline-block w-5 h-3.5 rounded-[1px] object-cover shadow-sm"
+              />
+              <span v-else class="text-muted-foreground text-sm">—</span>
+            </TableCell>
+
             <!-- OS -->
             <TableCell>
               <Badge
@@ -159,6 +257,18 @@ const goToServerDetail = (uuid: string) => {
               >
                 {{ showOS(server) }}
               </Badge>
+            </TableCell>
+
+            <!-- Virtualization -->
+            <TableCell>
+              <Badge
+                v-if="virtLabel(server)"
+                variant="secondary"
+                class="text-[10px] uppercase tracking-wide"
+              >
+                {{ virtLabel(server) }}
+              </Badge>
+              <span v-else class="text-muted-foreground text-sm">—</span>
             </TableCell>
 
             <!-- Uptime -->
@@ -258,7 +368,7 @@ const goToServerDetail = (uuid: string) => {
             </TableCell>
 
             <!-- Network -->
-            <TableCell>
+            <TableCell class="w-[150px]">
               <div
                 class="flex flex-col gap-1 text-xs font-mono"
                 v-if="
@@ -272,7 +382,9 @@ const goToServerDetail = (uuid: string) => {
                     <ArrowDownIcon class="h-3 w-3" />
                     <span>Rx</span>
                   </div>
-                  <span>{{ showNetworkSpeed(server, "rx") }}</span>
+                  <span class="tabular-nums text-right whitespace-nowrap">{{
+                    showNetworkSpeed(server, "rx")
+                  }}</span>
                 </div>
                 <div
                   class="flex items-center justify-between gap-2 text-muted-foreground"
@@ -281,7 +393,9 @@ const goToServerDetail = (uuid: string) => {
                     <ArrowUpIcon class="h-3 w-3" />
                     <span>Tx</span>
                   </div>
-                  <span>{{ showNetworkSpeed(server, "tx") }}</span>
+                  <span class="tabular-nums text-right whitespace-nowrap">{{
+                    showNetworkSpeed(server, "tx")
+                  }}</span>
                 </div>
               </div>
               <div v-else class="text-xs text-muted-foreground">N/A</div>

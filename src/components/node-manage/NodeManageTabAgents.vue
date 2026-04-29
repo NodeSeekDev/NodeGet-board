@@ -11,6 +11,8 @@ import {
   Loader2,
   RefreshCw,
   Plus,
+  GripVertical,
+  Menu,
 } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,17 +36,22 @@ import {
 import { useBackendStore } from "@/composables/useBackendStore";
 import { useBackendExtra } from "@/composables/useBackendExtra";
 import { getWsConnection } from "@/composables/useWsConnection";
+import { useTask, type IpResult } from "@/composables/useTask";
 import AddAgentDialog from "@/components/agents/AddAgentDialog.vue";
 
 const { t } = useI18n();
 const router = useRouter();
 const { backends, currentBackend } = useBackendStore();
 const { serverInfo } = useBackendExtra();
+const task = useTask();
 
 interface AgentInfo {
   uuid: string;
   customName: string;
   serverCount: number;
+  // undefined = 任务进行中，null = 拿不到，string = IP
+  ip: string | null | undefined;
+  order: number;
 }
 
 const agents = ref<AgentInfo[]>([]);
@@ -52,6 +59,7 @@ const loading = ref(true);
 const searchQuery = ref("");
 const selectedUuids = ref<Set<string>>(new Set());
 const addAgentOpen = ref(false);
+const sortable = ref(false);
 
 const fetchAgents = async () => {
   loading.value = true;
@@ -70,16 +78,16 @@ const fetchAgents = async () => {
   );
   const uuids = result?.uuids ?? [];
 
-  // 仍然从所有主控获取 metadata_name
   const nameMap = new Map<string, string>();
+  const orderMap = new Map<string, number>();
 
   if (uuids.length > 0) {
-    const namespaceKeys = uuids.map((uuid) => ({
-      namespace: uuid,
-      key: "metadata_name",
-    }));
+    const namespaceKeys = uuids.flatMap((uuid) => [
+      { namespace: uuid, key: "metadata_name" },
+      { namespace: uuid, key: "metadata_order" },
+    ]);
 
-    const nameResults = await Promise.allSettled(
+    const kvResults = await Promise.allSettled(
       backends.value.map(async (backend) => {
         const conn = getWsConnection(backend.url);
         try {
@@ -96,7 +104,7 @@ const fetchAgents = async () => {
       }),
     );
 
-    for (const res of nameResults) {
+    for (const res of kvResults) {
       if (res.status !== "fulfilled") continue;
       for (const entry of res.value) {
         if (
@@ -105,23 +113,51 @@ const fetchAgents = async () => {
           !nameMap.has(entry.namespace)
         ) {
           nameMap.set(entry.namespace, String(entry.value));
+        } else if (
+          entry.key === "metadata_order" &&
+          entry.value !== undefined &&
+          entry.value !== null &&
+          !orderMap.has(entry.namespace)
+        ) {
+          const n = Number(entry.value);
+          if (Number.isFinite(n)) orderMap.set(entry.namespace, n);
         }
       }
     }
   }
 
-  agents.value = uuids.map((uuid) => ({
-    uuid,
-    customName: nameMap.get(uuid) ?? uuid.slice(0, 8),
-    serverCount: 1,
-  }));
+  agents.value = uuids
+    .map((uuid) => ({
+      uuid,
+      customName: nameMap.get(uuid) ?? uuid.slice(0, 8),
+      serverCount: 1,
+      ip: undefined as string | null | undefined,
+      order: orderMap.get(uuid) ?? 0,
+    }))
+    .sort((a, b) => a.order - b.order);
 
   loading.value = false;
+
+  // 每个 agent 单独发任务，谁先回来谁先刷新自己那行；不阻塞列表渲染。
+  for (const agent of agents.value) {
+    void fetchAgentIp(agent);
+  }
+};
+
+const fetchAgentIp = async (agent: AgentInfo) => {
+  try {
+    const res = await task.createTaskBlocking(agent.uuid, "ip", 8000);
+    const ip = (res.task_event_result as IpResult | null)?.ip;
+    agent.ip = ip ? ip[0] || ip[1] || null : null;
+  } catch {
+    agent.ip = null;
+  }
 };
 
 watch(currentBackend, fetchAgents, { immediate: true });
 
 const filteredAgents = computed(() => {
+  if (sortable.value) return agents.value;
   const q = searchQuery.value.toLowerCase();
   if (!q) return agents.value;
   return agents.value.filter(
@@ -129,6 +165,71 @@ const filteredAgents = computed(() => {
       a.customName.toLowerCase().includes(q) ||
       a.uuid.toLowerCase().includes(q),
   );
+});
+
+const onDragStart = (e: DragEvent, index: number) => {
+  e.dataTransfer?.setData("text/plain", index.toString());
+  e.dataTransfer!.effectAllowed = "move";
+};
+
+const onDragOver = (e: DragEvent) => {
+  e.preventDefault();
+  e.dataTransfer!.dropEffect = "move";
+};
+
+const onDrop = (e: DragEvent, target: number) => {
+  e.preventDefault();
+  const fromStr = e.dataTransfer?.getData("text/plain");
+  if (fromStr == null) return;
+  const from = parseInt(fromStr, 10);
+  if (isNaN(from) || from === target) return;
+  const moved = agents.value.splice(from, 1)[0];
+  if (moved) agents.value.splice(target, 0, moved);
+};
+
+const persistOrders = async () => {
+  if (!currentBackend.value) return;
+  const changed: { uuid: string; order: number }[] = [];
+  agents.value.forEach((agent, i) => {
+    let newOrder: number;
+    if (i === 0) {
+      const next = agents.value[1];
+      newOrder = next ? next.order - 1 : agent.order;
+    } else if (i === agents.value.length - 1) {
+      const prev = agents.value[i - 1]!;
+      newOrder = prev.order + 1;
+    } else {
+      const prev = agents.value[i - 1]!;
+      const next = agents.value[i + 1]!;
+      newOrder = (prev.order + next.order) / 2;
+    }
+    if (newOrder !== agent.order) {
+      agent.order = newOrder;
+      changed.push({ uuid: agent.uuid, order: newOrder });
+    }
+  });
+  if (changed.length === 0) return;
+  const conn = getWsConnection(currentBackend.value.url);
+  try {
+    await conn.callBatch(
+      changed.map(({ uuid, order }) => ({
+        method: "kv_set_value",
+        params: {
+          token: currentBackend.value!.token,
+          namespace: uuid,
+          key: "metadata_order",
+          value: order,
+        },
+      })),
+    );
+    toast.success(t("dashboard.agents.sortSaved"));
+  } catch (e: any) {
+    toast.error(e?.message ?? "保存排序失败");
+  }
+};
+
+watch(sortable, (v) => {
+  if (!v) void persistOrders();
 });
 
 const allSelected = computed(() => {
@@ -228,6 +329,19 @@ defineExpose({ fetchAgents });
       >
         <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': loading }" />
       </Button>
+      <Button
+        size="sm"
+        variant="outline"
+        :disabled="loading || agents.length < 2"
+        @click="sortable = !sortable"
+      >
+        <Menu class="h-4 w-4 mr-1.5" />
+        {{
+          sortable
+            ? t("dashboard.agents.sortSave")
+            : t("dashboard.agents.sortEdit")
+        }}
+      </Button>
       <Button @click="addAgentOpen = true">
         <Plus class="h-4 w-4 mr-1.5" />
         {{ t("dashboard.agents.addAgent") }}
@@ -261,6 +375,7 @@ defineExpose({ fetchAgents });
             </TableHead>
             <TableHead>{{ t("dashboard.agents.colId") }}</TableHead>
             <TableHead>{{ t("dashboard.agents.colName") }}</TableHead>
+            <TableHead>{{ t("dashboard.agents.colIp") }}</TableHead>
             <TableHead>{{ t("dashboard.agents.colVersion") }}</TableHead>
             <TableHead class="text-right">{{
               t("dashboard.agents.colActions")
@@ -268,12 +383,25 @@ defineExpose({ fetchAgents });
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableEmpty v-if="filteredAgents.length === 0" :colspan="5">
+          <TableEmpty v-if="filteredAgents.length === 0" :colspan="6">
             {{ t("dashboard.agents.noAgents") }}
           </TableEmpty>
-          <TableRow v-for="agent in filteredAgents" :key="agent.uuid">
+          <TableRow
+            v-for="(agent, index) in filteredAgents"
+            :key="agent.uuid"
+            :draggable="sortable"
+            :class="sortable ? 'cursor-move select-none' : ''"
+            @dragstart="(e: DragEvent) => onDragStart(e, index)"
+            @dragover="onDragOver"
+            @drop="(e: DragEvent) => onDrop(e, index)"
+          >
             <TableCell>
+              <GripVertical
+                v-if="sortable"
+                class="h-4 w-4 text-muted-foreground"
+              />
               <Checkbox
+                v-else
                 :modelValue="selectedUuids.has(agent.uuid)"
                 @update:modelValue="
                   (v: any) => {
@@ -286,6 +414,16 @@ defineExpose({ fetchAgents });
               {{ agent.uuid.slice(0, 8) }}
             </TableCell>
             <TableCell class="font-medium">{{ agent.customName }}</TableCell>
+            <TableCell>
+              <Loader2
+                v-if="agent.ip === undefined"
+                class="h-3.5 w-3.5 animate-spin text-muted-foreground"
+              />
+              <span v-else-if="agent.ip" class="font-mono text-xs">{{
+                agent.ip
+              }}</span>
+              <span v-else class="text-muted-foreground">--</span>
+            </TableCell>
             <TableCell class="text-muted-foreground">--</TableCell>
             <TableCell class="text-right">
               <Button

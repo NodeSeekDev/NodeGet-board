@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { Info } from "lucide-vue-next";
+import MarkdownIt from "markdown-it";
+import about from "@/about.md?raw";
 
 definePage({
   meta: {
@@ -9,13 +11,14 @@ definePage({
     group: "router.group.system",
   },
 });
+
+const md = new MarkdownIt({ html: false });
+const rendered = md.render(about);
 </script>
 
 <template>
-  <div>
-    <h1 class="text-2xl font-bold mb-2">{{ $t("dashboard.about") }}</h1>
-    <p class="text-muted-foreground text-sm">
-      {{ $t("dashboard.workInProcess") }}
-    </p>
-  </div>
+  <div
+    class="prose prose-sm dark:prose-invert max-w-none"
+    v-html="rendered"
+  ></div>
 </template>

@@ -128,6 +128,7 @@ const editForm = ref<NodeMetadata>({
   expireTime: "",
   region: "",
   hidden: false,
+  order: 0,
 });
 const saveLoading = ref(false);
 
@@ -142,6 +143,7 @@ function handleEdit(node: NodeItem) {
     expireTime: node.expireTime,
     region: node.region,
     hidden: node.hidden,
+    order: node.order,
   };
   editDialogOpen.value = true;
 }

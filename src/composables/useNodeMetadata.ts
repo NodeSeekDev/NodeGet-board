@@ -19,6 +19,7 @@ export function useNodeMetadata(kv: ReturnType<typeof useKv>) {
       expireTime: String(get("metadata_expire_time") ?? ""),
       region: String(get("metadata_region") ?? ""),
       hidden: Boolean(get("metadata_hidden") ?? false),
+      order: Number(get("metadata_order") ?? 0),
     };
   }
 
@@ -32,6 +33,7 @@ export function useNodeMetadata(kv: ReturnType<typeof useKv>) {
       { key: "metadata_expire_time", value: f.expireTime },
       { key: "metadata_region", value: f.region },
       { key: "metadata_hidden", value: f.hidden },
+      { key: "metadata_order", value: f.order },
     ];
   }
 
@@ -47,6 +49,7 @@ export function useNodeMetadata(kv: ReturnType<typeof useKv>) {
       kv.setValue("metadata_expire_time", ""),
       kv.setValue("metadata_region", ""),
       kv.setValue("metadata_hidden", false),
+      kv.setValue("metadata_order", Date.now()),
     ]);
   }
 

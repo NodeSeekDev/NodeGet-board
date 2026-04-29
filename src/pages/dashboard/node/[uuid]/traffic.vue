@@ -87,7 +87,7 @@ const INTERVALS = [
   { label: "5分钟", value: 5 * 60_000 },
 ] as const;
 
-const scopeKey = ref<ScopeKey>("minute");
+const scopeKey = ref<ScopeKey>("hour");
 const scope = computed(
   () => SCOPES.find((s) => s.key === scopeKey.value) ?? SCOPES[0]!,
 );

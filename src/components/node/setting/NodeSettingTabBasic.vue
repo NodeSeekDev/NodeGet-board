@@ -28,6 +28,7 @@ const form = ref<NodeMetadata>({
   expireTime: "",
   region: "",
   hidden: false,
+  order: 0,
 });
 
 onMounted(async () => {

@@ -4,11 +4,15 @@ import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 import Spinner from "@/components/ui/spinner/Spinner.vue";
 
+type ZoomRange = { min: number; max: number } | null;
+
 interface UPlotChartProps {
   data: number[];
   data2?: number[];
+  data3?: number[];
   color: string;
   color2?: string;
+  color3?: string;
   height?: number;
   maxValue?: number;
   yLabel?: string;
@@ -16,12 +20,16 @@ interface UPlotChartProps {
   timestamps?: number[];
   label1?: string;
   label2?: string;
+  label3?: string;
   loading?: boolean;
+  zoomRange?: ZoomRange;
 }
 
 const props = withDefaults(defineProps<UPlotChartProps>(), {
   data2: () => [],
+  data3: () => [],
   color2: "#4ade80",
+  color3: "#f472b6",
   height: 260,
   maxValue: 100,
   yLabel: "",
@@ -29,14 +37,25 @@ const props = withDefaults(defineProps<UPlotChartProps>(), {
   timestamps: () => [],
   label1: "Value",
   label2: "Value2",
+  label3: "Value3",
   loading: false,
+  zoomRange: undefined,
 });
+
+const emit = defineEmits<{
+  "update:zoomRange": [value: ZoomRange];
+}>();
 
 const chartRef = ref<HTMLDivElement | null>(null);
 let uplot: uPlot | null = null;
 let resizeObserver: ResizeObserver | null = null;
-let userZoomRange: { min: number; max: number } | null = null;
+const internalZoom = ref<ZoomRange>(null);
 let chartIsTimeAxis: boolean | null = null;
+
+const setZoom = (r: ZoomRange) => {
+  if (props.zoomRange !== undefined) emit("update:zoomRange", r);
+  else internalZoom.value = r;
+};
 
 const useTimeAxis = () => props.timestamps.length > 0;
 
@@ -104,12 +123,21 @@ function tooltipPlugin(): uPlot.Plugin {
           <span style="color:var(--foreground)">${props.label1}: ${valStr1}</span>
         </div>`;
 
-        if (props.data2.length > 0 && u.data[2] != null) {
+        if (props.data2.length > 0) {
           const val2 = (u.data[2] as (number | null)[])[idx];
           const valStr2 = val2 == null ? "—" : `<b>${formatValue(val2)}</b>`;
           html += `<div style="display:flex;align-items:center;gap:6px">
             <span style="width:8px;height:8px;border-radius:50%;background:${props.color2};opacity:0.7;flex-shrink:0"></span>
             <span style="color:var(--foreground);opacity:0.85">${props.label2}: ${valStr2}</span>
+          </div>`;
+        }
+
+        if (props.data3.length > 0) {
+          const val3 = (u.data[3] as (number | null)[])[idx];
+          const valStr3 = val3 == null ? "—" : `<b>${formatValue(val3)}</b>`;
+          html += `<div style="display:flex;align-items:center;gap:6px">
+            <span style="width:8px;height:8px;border-radius:50%;background:${props.color3};opacity:0.7;flex-shrink:0"></span>
+            <span style="color:var(--foreground);opacity:0.85">${props.label3}: ${valStr3}</span>
           </div>`;
         }
 
@@ -133,6 +161,7 @@ const buildAlignedData = (): uPlot.AlignedData => {
   const xs = useTimeAxis() ? props.timestamps : props.data.map((_, i) => i);
   const data: uPlot.AlignedData = [xs, props.data];
   if (props.data2.length > 0) data.push(props.data2);
+  if (props.data3.length > 0) data.push(props.data3);
   return data;
 };
 
@@ -149,6 +178,10 @@ const autoYRange = (u: uPlot, range: { min: number; max: number } | null) => {
         if (u.data[2]) {
           const v2 = (u.data[2] as (number | null)[])[i];
           if (v2 != null && v2 > peak) peak = v2;
+        }
+        if (u.data[3]) {
+          const v3 = (u.data[3] as (number | null)[])[i];
+          if (v3 != null && v3 > peak) peak = v3;
         }
       }
     }
@@ -220,16 +253,18 @@ const initChart = () => {
           if (u.select.width > 0) {
             const min = u.posToVal(u.select.left, "x");
             const max = u.posToVal(u.select.left + u.select.width, "x");
-            userZoomRange = { min, max };
-            u.setScale("x", { min, max });
-            autoYRange(u, userZoomRange);
+            const range = { min, max };
+            setZoom(range);
+            u.setScale("x", range);
+            autoYRange(u, range);
           }
         },
       ],
       init: [
         (u: uPlot) => {
           u.over.addEventListener("dblclick", () => {
-            userZoomRange = null;
+            setZoom(null);
+            u.setScale("x", { min: null as any, max: null as any });
             autoYRange(u, null);
           });
         },
@@ -247,6 +282,16 @@ const initChart = () => {
     });
   }
 
+  if (props.data3.length > 0) {
+    opts.series!.push({
+      label: props.label3,
+      stroke: props.color3,
+      fill: props.showArea ? props.color3 + "30" : undefined,
+      width: 2,
+      points: { show: false },
+    });
+  }
+
   chartIsTimeAxis = isTime;
   uplot = new uPlot(opts, buildAlignedData(), chartRef.value);
 };
@@ -254,9 +299,10 @@ const initChart = () => {
 const updateChart = () => {
   if (!uplot) return;
   uplot.setData(buildAlignedData());
-  if (userZoomRange) {
-    uplot.setScale("x", { min: userZoomRange.min, max: userZoomRange.max });
-    autoYRange(uplot, userZoomRange);
+  const z = props.zoomRange ?? internalZoom.value;
+  if (z) {
+    uplot.setScale("x", { min: z.min, max: z.max });
+    autoYRange(uplot, z);
   }
 };
 
@@ -288,7 +334,7 @@ onUnmounted(() => {
 });
 
 watch(
-  () => [props.data, props.data2, props.timestamps],
+  () => [props.data, props.data2, props.data3, props.timestamps],
   () => {
     if (!uplot) {
       // Chart not yet initialized (no data on mount), initialize now
@@ -312,6 +358,20 @@ watch(
   () => props.maxValue,
   () => {
     if (uplot) uplot.setScale("y", { min: 0, max: props.maxValue });
+  },
+);
+
+watch(
+  () => props.zoomRange,
+  (v) => {
+    if (!uplot || v === undefined) return;
+    if (v) {
+      uplot.setScale("x", { min: v.min, max: v.max });
+      autoYRange(uplot, v);
+    } else {
+      uplot.setScale("x", { min: null as any, max: null as any });
+      autoYRange(uplot, null);
+    }
   },
 );
 </script>
