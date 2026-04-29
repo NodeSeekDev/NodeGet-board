@@ -38,7 +38,7 @@ onMounted(() => {
 function ensureBackend() {
   // Check if we need to force open backend switcher
   if (backends.value.length === 0) {
-    if (route.name !== "/dashboard/node-manage")
+    if (route.name !== "/dashboard/node-manage" || !route.query.fill)
       router.push({
         name: "/dashboard/node-manage",
         query: {
@@ -46,6 +46,11 @@ function ensureBackend() {
           tab: "servers",
         },
       });
+  } else if (!route.name.startsWith("/dashboard/")) {
+    // force pathname starts with /dashboard/
+    router.replace({
+      name: "/dashboard/overview",
+    });
   }
 }
 

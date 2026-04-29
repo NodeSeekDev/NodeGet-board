@@ -115,7 +115,9 @@ function mergeAndTrim(
   const map = new Map<number, TaskQueryResult>();
   for (const r of existing) if (r.timestamp >= cutoff) map.set(r.task_id, r);
   for (const r of incoming) if (r.timestamp >= cutoff) map.set(r.task_id, r);
-  return [...map.values()].sort((a, b) => a.timestamp - b.timestamp);
+  return [...map.values()]
+    .filter((v) => !!v.cron_source && v.cron_source !== "未知") // remove data not from cron
+    .sort((a, b) => a.timestamp - b.timestamp);
 }
 
 const fetchData = async () => {

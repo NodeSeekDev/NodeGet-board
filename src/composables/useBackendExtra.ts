@@ -54,6 +54,11 @@ async function getAgentConfigWsUrl(backend: Ref<Backend>) {
   }
   const kv = useKv(backend);
   await kv.fetchNamespaces();
+  const existedNS = kv.namespaces.value.includes("global");
+  if (!existedNS) {
+    await kv.createNamespace("global");
+  }
+
   kv.namespace.value = "global";
   const result = await kv.getValue("agent_config_ws_url");
   if (typeof result === "string") {

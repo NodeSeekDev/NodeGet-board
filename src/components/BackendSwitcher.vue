@@ -78,6 +78,8 @@ const handleAdd = async () => {
       url: newUrl.value,
       token: newToken.value,
     };
+    await afterServerCreate(backend);
+
     addBackend(backend);
     // todo: 等待上线🤔
     const maxTrial = 10;
@@ -93,7 +95,6 @@ const handleAdd = async () => {
         console.error(error);
       }
     }
-    await afterServerCreate(backend);
     resetForm();
     if (props.showList === false) isOpen.value = false;
 

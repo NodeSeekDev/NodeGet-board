@@ -30,6 +30,7 @@ import { useThemeStore } from "@/stores/theme";
 import { useBackendStore } from "@/composables/useBackendStore";
 import { getWsConnection } from "@/composables/useWsConnection";
 import { useCron, type BackendCron } from "@/composables/useCron";
+import { useKv } from "@/composables/useKv";
 import { useBackendExtra } from "@/composables/useBackendExtra";
 import { useLifecycle } from "@/composables/useLifecycle";
 import { preGenerateToken } from "@/components/agents/generateToken";
@@ -45,6 +46,7 @@ const themeStore = useThemeStore();
 const { currentBackendInfo } = useBackendExtra();
 const { list: listCrons } = useCron();
 const { afterAgentCreate } = useLifecycle();
+const kv = useKv();
 
 const step = ref(1);
 
@@ -79,6 +81,31 @@ const staticRetention = ref<number>(60 * 24 * 365);
 const dynamicRetention = ref<number>(60 * 6);
 const dynamicSummaryRetention = ref<number>(60 * 24 * 30);
 const agentTaskRetention = ref<number>(60 * 6);
+
+async function getDbLimit() {
+  const namespace = "global";
+  kv.namespace.value = namespace;
+  const result = await kv.getMultiValue([
+    {
+      namespace,
+      key: "database_limit_*",
+    },
+  ]);
+  const oneMinute = 1000 * 60;
+  let r = result.find((v) => v.key === "database_limit_task");
+  if (r && typeof r.value === "number") {
+    agentTaskRetention.value = Math.floor(r.value / oneMinute);
+  }
+  r = result.find((v) => v.key === "database_limit_dynamic_monitoring");
+  if (r && typeof r.value === "number") {
+    dynamicRetention.value = Math.floor(r.value / oneMinute);
+  }
+  r = result.find((v) => v.key === "database_limit_dynamic_monitoring_summary");
+  if (r && typeof r.value === "number") {
+    dynamicSummaryRetention.value = Math.floor(r.value / oneMinute);
+  }
+}
+getDbLimit();
 
 const loadCrons = async () => {
   if (!currentBackendInfo.value) return;

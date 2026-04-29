@@ -31,8 +31,8 @@ async function afterServerCreate(backend: Backend) {
   const { getWorker, addWorker, runWorker } = useJsRuntime(ref(backend));
   const cron = useCron(ref(backend));
 
-  const baseWorkerName = "base-worker";
   try {
+    const baseWorkerName = "base-worker";
     const worker = await getWorker(baseWorkerName).catch(
       (v: Error | string) => {
         if (v.toString().indexOf("js_worker not found") !== -1) {
@@ -77,14 +77,6 @@ async function afterServerCreate(backend: Backend) {
     await runWorker(baseWorkerName, "call", {
       lifecycle: "server-create",
     });
-
-    // Initialize global KV namespace
-    const kvClient = useKv();
-    await kvClient.fetchNamespaces();
-    const existedNS = kvClient.namespaces.value.includes("global");
-    if (!existedNS) {
-      await kvClient.createNamespace("global");
-    }
   } catch (e: unknown) {
     toast.error(e instanceof Error ? e.message : "执行server安装后处理失败");
   }

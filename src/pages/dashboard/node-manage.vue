@@ -23,7 +23,12 @@ const router = useRouter();
 const activeTab = computed({
   get: () => (route.query.tab as string) || "agents",
   set: (value) => {
-    router.push({ query: { ...route.query, tab: value } });
+    // router.push({ query: { ...route.query, tab: value } });
+    // if(value === 'agents'){
+    //   router.push({ query: { tab: value } });
+    //   return
+    // }
+    router.push({ query: { tab: value } });
   },
 });
 </script>

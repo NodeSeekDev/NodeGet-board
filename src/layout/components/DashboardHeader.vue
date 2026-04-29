@@ -4,6 +4,9 @@ import { ArrowLeft, Menu, Moon, Sun } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { useThemeStore } from "@/stores/theme";
 import SettingsDialog from "@/components/SettingsDialog.vue";
+import { useRoute, useRouter } from "vue-router";
+
+const router = useRouter();
 
 const emit = defineEmits<{
   openMobileSidebar: [];
@@ -24,12 +27,12 @@ const themeStore = useThemeStore();
     </Button>
     <div class="ml-auto">
       <SettingsDialog />
-      <RouterLink :to="{ name: '/' }">
-        <Button variant="ghost" size="sm">
-          <ArrowLeft class="h-4 w-4 mr-1" />
-          返回监控
-        </Button>
-      </RouterLink>
+      <!-- <RouterLink :to="{ name: '/' }"> -->
+      <Button variant="ghost" size="sm" @click="() => router.back()">
+        <ArrowLeft class="h-4 w-4 mr-1" />
+        返回
+      </Button>
+      <!-- </RouterLink> -->
     </div>
   </header>
 </template>
