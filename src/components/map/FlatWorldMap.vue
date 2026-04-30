@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import * as echarts from "echarts";
 import { useI18n } from "vue-i18n";
 import { useThemeStore } from "@/stores/theme";
@@ -37,6 +37,7 @@ const loading = ref(true);
 const loadError = ref("");
 let chart: echarts.ECharts | null = null;
 let lastPointsSignature = "";
+let resizeObserver: ResizeObserver | null = null;
 
 const WORLD_MAP_URL = `${import.meta.env.BASE_URL}geo/world.json`;
 
@@ -218,9 +219,12 @@ function buildOption(): echarts.EChartsOption {
           position: userLabelPlacement.position,
           offset: userLabelPlacement.offset,
           color: colors.userLabelText,
-          fontSize: 13,
+          fontSize: window.innerWidth < 640 ? 11 : 13,
           fontWeight: 700,
-          formatter: "{b}",
+          formatter: (params: any) =>
+            userLabelPlacement.position === "left"
+              ? `${params.name} →`
+              : `← ${params.name}`,
           backgroundColor: colors.userLabelBackground,
           borderColor: colors.userLabelBorder,
           borderWidth: 1,
@@ -289,7 +293,9 @@ async function initChart() {
     });
 
     echarts.registerMap("world", geoJson);
-    chart = echarts.init(chartEl.value);
+    chart = echarts.init(chartEl.value, null, {
+      devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2),
+    });
     chart.setOption(buildOption());
     lastPointsSignature = `${getPointsSignature(props.points)}|${JSON.stringify(props.userLocation ?? null)}|${JSON.stringify(props.unlockedCountries ?? [])}|${props.selectedNodeId ?? ""}`;
     chart.on("click", (params) => {
@@ -309,9 +315,15 @@ function onResize() {
   chart?.resize();
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await nextTick();
   initChart();
-  window.addEventListener("resize", onResize);
+  if (typeof ResizeObserver !== "undefined" && chartEl.value) {
+    resizeObserver = new ResizeObserver(() => chart?.resize());
+    resizeObserver.observe(chartEl.value);
+  } else {
+    window.addEventListener("resize", onResize);
+  }
 });
 
 watch(
@@ -346,7 +358,17 @@ watch(
       },
       series: [
         { data: getLineData(points, userLocation) },
-        { data: userLocation ? [userLocation] : [] },
+        {
+          data: userLocation ? [userLocation] : [],
+          label: {
+            position: getUserLabelPlacement(userLocation).position,
+            offset: getUserLabelPlacement(userLocation).offset,
+            formatter: (params: any) =>
+              getUserLabelPlacement(userLocation).position === "left"
+                ? `${params.name} →`
+                : `← ${params.name}`,
+          },
+        },
         { data: getScatterData(points) },
       ],
     });
@@ -364,6 +386,8 @@ watch(
 );
 
 onUnmounted(() => {
+  resizeObserver?.disconnect();
+  resizeObserver = null;
   window.removeEventListener("resize", onResize);
   chart?.dispose();
   chart = null;
@@ -393,7 +417,10 @@ onUnmounted(() => {
       class="pointer-events-none absolute bottom-[0.9rem] right-[0.9rem] z-0 h-[2.8rem] w-[2.8rem] rounded-br-[0.6rem] border-b-2 border-r-2"
       :class="frameClass"
     />
-    <div ref="chartEl" class="relative z-[1] h-[380px] w-full md:h-[540px]" />
+    <div
+      ref="chartEl"
+      class="relative z-[1] aspect-[5/3] w-full md:aspect-auto md:h-[540px]"
+    />
     <div
       v-if="loading || loadError"
       class="absolute inset-0 z-[2] flex items-center justify-center text-sm backdrop-blur-[8px]"

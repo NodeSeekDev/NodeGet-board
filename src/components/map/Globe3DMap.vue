@@ -957,7 +957,7 @@ onUnmounted(() => {
     />
     <div
       ref="rootEl"
-      class="canvas-host relative z-[2] h-[380px] w-full md:h-[540px]"
+      class="canvas-host relative z-[2] aspect-[5/3] w-full md:aspect-auto md:h-[540px]"
     />
     <div
       v-if="tooltip.visible"

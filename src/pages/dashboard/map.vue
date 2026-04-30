@@ -307,18 +307,24 @@ watch(
               >
                 {{ locationStatusText }}
               </span>
-              <Checkbox
-                :model-value="showUnlockedCountries"
-                @update:model-value="
-                  (checked) => (showUnlockedCountries = !!checked)
-                "
-              />
-              <span>{{ t("dashboard.map.showUnlockedCountries") }}</span>
-              <Checkbox
-                :model-value="showUserLinks"
-                @update:model-value="(checked) => (showUserLinks = !!checked)"
-              />
-              <span>{{ t("dashboard.map.showMyLocationLinks") }}</span>
+              <label class="flex cursor-pointer items-center gap-2">
+                <Checkbox
+                  id="show-unlocked-countries"
+                  :model-value="showUnlockedCountries"
+                  @update:model-value="
+                    (checked) => (showUnlockedCountries = !!checked)
+                  "
+                />
+                <span>{{ t("dashboard.map.showUnlockedCountries") }}</span>
+              </label>
+              <label class="flex cursor-pointer items-center gap-2">
+                <Checkbox
+                  id="show-user-links"
+                  :model-value="showUserLinks"
+                  @update:model-value="(checked) => (showUserLinks = !!checked)"
+                />
+                <span>{{ t("dashboard.map.showMyLocationLinks") }}</span>
+              </label>
             </div>
           </div>
 
