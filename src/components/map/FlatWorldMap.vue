@@ -38,6 +38,7 @@ const loadError = ref("");
 let chart: echarts.ECharts | null = null;
 let lastPointsSignature = "";
 let resizeObserver: ResizeObserver | null = null;
+let prevIsMobile = typeof window !== "undefined" && window.innerWidth < 640;
 
 const WORLD_MAP_URL = `${import.meta.env.BASE_URL}geo/world.json`;
 
@@ -312,14 +313,20 @@ async function initChart() {
 }
 
 function onResize() {
+  const nowMobile = window.innerWidth < 640;
   chart?.resize();
+  if (nowMobile !== prevIsMobile) {
+    prevIsMobile = nowMobile;
+    chart?.setOption(buildOption());
+  }
 }
 
 onMounted(async () => {
   await nextTick();
-  initChart();
+  await initChart();
+  if (!chart) return;
   if (typeof ResizeObserver !== "undefined" && chartEl.value) {
-    resizeObserver = new ResizeObserver(() => chart?.resize());
+    resizeObserver = new ResizeObserver(onResize);
     resizeObserver.observe(chartEl.value);
   } else {
     window.addEventListener("resize", onResize);
@@ -342,6 +349,7 @@ watch(
     const combinedSignature = `${nextSignature}|${userSignature}|${JSON.stringify(unlockedCountries ?? [])}|${selectedNodeId ?? ""}`;
     if (combinedSignature === lastPointsSignature) return;
     lastPointsSignature = combinedSignature;
+    const placement = getUserLabelPlacement(userLocation);
     chart.setOption({
       geo: {
         regions: (unlockedCountries ?? []).map((name) => ({
@@ -361,10 +369,10 @@ watch(
         {
           data: userLocation ? [userLocation] : [],
           label: {
-            position: getUserLabelPlacement(userLocation).position,
-            offset: getUserLabelPlacement(userLocation).offset,
+            position: placement.position,
+            offset: placement.offset,
             formatter: (params: any) =>
-              getUserLabelPlacement(userLocation).position === "left"
+              placement.position === "left"
                 ? `${params.name} →`
                 : `← ${params.name}`,
           },
