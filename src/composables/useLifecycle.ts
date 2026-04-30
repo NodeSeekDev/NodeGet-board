@@ -86,21 +86,21 @@ const createdAgent = new Set();
 async function afterAgentCreate(
   agentUUID: string,
   option: agentPostprocessOptions,
+  backend = useBackendStore().currentBackend,
 ) {
-  if (createdAgent.has(agentUUID)) {
+  const agentKey = backend.value?.url + "-" + agentUUID;
+  if (createdAgent.has(agentKey)) {
     return;
   }
-  const { runWorker } = useJsRuntime();
+  const { runWorker } = useJsRuntime(backend);
 
   try {
-    const { currentBackend } = useBackendStore();
-    const backend = currentBackend.value;
     if (!backend) {
       throw new Error("No backend configured");
     }
 
     // Initialize KV namespace for the agent
-    const kvClient = useKv();
+    const kvClient = useKv(backend);
     await kvClient.fetchNamespaces();
     const existedNS = kvClient.namespaces.value.includes(agentUUID);
     if (!existedNS) {
@@ -125,7 +125,7 @@ async function afterAgentCreate(
     }
 
     // Update cron tasks to include this agent
-    const cronClient = useCron(ref(backend));
+    const cronClient = useCron(backend);
     for (const cronTask of option.cronList) {
       if ("agent" in cronTask.cron_type) {
         const [agentIds, taskPayload] = cronTask.cron_type.agent;
@@ -140,7 +140,7 @@ async function afterAgentCreate(
         });
       }
     }
-    createdAgent.add(agentUUID);
+    createdAgent.add(agentKey);
 
     await runWorker("ip-location-update", "call", {
       uuids: [agentUUID],
@@ -222,6 +222,15 @@ async function afterAgentDelete(agentUUID: string, stage: string) {
     console.error("agent delete error:", e);
   }
 }
+
+// async function syncAgent(
+//   agentUUID: string,
+//   serverFrom: any,
+//   serverTo: any,
+//   backend = useBackendStore().currentBackend
+// ) {
+
+// }
 
 export function useLifecycle() {
   return {

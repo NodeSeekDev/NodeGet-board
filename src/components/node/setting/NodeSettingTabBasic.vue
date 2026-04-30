@@ -34,17 +34,18 @@ const form = ref<NodeMetadata>({
 onMounted(async () => {
   loading.value = true;
   try {
+    await kv.fetchNamespaces();
+    const existedNS = kv.namespaces.value.includes(props.uuid);
+    if (!existedNS) {
+      await kv.createNamespace(props.uuid);
+    }
+
     kv.namespace.value = props.uuid;
     let results = await kv.getMultiValue([
       { namespace: props.uuid, key: "metadata_*" },
     ]);
 
     if (results.length === 0) {
-      try {
-        await kv.createNamespace(props.uuid);
-      } catch {
-        // namespace may already exist
-      }
       await initDefaultMetadata(props.uuid);
       results = await kv.getMultiValue([
         { namespace: props.uuid, key: "metadata_*" },

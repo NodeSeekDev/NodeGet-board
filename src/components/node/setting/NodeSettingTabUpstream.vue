@@ -27,6 +27,7 @@ import { useI18n } from "vue-i18n";
 import { useBackendStore } from "@/composables/useBackendStore";
 import { useBackendExtra } from "@/composables/useBackendExtra";
 import { getWsConnection } from "@/composables/useWsConnection";
+import { useLifecycle } from "@/composables/useLifecycle";
 import { useThemeStore } from "@/stores/theme";
 import {
   PackageOpen,
@@ -46,10 +47,11 @@ import UpstreamFormDialog from "@/components/node/setting/UpstreamDetailDialog.v
 
 const props = defineProps<{ uuid: string }>();
 
-const { currentBackendInfo } = useBackendExtra();
+const { currentBackendInfo, serverInfo } = useBackendExtra();
 const agentConfig = ref<splitConfig | null>(null);
 const { t } = useI18n();
 const { getAgentConfigExtra, writeAgentConfig } = useAgentConfig();
+const { afterAgentCreate } = useLifecycle();
 
 async function refresh() {
   loading.value = true;
@@ -132,7 +134,19 @@ const handleSave = async (newUpstream: UpstreamServer) => {
       ...newUpstream,
     };
   } else {
-    server.push(newUpstream);
+    server.push({
+      allow_edit_config: true,
+      allow_execute: true,
+      allow_http_ping: true,
+      allow_http_request: true,
+      allow_icmp_ping: true,
+      allow_ip: true,
+      allow_read_config: true,
+      allow_task: true,
+      allow_tcp_ping: true,
+      allow_web_shell: true,
+      ...newUpstream,
+    });
   }
 
   const newAgentConfig: AgentConfig = {
@@ -147,6 +161,17 @@ const handleSave = async (newUpstream: UpstreamServer) => {
     editingUpstream.value = newUpstream;
 
     await delay(1500);
+
+    // todo: sync agent config in new server
+    // await afterAgentCreate(
+    //   props.uuid,
+    //   {
+    //     databaseLimit:{},
+    //     metadata:{},
+    //     cronList:[]
+    //   }
+    // )
+
     await refresh();
   } catch (e: unknown) {
     toast.error(e instanceof Error ? e.message : String(e));
