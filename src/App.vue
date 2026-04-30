@@ -46,7 +46,7 @@ function ensureBackend() {
           tab: "servers",
         },
       });
-  } else if (!route.name.startsWith("/dashboard/")) {
+  } else if (!route.fullPath.startsWith("/dashboard/")) {
     // force pathname starts with /dashboard/
     router.replace({
       name: "/dashboard/overview",

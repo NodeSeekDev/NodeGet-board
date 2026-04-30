@@ -11,12 +11,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useBackendStore, type Backend } from "@/composables/useBackendStore";
-import { Plus, Trash2, Loader2 } from "lucide-vue-next";
+import { Plus, Trash2, Loader2, Route } from "lucide-vue-next";
 import { RainbowButton } from "@/components/ui/rainbow-button";
 import { useI18n } from "vue-i18n";
 import { useLifecycle } from "@/composables/useLifecycle";
 import { delay } from "@/lib/delay";
 import { useBackendExtra } from "@/composables/useBackendExtra";
+import { useRouter } from "vue-router";
 
 const props = withDefaults(
   defineProps<{
@@ -46,6 +47,7 @@ const emit = defineEmits<{
 
 const { afterServerCreate } = useLifecycle();
 const { t } = useI18n();
+const router = useRouter();
 
 const isOpen = computed({
   get: () => props.open,
@@ -100,6 +102,13 @@ const handleAdd = async () => {
 
     isLoading.value = false;
     // 防止出现有未预料到的未更新的内存变量
+    router.replace({
+      name: "/dashboard/node-manage",
+      query: {
+        tab: "servers",
+      },
+    });
+    await delay(100);
     location.reload();
   } catch (e) {
     console.error("Failed to add backend:", e);

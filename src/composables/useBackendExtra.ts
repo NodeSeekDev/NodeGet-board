@@ -76,7 +76,15 @@ async function saveAgentConfigWsUrl(backend: Ref<Backend>, url: string) {
 }
 
 async function getServerIpInfo(backend: Ref<Backend>) {
-  const { runWorker, poolingWorkerLogs } = useJsRuntime(backend);
+  const { runWorker, poolingWorkerLogs, listAllWorkers } =
+    useJsRuntime(backend);
+  for (let t = 0; t < 3000; t += 200) {
+    const r = await listAllWorkers();
+    if (r.find((v) => v === "server-task-worker")) {
+      break;
+    }
+  }
+
   const id = await runWorker("server-task-worker", "call", {
     task: {
       name: "ip",

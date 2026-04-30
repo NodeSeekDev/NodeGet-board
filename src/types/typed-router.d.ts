@@ -40,6 +40,7 @@ declare module 'vue-router/auto-routes' {
       | '/dashboard/app-panel'
       | '/dashboard/app-panel/[id]'
       | '/dashboard/app-panel/list'
+      | '/dashboard/app/[extensionRoute]'
       | '/dashboard/batch-exec'
       | '/dashboard/cost'
       | '/dashboard/cron'
@@ -86,6 +87,13 @@ declare module 'vue-router/auto-routes' {
       '/dashboard/agents',
       Record<never, never>,
       Record<never, never>,
+      | never
+    >,
+    '/dashboard/app/[extensionRoute]': RouteRecordInfo<
+      '/dashboard/app/[extensionRoute]',
+      '/dashboard/app/:extensionRoute',
+      { extensionRoute: ParamValue<true> },
+      { extensionRoute: ParamValue<false> },
       | never
     >,
     '/dashboard/app-panel': RouteRecordInfo<
@@ -384,6 +392,7 @@ declare module 'vue-router/auto-routes' {
         | '/dashboard/app-panel'
         | '/dashboard/app-panel/[id]'
         | '/dashboard/app-panel/list'
+        | '/dashboard/app/[extensionRoute]'
         | '/dashboard/batch-exec'
         | '/dashboard/cost'
         | '/dashboard/cron'
@@ -429,6 +438,12 @@ declare module 'vue-router/auto-routes' {
     'src/pages/dashboard/agents.vue': {
       routes:
         | '/dashboard/agents'
+      views:
+        | never
+    }
+    'src/pages/dashboard/app/[extensionRoute].vue': {
+      routes:
+        | '/dashboard/app/[extensionRoute]'
       views:
         | never
     }
