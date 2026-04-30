@@ -374,6 +374,7 @@ const steps = [
                 class="flex items-center gap-2"
               >
                 <Checkbox
+                  :id="`cron-${cron.id}`"
                   :checked="selectedCronIds.has(cron.id)"
                   @update:modelValue="
                     (v: unknown) => {
@@ -382,10 +383,15 @@ const steps = [
                     }
                   "
                 />
-                <span class="text-sm">{{ cron.name }}</span>
-                <span class="text-xs text-muted-foreground font-mono">
-                  {{ cron.cron_expression }}
-                </span>
+                <label
+                  :for="`cron-${cron.id}`"
+                  class="flex items-center gap-2 cursor-pointer select-none"
+                >
+                  <span class="text-sm">{{ cron.name }}</span>
+                  <span class="text-xs text-muted-foreground font-mono">
+                    {{ cron.cron_expression }}
+                  </span>
+                </label>
               </div>
             </div>
           </div>
