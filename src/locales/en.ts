@@ -549,6 +549,7 @@ export default {
         featureWebShell: "web_shell",
         featureExecute: "execute",
         featureIp: "IP Info",
+        featureVersion: "Version Info",
         featureReadConfig: "read_config",
         featureEditConfig: "edit_config",
         featureEditConfigConfirmTitle: "Disable config editing?",

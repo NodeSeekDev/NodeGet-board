@@ -46,16 +46,17 @@ const execMaxCharacter = ref<number | undefined>(undefined);
 const connectTimeout = ref<number | undefined>(undefined);
 
 // 特性开关 (server config中的allow_*属性)
-const allowTask = ref(true);
-const allowIcmpPing = ref(true);
-const allowTcpPing = ref(true);
-const allowHttpPing = ref(true);
-const allowHttpRequest = ref(true);
-const allowWebShell = ref(true);
-const allowExecute = ref(true);
-const allowReadConfig = ref(true);
-const allowEditConfig = ref(true);
-const allowIp = ref(true);
+const allowTask = ref(false);
+const allowIcmpPing = ref(false);
+const allowTcpPing = ref(false);
+const allowHttpPing = ref(false);
+const allowHttpRequest = ref(false);
+const allowWebShell = ref(false);
+const allowExecute = ref(false);
+const allowReadConfig = ref(false);
+const allowEditConfig = ref(false);
+const allowIp = ref(false);
+const allowVersion = ref(false);
 
 /**
  * 从 AgentConfig 对象更新 UI 状态
@@ -75,16 +76,17 @@ function syncFromConfig(config: splitConfig) {
 
   // 从 server 配置中提取第一个 server 的 allow_* 属性
   if (currentUpstream) {
-    allowTask.value = currentUpstream.allow_task !== false;
-    allowIcmpPing.value = currentUpstream.allow_icmp_ping !== false;
-    allowTcpPing.value = currentUpstream.allow_tcp_ping !== false;
-    allowHttpPing.value = currentUpstream.allow_http_ping !== false;
-    allowHttpRequest.value = currentUpstream.allow_http_request !== false;
-    allowWebShell.value = currentUpstream.allow_web_shell !== false;
-    allowExecute.value = currentUpstream.allow_execute !== false;
-    allowReadConfig.value = currentUpstream.allow_read_config !== false;
-    allowEditConfig.value = currentUpstream.allow_edit_config !== false;
-    allowIp.value = currentUpstream.allow_edit_config !== false;
+    allowTask.value = currentUpstream.allow_task === true;
+    allowIcmpPing.value = currentUpstream.allow_icmp_ping === true;
+    allowTcpPing.value = currentUpstream.allow_tcp_ping === true;
+    allowHttpPing.value = currentUpstream.allow_http_ping === true;
+    allowHttpRequest.value = currentUpstream.allow_http_request === true;
+    allowWebShell.value = currentUpstream.allow_web_shell === true;
+    allowExecute.value = currentUpstream.allow_execute === true;
+    allowReadConfig.value = currentUpstream.allow_read_config === true;
+    allowEditConfig.value = currentUpstream.allow_edit_config === true;
+    allowIp.value = currentUpstream.allow_edit_config === true;
+    allowVersion.value = currentUpstream.allow_version === true;
   }
 }
 
@@ -138,6 +140,7 @@ function buildConfig(): AgentConfig {
     allow_read_config: allowReadConfig.value,
     allow_edit_config: allowEditConfig.value,
     allow_ip: !!allowIp.value,
+    allow_version: !!allowVersion.value,
   };
 
   return {
@@ -393,6 +396,12 @@ function confirmDisableEditConfig() {
                 $t("dashboard.node.config.featureIp")
               }}</span>
               <Switch v-model:modelValue="allowIp" />
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm">{{
+                $t("dashboard.node.config.featureVersion")
+              }}</span>
+              <Switch v-model:modelValue="allowVersion" />
             </div>
             <div class="flex items-center justify-between">
               <span class="text-sm">{{

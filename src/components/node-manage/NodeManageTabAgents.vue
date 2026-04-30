@@ -36,7 +36,12 @@ import {
 import { useBackendStore } from "@/composables/useBackendStore";
 import { useBackendExtra } from "@/composables/useBackendExtra";
 import { getWsConnection } from "@/composables/useWsConnection";
-import { useTask, type IpResult } from "@/composables/useTask";
+import {
+  useTask,
+  type CreateTaskBlockingResponse,
+  type IpResult,
+  type VersionResult,
+} from "@/composables/useTask";
 import AddAgentDialog from "@/components/agents/AddAgentDialog.vue";
 
 const { t } = useI18n();
@@ -52,6 +57,7 @@ interface AgentInfo {
   // undefined = 任务进行中，null = 拿不到，string = IP
   ip: string | null | undefined;
   order: number;
+  version: string | null | undefined;
 }
 
 const agents = ref<AgentInfo[]>([]);
@@ -133,6 +139,7 @@ const fetchAgents = async () => {
       serverCount: 1,
       ip: undefined as string | null | undefined,
       order: orderMap.get(uuid) ?? 0,
+      version: undefined as string | null | undefined,
     }))
     .sort((a, b) => a.order - b.order);
 
@@ -141,6 +148,7 @@ const fetchAgents = async () => {
   // 每个 agent 单独发任务，谁先回来谁先刷新自己那行；不阻塞列表渲染。
   for (const agent of agents.value) {
     void fetchAgentIp(agent);
+    void fetchAgentVersion(agent);
   }
 };
 
@@ -151,6 +159,23 @@ const fetchAgentIp = async (agent: AgentInfo) => {
     agent.ip = ip ? ip[0] || ip[1] || null : null;
   } catch {
     agent.ip = null;
+  }
+};
+
+const fetchAgentVersion = async (agent: AgentInfo) => {
+  try {
+    const res = (await task.createVersionTask(
+      agent.uuid,
+      true,
+      8000,
+    )) as CreateTaskBlockingResponse;
+    const version = (res.task_event_result as VersionResult | null)?.version;
+    if (version) {
+      agent.version = version.cargo_version + "-" + version.git_commit_sha;
+    }
+    console.debug("version", version);
+  } catch (e) {
+    console.error("version error", e);
   }
 };
 
@@ -424,7 +449,9 @@ defineExpose({ fetchAgents });
               }}</span>
               <span v-else class="text-muted-foreground">--</span>
             </TableCell>
-            <TableCell class="text-muted-foreground">--</TableCell>
+            <TableCell class="text-muted-foreground">{{
+              agent.version || "--"
+            }}</TableCell>
             <TableCell class="text-right">
               <Button
                 size="icon"

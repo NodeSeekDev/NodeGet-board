@@ -546,6 +546,7 @@ export default {
         featureWebShell: "web_shell",
         featureExecute: "execute",
         featureIp: "IP 信息",
+        featureVersion: "版本号信息",
         featureReadConfig: "read_config",
         featureEditConfig: "edit_config",
         featureEditConfigConfirmTitle: "确认禁用配置编辑？",
