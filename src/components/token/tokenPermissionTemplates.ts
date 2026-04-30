@@ -37,6 +37,7 @@ export const AGENT_PERMISSIONS: PermissionEntry[] = [
   { task: { write: "read_config" } },
   { task: { write: "http_request" } },
   { task: { write: "ip" } },
+  { task: { write: "version" } },
 ];
 
 export const VISITOR_PERMISSIONS: PermissionEntry[] = [

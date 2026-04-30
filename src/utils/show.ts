@@ -96,7 +96,8 @@ export const isOnline = (server: any, now = Date.now()) => {
 };
 
 const DISTROS: { file: string; match: string[] }[] = [
-  { file: "archlinux.svg", match: ["arch"] },
+  { file: "alpinelinux.svg", match: ["alpine"] },
+  { file: "alpine.svg", match: ["arch"] },
   { file: "manjaro.svg", match: ["manjaro"] },
   { file: "kali.svg", match: ["kali"] },
   { file: "ubuntu.svg", match: ["ubuntu"] },

@@ -15,6 +15,7 @@ const TASK_TYPES = [
   "ip",
   "read_config",
   "edit_config",
+  "version",
 ] as const;
 
 const props = defineProps<{ modelValue: PermissionEntry[] }>();
