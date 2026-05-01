@@ -34,9 +34,11 @@ onMounted(() => {
     background.value = "flickering";
   }
 });
-
-function ensureBackend() {
+  
+async function ensureBackend() {
   // Check if we need to force open backend switcher
+  await router.isReady()
+  
   if (backends.value.length === 0) {
     if (route.name !== "/dashboard/node-manage" || !route.query.fill)
       router.push({
