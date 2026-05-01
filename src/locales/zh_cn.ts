@@ -596,7 +596,7 @@ export default {
       noServers: "暂无主控，点击「添加主控」开始配置。",
       addServerDesc: "填写连接信息以添加新的主控后端。",
       fieldName: "名称",
-      fieldUrl: "WS 地址",
+      fieldUrl: "WSS 地址",
       fieldToken: "Token",
       deleteConfirmTitle: "删除主控",
       deleteConfirmDesc: "确定要移除该主控吗？",

@@ -227,7 +227,7 @@ watch(
               <Input
                 id="url"
                 v-model="newUrl"
-                placeholder="ws://example.com:3000"
+                placeholder="wss://example.com:3000"
               />
             </div>
           </div>
