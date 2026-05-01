@@ -602,7 +602,7 @@ export default {
       noServers: 'No servers added. Click "Add Server" to get started.',
       addServerDesc: "Fill in the connection details to add a new backend.",
       fieldName: "Name",
-      fieldUrl: "WS URL",
+      fieldUrl: "WSS URL",
       fieldToken: "Token",
       deleteConfirmTitle: "Remove Server",
       deleteConfirmDesc: "Are you sure you want to remove this server?",
