@@ -202,11 +202,11 @@ const installScript = computed(() => {
     "{Server_WS}";
   const serverName = currentBackendInfo.value?.name || "{Server_NAME}";
   return `bash <(curl -sL ${import.meta.env.VITE_INSTALL_URL}) install-agent  \\
-  --agent-id ${uuid} \\
-  --token ${token} \\
-  --server-ws ${serverWs} \\
-  --server-id ${currentBackendInfo.value?.uuid} \\
-  --server-name ${serverName}`;
+  --agent-id "${uuid}" \\
+  --token "${token}" \\
+  --server-ws "${serverWs}" \\
+  --server-id "${currentBackendInfo.value?.uuid}" \\
+  --server-name "${serverName}"`;
 });
 
 const editorExtensions = computed(() => [
