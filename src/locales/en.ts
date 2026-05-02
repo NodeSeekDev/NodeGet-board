@@ -591,6 +591,7 @@ export default {
       title: "Controllers",
       desc: "Manage and switch between NodeGet server backends.",
       addServer: "Add Server",
+      addServerLoading: "Add Server and init it, please wait",
       colName: "Name",
       colId: "ID",
       colEndpoint: "API Endpoint",
@@ -608,6 +609,10 @@ export default {
       deleteConfirmDesc: "Are you sure you want to remove this server?",
       deleteConfirm: "Remove",
       deleteCancel: "Cancel",
+      refreshConfirmTitle: "Refresh Server",
+      refreshConfirmDesc:
+        "Are you sure you want to re-init this server? (it's safe operation, no danger)",
+      refreshConfirm: "Confirm",
       detail: {
         back: "Back to Servers",
         title: "Server Detail",

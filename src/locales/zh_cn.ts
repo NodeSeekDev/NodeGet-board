@@ -585,6 +585,7 @@ export default {
       title: "主控管理",
       desc: "管理并切换 NodeGet 主控后端。",
       addServer: "添加主控",
+      addServerLoading: "添加主控并初始化，请不要理开",
       colName: "名称",
       colId: "ID",
       colEndpoint: "API 地址",
@@ -602,6 +603,9 @@ export default {
       deleteConfirmDesc: "确定要移除该主控吗？",
       deleteConfirm: "删除",
       deleteCancel: "取消",
+      refreshConfirmTitle: "重新初始化主控",
+      refreshConfirmDesc: "确定要重新初始化主控吗？（安全操作，没有危险）",
+      refreshConfirm: "确定",
       detail: {
         back: "返回主控列表",
         title: "主控详情",

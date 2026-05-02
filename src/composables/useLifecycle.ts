@@ -7,6 +7,7 @@ import { useKv } from "@/composables/useKv";
 import { type BackendCron } from "@/composables/useCron";
 import { useBackendStore } from "@/composables/useBackendStore";
 import { makeRpcFunction } from "@/composables/useWsConnection";
+import { delay } from "@/lib/delay";
 
 export interface agentPostprocessOptions {
   cronList: BackendCron[];
@@ -27,9 +28,36 @@ export interface agentPostprocessOptions {
   };
 }
 
+async function ensureServerInited(backend: Backend) {
+  const maxTime = 5000; //ms
+  const interval = 500;
+
+  const namespace = "global";
+  const kvClient = useKv(ref(backend));
+  let globalCreated = false;
+
+  for (let t = 0; t < maxTime; t += interval) {
+    if (!globalCreated) {
+      await kvClient.fetchNamespaces();
+      globalCreated = kvClient.namespaces.value.includes(namespace);
+      if (!globalCreated) {
+        await delay(interval);
+        continue;
+      }
+    }
+
+    kvClient.namespace.value = namespace;
+    const inited = await kvClient.getValue("inited");
+    console.debug({ inited });
+    if (inited === true) {
+      return;
+    }
+  }
+  throw "server init timeout";
+}
+
 async function afterServerCreate(backend: Backend) {
   const { getWorker, addWorker, runWorker } = useJsRuntime(ref(backend));
-  const cron = useCron(ref(backend));
 
   try {
     const baseWorkerName = "base-worker";
@@ -54,30 +82,14 @@ async function afterServerCreate(backend: Backend) {
         },
       });
     }
-    const cronResults = await cron.list();
-    const exist = cronResults.find(
-      (v) => v.name === baseWorkerName + "-update",
-    );
-    if (!exist) {
-      await cron.create({
-        name: baseWorkerName + "-update",
-        cron_expression: "*/3 * * * * *",
-        cron_type: {
-          server: {
-            js_worker: [
-              baseWorkerName,
-              {
-                task: "update",
-              },
-            ],
-          },
-        },
-      });
-    }
+    await delay(100);
     await runWorker(baseWorkerName, "call", {
       lifecycle: "server-create",
     });
+    await ensureServerInited(backend);
+    toast.success("Server initialization successful.");
   } catch (e: unknown) {
+    console.error(e);
     toast.error(e instanceof Error ? e.message : "执行server安装后处理失败");
   }
 }

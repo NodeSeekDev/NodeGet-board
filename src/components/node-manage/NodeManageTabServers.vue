@@ -18,6 +18,7 @@ import {
 import { useBackendStore, type Backend } from "@/composables/useBackendStore";
 import BackendSwitcher from "@/components/BackendSwitcher.vue";
 import { useBackendExtra } from "@/composables/useBackendExtra";
+import { useLifecycle } from "@/composables/useLifecycle";
 
 const { t } = useI18n();
 const route = useRoute();
@@ -26,6 +27,7 @@ const { backends, selectBackend, removeBackend, addBackend } =
   useBackendStore();
 const { refreshAll, isActive, serverInfo, serverInfoLoading } =
   useBackendExtra();
+const { afterServerCreate } = useLifecycle();
 
 const addOpen = ref(false);
 const initForm = ref<{
@@ -137,6 +139,17 @@ watch(
             </TableCell>
             <TableCell class="text-right">
               <div class="flex items-center justify-end gap-1">
+                <PopConfirm
+                  :title="t('dashboard.servers.refreshConfirmTitle')"
+                  :description="t('dashboard.servers.refreshConfirmDesc')"
+                  :confirm-text="t('dashboard.servers.refreshConfirm')"
+                  :cancel-text="t('dashboard.servers.deleteCancel')"
+                  @confirm="afterServerCreate(backend)"
+                >
+                  <Button size="icon" variant="ghost" class="h-8 w-8">
+                    <RefreshCw class="h-4 w-4" />
+                  </Button>
+                </PopConfirm>
                 <Button
                   size="icon"
                   variant="ghost"

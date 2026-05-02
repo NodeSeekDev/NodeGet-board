@@ -249,7 +249,7 @@ watch(
             <Plus v-else class="h-4 w-4 mr-2" />
             {{
               isLoading
-                ? t("dashboard.common.loading")
+                ? t("dashboard.servers.addServerLoading")
                 : t("dashboard.servers.addServer")
             }}
           </RainbowButton>
