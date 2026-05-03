@@ -39,19 +39,24 @@ import { useNodeMetadata } from "@/composables/useNodeMetadata";
 import type { NodeItem } from "@/types/node";
 import {
   aggregateCosts,
-  buildFrankfurterUrl,
+  buildFxUrl,
   createFxSnapshot,
   currencyFromPriceUnit,
   currencySymbol,
   DEFAULT_BASE_CURRENCY,
-  FX_PROVIDER,
   formatDateOnly,
+  fxProviderLabel,
   GLOBAL_KV_COST_BASE_CURRENCY,
   GLOBAL_KV_COST_FX_CACHE,
+  GLOBAL_KV_COST_FX_PROVIDER,
   getCycleProgress,
   getRemainingDays,
+  getRemainingValue,
+  isExactMonthlyBaseDisplay,
+  isExactRemainingBaseDisplay,
   isFxSnapshotFresh,
   normalizeBaseCurrency,
+  parseFxProviderTemplate,
   parseFxSnapshot,
   supportedCurrenciesForNodes,
   SUPPORTED_BASE_CURRENCIES,
@@ -80,6 +85,7 @@ const fxState = ref<"idle" | "loading" | "live" | "cached" | "grouped">("idle");
 const fxMessage = ref<string | null>(null);
 const baseCurrency = ref<BaseCurrency>(DEFAULT_BASE_CURRENCY);
 const fxSnapshot = ref<FxSnapshot | null>(null);
+const fxProviderTemplate = ref<string | null>(null);
 
 type SortField = "price" | "remaining";
 type SortDir = "asc" | "desc";
@@ -180,15 +186,17 @@ async function loadCostSettings() {
   await ensureGlobalNamespace();
   kv.namespace.value = globalNamespace;
 
-  const [rawBaseCurrency, rawFxCache] = await Promise.all([
+  const [rawBaseCurrency, rawFxCache, rawFxProvider] = await Promise.all([
     kv.getValue(GLOBAL_KV_COST_BASE_CURRENCY).catch(() => null),
     kv.getValue(GLOBAL_KV_COST_FX_CACHE).catch(() => null),
+    kv.getValue(GLOBAL_KV_COST_FX_PROVIDER).catch(() => null),
   ]);
 
   const parsedBaseCurrency =
     normalizeBaseCurrency(rawBaseCurrency) ?? DEFAULT_BASE_CURRENCY;
   baseCurrency.value = parsedBaseCurrency;
   fxSnapshot.value = parseFxSnapshot(rawFxCache);
+  fxProviderTemplate.value = parseFxProviderTemplate(rawFxProvider);
 
   if (normalizeBaseCurrency(rawBaseCurrency) !== parsedBaseCurrency) {
     await kv.setValue(GLOBAL_KV_COST_BASE_CURRENCY, parsedBaseCurrency);
@@ -212,6 +220,13 @@ const effectiveFxSnapshot = computed(() => {
   return fxSnapshot.value.base === baseCurrency.value ? fxSnapshot.value : null;
 });
 
+const effectiveFxProviderLabel = computed(() => {
+  if (effectiveFxSnapshot.value?.provider) {
+    return effectiveFxSnapshot.value.provider;
+  }
+  return fxProviderLabel(fxProviderTemplate.value);
+});
+
 async function refreshFxRates(showToast = false) {
   const hasSupportedCurrency = nodes.value.some((node) =>
     currencyFromPriceUnit(node.priceUnit),
@@ -230,14 +245,22 @@ async function refreshFxRates(showToast = false) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 5000);
   try {
-    const response = await fetch(buildFrankfurterUrl(baseCurrency.value, targets), {
-      signal: controller.signal,
-    });
+    const response = await fetch(
+      buildFxUrl(baseCurrency.value, targets, fxProviderTemplate.value),
+      {
+        signal: controller.signal,
+      },
+    );
     if (!response.ok) {
       throw new Error(`汇率接口返回 ${response.status}`);
     }
     const data = (await response.json()) as FrankfurterLatestResponse;
-    const snapshot = createFxSnapshot(baseCurrency.value, data);
+    const snapshot = createFxSnapshot(
+      baseCurrency.value,
+      data,
+      new Date().toISOString(),
+      fxProviderLabel(fxProviderTemplate.value),
+    );
     fxSnapshot.value = snapshot;
     fxState.value = "live";
     fxMessage.value = null;
@@ -246,22 +269,22 @@ async function refreshFxRates(showToast = false) {
       toast.success("汇率已刷新");
     }
   } catch (error: unknown) {
+    const reason = error instanceof Error ? error.message : "实时汇率拉取失败";
     const cachedSnapshot = effectiveFxSnapshot.value;
     if (cachedSnapshot) {
       fxState.value = "cached";
       fxSnapshot.value = cachedSnapshot;
       fxMessage.value = isFxSnapshotFresh(cachedSnapshot)
-        ? `实时汇率拉取失败，当前使用最近一次缓存汇率（${formatTimestamp(
+        ? `${reason}，当前使用最近一次缓存汇率（${formatTimestamp(
             cachedSnapshot.fetched_at,
           )}）。`
-        : `实时汇率拉取失败，当前使用已过期缓存汇率（${formatTimestamp(
+        : `${reason}，当前使用已过期缓存汇率（${formatTimestamp(
             cachedSnapshot.fetched_at,
           )}）。`;
     } else {
       fxState.value = "grouped";
       fxSnapshot.value = null;
-      fxMessage.value =
-        "实时汇率暂不可用，当前退化为按币种分组汇总，不显示跨币种总额。";
+      fxMessage.value = `${reason}，当前退化为按币种分组汇总，不显示跨币种总额。`;
     }
 
     if (showToast) {
@@ -427,7 +450,7 @@ onMounted(initialize);
         v-if="effectiveFxSnapshot"
         class="text-xs text-muted-foreground"
       >
-        汇率来源：{{ FX_PROVIDER }}，更新于
+        汇率来源：{{ effectiveFxProviderLabel }}，更新于
         {{ formatTimestamp(effectiveFxSnapshot.fetched_at) }}
       </span>
     </div>
@@ -595,7 +618,7 @@ onMounted(initialize);
             <TableHead>节点名称</TableHead>
             <TableHead class="text-right">价格 / 周期</TableHead>
             <TableHead>到期时间</TableHead>
-            <TableHead class="text-right">折算剩余价值</TableHead>
+            <TableHead class="text-right">剩余价值</TableHead>
             <TableHead class="w-48">剩余时间占比</TableHead>
             <TableHead class="text-right">操作</TableHead>
           </TableRow>
@@ -625,7 +648,8 @@ onMounted(initialize);
                 v-if="node.monthlyCostBase !== null"
                 class="text-xs text-muted-foreground"
               >
-                ≈ {{ formatAmount(baseCurrencySymbol, node.monthlyCostBase) }} / 30天
+                {{ isExactMonthlyBaseDisplay(node, baseCurrency) ? "=" : "≈" }}
+                {{ formatAmount(baseCurrencySymbol, node.monthlyCostBase) }} / 30天
               </div>
             </TableCell>
 
@@ -650,15 +674,46 @@ onMounted(initialize);
             </TableCell>
 
             <TableCell class="text-right font-mono">
-              <template v-if="node.remainingValueBase !== null">
-                <div>{{ formatAmount(baseCurrencySymbol, node.remainingValueBase) }}</div>
-                <div class="text-xs text-muted-foreground">按当前汇率折算</div>
-              </template>
-              <template v-else-if="node.excludedReason === 'unsupported_currency'">
-                <span class="text-muted-foreground">不支持该币种</span>
+              <template
+                v-if="
+                  node.expireTime &&
+                  getRemainingDays(node.expireTime) !== null
+                "
+              >
+                <div>
+                  {{
+                    formatAmount(
+                      node.priceUnit,
+                      getRemainingValue(
+                        node.expireTime,
+                        node.price,
+                        node.priceCycle,
+                      ),
+                    )
+                  }}
+                </div>
+                <div
+                  v-if="node.remainingValueBase !== null"
+                  class="text-xs text-muted-foreground"
+                >
+                  {{ isExactRemainingBaseDisplay(node, baseCurrency) ? "=" : "≈" }}
+                  {{ formatAmount(baseCurrencySymbol, node.remainingValueBase) }}
+                </div>
+                <div
+                  v-else-if="node.excludedReason === 'unsupported_currency'"
+                  class="text-xs text-muted-foreground"
+                >
+                  不支持折算
+                </div>
+                <div
+                  v-else
+                  class="text-xs text-muted-foreground"
+                >
+                  等待汇率
+                </div>
               </template>
               <template v-else>
-                <span class="text-muted-foreground">等待汇率</span>
+                <span class="text-muted-foreground">—</span>
               </template>
             </TableCell>
 

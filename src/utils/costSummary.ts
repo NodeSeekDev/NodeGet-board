@@ -6,6 +6,7 @@ export const FX_PROVIDER = "frankfurter";
 export const FX_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 export const GLOBAL_KV_COST_BASE_CURRENCY = "cost_base_currency";
 export const GLOBAL_KV_COST_FX_CACHE = "cost_fx_cache_v1";
+export const GLOBAL_KV_COST_FX_PROVIDER = "cost_fx_provider";
 
 const PRICE_UNIT_TO_CURRENCY: Record<string, BaseCurrency> = {
   $: "USD",
@@ -83,12 +84,38 @@ export function normalizeBaseCurrency(value: unknown): BaseCurrency | null {
   return isBaseCurrency(normalized) ? normalized : null;
 }
 
+export function parseFxProviderTemplate(raw: unknown): string | null {
+  if (typeof raw === "string") {
+    const trimmed = raw.trim();
+    return trimmed || null;
+  }
+
+  // Backward-compatible with draft object-based configs used during local iteration.
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    const candidate = raw as Record<string, unknown>;
+    if (typeof candidate.customUrlTemplate === "string") {
+      const trimmed = candidate.customUrlTemplate.trim();
+      return trimmed || null;
+    }
+  }
+
+  return null;
+}
+
 export function currencyFromPriceUnit(symbol: string): BaseCurrency | null {
   return PRICE_UNIT_TO_CURRENCY[symbol] ?? null;
 }
 
 export function currencySymbol(currency: BaseCurrency): string {
   return CURRENCY_TO_SYMBOL[currency];
+}
+
+function replaceTemplateTokens(
+  template: string,
+  base: string,
+  targets: string,
+): string {
+  return template.split("{base}").join(base).split("{targets}").join(targets);
 }
 
 export function supportedCurrenciesForNodes(
@@ -112,6 +139,59 @@ export function buildFrankfurterUrl(
     return `https://api.frankfurter.dev/v1/latest?from=${base}`;
   }
   return `https://api.frankfurter.dev/v1/latest?from=${base}&to=${targets.join(",")}`;
+}
+
+export function isValidCustomFxUrlTemplate(template: string): boolean {
+  const trimmed = template.trim();
+  if (!trimmed || !trimmed.includes("{base}")) return false;
+
+  try {
+    const resolved = replaceTemplateTokens(trimmed, "USD", "EUR,GBP");
+    const url = new URL(resolved);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+export function buildCustomFxUrl(
+  template: string,
+  base: BaseCurrency,
+  targets: BaseCurrency[],
+): string {
+  if (!isValidCustomFxUrlTemplate(template)) {
+    throw new Error(
+      "自定义汇率模板无效，必须是 http/https URL，且至少包含 {base} 占位符。",
+    );
+  }
+
+  return replaceTemplateTokens(
+    template.trim(),
+    encodeURIComponent(base),
+    targets.map((target) => encodeURIComponent(target)).join("%2C"),
+  );
+}
+
+export function buildFxUrl(
+  base: BaseCurrency,
+  targets: BaseCurrency[],
+  providerTemplate: string | null,
+): string {
+  if (providerTemplate) {
+    return buildCustomFxUrl(providerTemplate, base, targets);
+  }
+  return buildFrankfurterUrl(base, targets);
+}
+
+export function fxProviderLabel(providerTemplate: string | null): string {
+  if (!providerTemplate) return FX_PROVIDER;
+  try {
+    const resolved = replaceTemplateTokens(providerTemplate.trim(), "USD", "EUR,GBP");
+    const url = new URL(resolved);
+    return `custom:${url.host}`;
+  } catch {
+    return "custom";
+  }
 }
 
 export function parseFxSnapshot(raw: unknown): FxSnapshot | null {
@@ -156,6 +236,7 @@ export function createFxSnapshot(
   base: BaseCurrency,
   response: FrankfurterLatestResponse,
   fetchedAt = new Date().toISOString(),
+  provider = FX_PROVIDER,
 ): FxSnapshot {
   const rates: Partial<Record<BaseCurrency, number>> = {};
   const rawRates = response.rates ?? {};
@@ -171,13 +252,13 @@ export function createFxSnapshot(
   }
   return {
     base,
-    provider: FX_PROVIDER,
+    provider,
     fetched_at: fetchedAt,
     rates,
   };
 }
 
-function normalizeCycleDays(priceCycle: number): number {
+export function normalizeCycleDays(priceCycle: number): number {
   return Number.isFinite(priceCycle) && priceCycle > 0 ? priceCycle : 30;
 }
 
@@ -264,6 +345,24 @@ function convertToBase(
 
 function monthlyOriginalCost(node: CostNodeRecord): number {
   return (node.price / normalizeCycleDays(node.priceCycle)) * 30;
+}
+
+export function isExactMonthlyBaseDisplay(
+  node: Pick<EvaluatedCostNode, "monthlyCostBase" | "currencyCode" | "priceCycle">,
+  base: BaseCurrency,
+): boolean {
+  if (node.monthlyCostBase === null) return false;
+  if (node.monthlyCostBase === 0) return true;
+  return node.currencyCode === base && normalizeCycleDays(node.priceCycle) === 30;
+}
+
+export function isExactRemainingBaseDisplay(
+  node: Pick<EvaluatedCostNode, "remainingValueBase" | "currencyCode">,
+  base: BaseCurrency,
+): boolean {
+  if (node.remainingValueBase === null) return false;
+  if (node.remainingValueBase === 0) return true;
+  return node.currencyCode === base;
 }
 
 export function aggregateCosts(

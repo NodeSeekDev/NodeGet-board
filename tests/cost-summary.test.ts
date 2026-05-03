@@ -3,14 +3,22 @@ import assert from "node:assert/strict";
 
 import {
   aggregateCosts,
+  buildCustomFxUrl,
+  buildFxUrl,
   buildFrankfurterUrl,
   createFxSnapshot,
   DEFAULT_BASE_CURRENCY,
+  fxProviderLabel,
   getRemainingDays,
   getRemainingValue,
   GLOBAL_KV_COST_BASE_CURRENCY,
   GLOBAL_KV_COST_FX_CACHE,
+  GLOBAL_KV_COST_FX_PROVIDER,
+  isExactMonthlyBaseDisplay,
+  isExactRemainingBaseDisplay,
   isFxSnapshotFresh,
+  isValidCustomFxUrlTemplate,
+  parseFxProviderTemplate,
   SUPPORTED_BASE_CURRENCIES,
   type CostNodeRecord,
 } from "../src/utils/costSummary.ts";
@@ -20,6 +28,7 @@ const TODAY = new Date(2026, 4, 3);
 test("exports stable global kv keys and supported currencies", () => {
   assert.equal(GLOBAL_KV_COST_BASE_CURRENCY, "cost_base_currency");
   assert.equal(GLOBAL_KV_COST_FX_CACHE, "cost_fx_cache_v1");
+  assert.equal(GLOBAL_KV_COST_FX_PROVIDER, "cost_fx_provider");
   assert.deepEqual(SUPPORTED_BASE_CURRENCIES, ["USD", "EUR", "GBP", "CNY"]);
   assert.equal(DEFAULT_BASE_CURRENCY, "USD");
 });
@@ -29,6 +38,31 @@ test("buildFrankfurterUrl builds a stable request", () => {
     buildFrankfurterUrl("USD", ["EUR", "GBP", "CNY"]),
     "https://api.frankfurter.dev/v1/latest?from=USD&to=EUR,GBP,CNY",
   );
+});
+
+test("custom fx provider template is optional and falls back to Frankfurter", () => {
+  assert.equal(parseFxProviderTemplate(null), null);
+  assert.equal(parseFxProviderTemplate(""), null);
+  assert.equal(
+    buildFxUrl("USD", ["EUR"], null),
+    "https://api.frankfurter.dev/v1/latest?from=USD&to=EUR",
+  );
+  assert.equal(fxProviderLabel(null), "frankfurter");
+});
+
+test("custom fx provider template can be read from a plain string kv value", () => {
+  const template = "https://rates.example.com/latest?base={base}&symbols={targets}";
+  assert.equal(parseFxProviderTemplate(template), template);
+  assert.equal(isValidCustomFxUrlTemplate(template), true);
+  assert.equal(
+    buildCustomFxUrl(template, "USD", ["EUR", "GBP"]),
+    "https://rates.example.com/latest?base=USD&symbols=EUR%2CGBP",
+  );
+  assert.equal(
+    buildFxUrl("USD", ["EUR", "GBP"], template),
+    "https://rates.example.com/latest?base=USD&symbols=EUR%2CGBP",
+  );
+  assert.equal(fxProviderLabel(template), "custom:rates.example.com");
 });
 
 test("remaining day/value calculations are date-only and cycle aware", () => {
@@ -215,6 +249,34 @@ test("expired unsupported nodes do not surface unsupported currency warnings", (
   assert.deepEqual(stats.unsupportedNodeNames, []);
   assert.deepEqual(stats.missingRateNodeNames, []);
   assert.equal(stats.groupedMonthlyTotals[0]?.monthlyCost, 0);
+});
+
+test("base display uses exact marker for same-currency monthly price or zero value", () => {
+  const monthlyExactNode = {
+    monthlyCostBase: 16.21,
+    remainingValueBase: 8.11,
+    currencyCode: "USD" as const,
+    priceCycle: 30,
+  };
+  const monthlyApproxNode = {
+    monthlyCostBase: 16.21,
+    remainingValueBase: 8.11,
+    currencyCode: "USD" as const,
+    priceCycle: 365,
+  };
+  const zeroConvertedNode = {
+    monthlyCostBase: 0,
+    remainingValueBase: 0,
+    currencyCode: "EUR" as const,
+    priceCycle: 365,
+  };
+
+  assert.equal(isExactMonthlyBaseDisplay(monthlyExactNode, "USD"), true);
+  assert.equal(isExactMonthlyBaseDisplay(monthlyApproxNode, "USD"), false);
+  assert.equal(isExactMonthlyBaseDisplay(zeroConvertedNode, "USD"), true);
+  assert.equal(isExactRemainingBaseDisplay(monthlyExactNode, "USD"), true);
+  assert.equal(isExactRemainingBaseDisplay(monthlyApproxNode, "USD"), true);
+  assert.equal(isExactRemainingBaseDisplay(zeroConvertedNode, "USD"), true);
 });
 
 test("fx snapshot freshness uses a 24h ttl", () => {
