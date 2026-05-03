@@ -34,7 +34,7 @@ type LoaderEntry = {
   priority: number;
   /** 当前正在进行的加载 promise，用于去重并发请求。 */
   inFlight?: Promise<unknown>;
-  /** prefetch 失败累计次数；用户主动导航不计入。 */
+  /** 加载失败累计次数；成功会清零，prefetch 队列据此跳过/退避。 */
   prefetchAttempts: number;
   /** 时间戳：在此之前 prefetch 队列跳过本条目（指数退避用）。 */
   prefetchRetryAt?: number;
@@ -159,6 +159,8 @@ const IDLE_CALLBACK_TIMEOUT = 1000;
 const PREFETCH_MAX_ATTEMPTS = 3;
 /** prefetch 失败后的退避时长（毫秒），按尝试次数取索引。 */
 const PREFETCH_BACKOFF_MS = [5_000, 15_000, 30_000];
+/** 在 devtools 接入前缓存的事件上限，避免生产环境无 devtools 时无界增长。 */
+const PENDING_DEVTOOLS_EVENTS_MAX = 200;
 
 /** Devtools 中各优先级分组对应的人类可读标签。 */
 const PRIORITY_BUCKET_LABELS: Record<PriorityBucket, string> = {
@@ -175,20 +177,6 @@ const PRIORITY_BUCKET_COLORS: Record<PriorityBucket, number> = {
   low: 0xf59e0b,
   skipped: 0x6b7280,
 };
-
-function isDebugEnabled() {
-  if (typeof window === "undefined") return false;
-
-  const debugWindow = window as Window & {
-    __ROUTER_PREFETCH_DEBUG__?: boolean;
-  };
-
-  return (
-    import.meta.env.DEV ||
-    debugWindow.__ROUTER_PREFETCH_DEBUG__ === true ||
-    window.localStorage.getItem("router-prefetch-debug") === "1"
-  );
-}
 
 function ensureDevtoolsLayer() {
   if (!devtoolsApi || devtoolsLayerAdded) return;
@@ -426,7 +414,7 @@ function buildRouteTags(entry: RouteInspectorEntry) {
   return tags;
 }
 
-function pushDevtoolsEvent(event: DevtoolsTimelineEvent) {
+function recordRecentEvent(event: DevtoolsTimelineEvent) {
   recentEvents.push({
     ...event,
     time: Date.now(),
@@ -439,9 +427,17 @@ function pushDevtoolsEvent(event: DevtoolsTimelineEvent) {
   if (recentEvents.length > 50) {
     recentEvents.splice(0, recentEvents.length - 50);
   }
+}
 
+function emitDevtoolsEvent(event: DevtoolsTimelineEvent) {
   if (!devtoolsApi) {
     pendingDevtoolsEvents.push(event);
+    if (pendingDevtoolsEvents.length > PENDING_DEVTOOLS_EVENTS_MAX) {
+      pendingDevtoolsEvents.splice(
+        0,
+        pendingDevtoolsEvents.length - PENDING_DEVTOOLS_EVENTS_MAX,
+      );
+    }
     return;
   }
 
@@ -460,11 +456,18 @@ function pushDevtoolsEvent(event: DevtoolsTimelineEvent) {
   updateDevtoolsInspector();
 }
 
+function pushDevtoolsEvent(event: DevtoolsTimelineEvent) {
+  recordRecentEvent(event);
+  emitDevtoolsEvent(event);
+}
+
 function flushPendingDevtoolsEvents() {
   if (!devtoolsApi || pendingDevtoolsEvents.length === 0) return;
 
+  // 仅重新派发到 devtools timeline；recentEvents 在事件首次触发时已记录，
+  // 这里再走一次 record 会产生重复条目并刷新 time 字段。
   for (const event of pendingDevtoolsEvents.splice(0)) {
-    pushDevtoolsEvent(event);
+    emitDevtoolsEvent(event);
   }
 }
 
@@ -547,7 +550,9 @@ function preload(deadline?: IdleDeadline) {
   }
 
   isPreloading = true;
-  next.prefetchAttempts++;
+  // wrapped loader 在内部维护 prefetchAttempts / prefetchRetryAt：
+  // 同步递增 attempts，并在 then/catch 中重置或安排退避。
+  const promise = next.loader();
   log("start preload", {
     path: next.path,
     priority: next.priority,
@@ -556,26 +561,16 @@ function preload(deadline?: IdleDeadline) {
     remainingTime: deadline?.timeRemaining(),
   });
 
-  // next.loader 是 wrapped 版本：成功会自动写入 loaded，失败会清空 inFlight 以便重试。
-  next
-    .loader()
+  promise
     .then(() => {
-      next.prefetchAttempts = 0;
-      next.prefetchRetryAt = undefined;
       log("preload success", { path: next.path, priority: next.priority });
     })
     .catch((error) => {
-      const idx = Math.min(
-        next.prefetchAttempts - 1,
-        PREFETCH_BACKOFF_MS.length - 1,
-      );
-      const backoff = PREFETCH_BACKOFF_MS[idx]!;
-      next.prefetchRetryAt = Date.now() + backoff;
       logWarn("preload failed", {
         path: next.path,
         priority: next.priority,
         attempts: next.prefetchAttempts,
-        backoffMs: backoff,
+        retryAt: next.prefetchRetryAt,
         givenUp: next.prefetchAttempts >= PREFETCH_MAX_ATTEMPTS,
         error,
       });
@@ -591,21 +586,41 @@ function preload(deadline?: IdleDeadline) {
     });
 }
 
+function scheduleRetryBackoff(entry: LoaderEntry) {
+  // attempts 可能在 in-flight 期间被 visibility 监听重置过，钳到合法区间避免越界。
+  const idx = Math.min(
+    Math.max(entry.prefetchAttempts - 1, 0),
+    PREFETCH_BACKOFF_MS.length - 1,
+  );
+  entry.prefetchRetryAt = Date.now() + PREFETCH_BACKOFF_MS[idx]!;
+}
+
 function makeWrappedLoader(entry: LoaderEntry): Loader {
   return () => {
     // 同一加载请求并发去重；若上一轮成功，inFlight 仍指向已 resolve 的 promise，复用即可。
     if (entry.inFlight) return entry.inFlight;
 
-    const p = entry.original();
+    entry.prefetchAttempts++;
+    let p: Promise<unknown>;
+    try {
+      p = entry.original();
+    } catch (error) {
+      // 同步异常也得收敛状态，否则调用方拿不到 promise，isPreloading 会卡死。
+      scheduleRetryBackoff(entry);
+      return Promise.reject(error);
+    }
     entry.inFlight = p;
     p.then(
       () => {
         loaded.add(entry.loader);
+        entry.prefetchAttempts = 0;
+        entry.prefetchRetryAt = undefined;
       },
       () => {
         // 失败时丢弃 promise 缓存，让下次调用（用户点击或下次 prefetch tick）重新发起 import()。
         if (entry.inFlight === p) entry.inFlight = undefined;
         loaded.delete(entry.loader);
+        scheduleRetryBackoff(entry);
       },
     );
     return p;
@@ -727,6 +742,7 @@ function getRoutePriority(
   }
 
   if (meta?.hidden) return { priority: null, reason: "meta.hidden" };
+  if (meta?.isClosed) return { priority: null, reason: "meta.isClosed" };
   if (isDynamicPath(fullPath)) {
     return { priority: null, reason: "dynamic route" };
   }
@@ -769,6 +785,24 @@ function getRoutePriority(
   }
 
   return { priority: null, reason: "no prefetch heuristic matched" };
+}
+
+function reconcileNormalizedRoutes(router: Router) {
+  // vue-router 在 createRouter 时已把 record.component 规范化为 record.components.default，
+  // 之后再写 route.component 不会同步到 matcher 内的规范化记录，
+  // 导致 vue-router 在导航时仍然调用未包裹的 loader（用户导航不更新 loaded / attempts）。
+  // 这里直接对 matcher 拿到的规范化记录做指针替换，把原始 loader 换成对应的 wrapped 版本。
+  for (const record of router.getRoutes()) {
+    if (!record.components) continue;
+    for (const name in record.components) {
+      const comp = record.components[name];
+      if (typeof comp !== "function") continue;
+      const entry = loaders.get(comp as Loader);
+      if (entry && record.components[name] !== entry.loader) {
+        record.components[name] = entry.loader as RouteComponent;
+      }
+    }
+  }
 }
 
 function processRoutes(routes: RouteRecordRaw[], parentPath = "") {
@@ -820,9 +854,12 @@ function setupVisibilityListener() {
 
     // 标签页长时间隐藏后可能错过 prefetch 时机或卡在退避中；
     // 重新可见时重置所有未加载条目的失败计数，让队列可以再走一遍。
+    // 跳过 in-flight 条目：它们自己会在 then/catch 里收敛状态，
+    // 在飞行中重置 attempts 会让随后的 catch 算出 idx=-1。
     let resetCount = 0;
     for (const entry of loaders.values()) {
       if (loaded.has(entry.loader)) continue;
+      if (entry.inFlight) continue;
       if (entry.prefetchAttempts > 0 || entry.prefetchRetryAt) {
         entry.prefetchAttempts = 0;
         entry.prefetchRetryAt = undefined;
@@ -896,6 +933,9 @@ export default function routePrefetchPlugin(router: Router): Plugin {
       setupVisibilityListener();
       log("apply route prefetch plugin");
       processRoutes(router.options.routes as RouteRecordRaw[]);
+      // vue-router 已在 createRouter 时把 component 规范化进 matcher；
+      // 必须先把规范化记录里的 loader 也换成 wrapped，再让 app.use(router) 触发首次导航解析。
+      reconcileNormalizedRoutes(router);
       if (loaders.size === 0) {
         logWarn("no preload targets were registered");
       } else {
