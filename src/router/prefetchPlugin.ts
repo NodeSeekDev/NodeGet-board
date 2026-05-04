@@ -255,6 +255,11 @@ class DevtoolsBridge {
   private api: DevtoolsApi | null = null;
   private layerAdded = false;
   private inspectorAdded = false;
+  private snapshotActive = false;
+  private routeGroupsSnapshot: Record<
+    PriorityBucket,
+    RouteInspectorEntry[]
+  > | null = null;
   private pendingEvents: DevtoolsTimelineEvent[] = [];
   private recentEvents: Array<
     DevtoolsTimelineEvent & {
@@ -331,8 +336,15 @@ class DevtoolsBridge {
 
   updateInspector() {
     if (!this.api || !this.inspectorAdded) return;
-    this.api.sendInspectorTree(this.inspectorId);
-    this.api.sendInspectorState(this.inspectorId);
+    this.snapshotActive = true;
+    this.routeGroupsSnapshot = null;
+    try {
+      this.api.sendInspectorTree(this.inspectorId);
+      this.api.sendInspectorState(this.inspectorId);
+    } finally {
+      this.routeGroupsSnapshot = null;
+      this.snapshotActive = false;
+    }
   }
 
   private ensureLayer() {
@@ -359,7 +371,7 @@ class DevtoolsBridge {
       if (payload.inspectorId !== this.inspectorId) return;
 
       const filter = payload.filter.trim().toLowerCase();
-      const groupedEntries = getGroupedRouteEntries();
+      const groupedEntries = this.getRouteGroups();
 
       payload.rootNodes = [
         {
@@ -435,7 +447,7 @@ class DevtoolsBridge {
 
       if (payload.nodeId.startsWith("bucket:")) {
         const bucket = payload.nodeId.slice("bucket:".length) as PriorityBucket;
-        const entries = getGroupedRouteEntries()[bucket];
+        const entries = this.getRouteGroups()[bucket];
 
         payload.state = {
           summary: [
@@ -491,6 +503,39 @@ class DevtoolsBridge {
   private pushEvent(event: DevtoolsTimelineEvent) {
     this.recordRecentEvent(event);
     this.emitEvent(event);
+  }
+
+  private getRouteGroups() {
+    if (this.routeGroupsSnapshot) return this.routeGroupsSnapshot;
+
+    const groups = this.buildRouteGroups();
+    if (this.snapshotActive) {
+      this.routeGroupsSnapshot = groups;
+    }
+    return groups;
+  }
+
+  private buildRouteGroups() {
+    const groups: Record<PriorityBucket, RouteInspectorEntry[]> = {
+      high: [],
+      normal: [],
+      low: [],
+      skipped: [],
+    };
+
+    for (const entry of routeEntries.values()) {
+      groups[entry.bucket].push(entry);
+    }
+
+    for (const bucket of Object.keys(groups) as PriorityBucket[]) {
+      groups[bucket].sort((a, b) => {
+        const pa = a.priority ?? -1;
+        const pb = b.priority ?? -1;
+        return pb - pa || a.path.localeCompare(b.path);
+      });
+    }
+
+    return groups;
   }
 
   private buildRouteTags(entry: RouteInspectorEntry) {
@@ -588,29 +633,6 @@ function upsertRouteEntry(path: string, result: PriorityResult) {
     reason: result.reason,
     bucket: getPriorityBucket(result.priority),
   });
-}
-
-function getGroupedRouteEntries() {
-  const groups: Record<PriorityBucket, RouteInspectorEntry[]> = {
-    high: [],
-    normal: [],
-    low: [],
-    skipped: [],
-  };
-
-  for (const entry of routeEntries.values()) {
-    groups[entry.bucket].push(entry);
-  }
-
-  for (const bucket of Object.keys(groups) as PriorityBucket[]) {
-    groups[bucket].sort((a, b) => {
-      const pa = a.priority ?? -1;
-      const pb = b.priority ?? -1;
-      return pb - pa || a.path.localeCompare(b.path);
-    });
-  }
-
-  return groups;
 }
 
 function debouncePreload() {
