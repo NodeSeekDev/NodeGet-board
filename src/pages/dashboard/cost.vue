@@ -1,17 +1,31 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { toast } from "vue-sonner";
 import {
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
-  Loader2,
-  CreditCard,
-  TrendingUp,
   AlertTriangle,
-  Plus,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  CreditCard,
+  Loader2,
   Minus,
+  Plus,
+  TrendingUp,
 } from "lucide-vue-next";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -20,11 +34,37 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import type { NodeItem } from "@/types/node";
 import { useKv } from "@/composables/useKv";
 import { useNodeMetadata } from "@/composables/useNodeMetadata";
+import type { NodeItem } from "@/types/node";
+import {
+  aggregateCosts,
+  buildFxUrl,
+  createFxSnapshot,
+  currencyFromPriceUnit,
+  currencySymbol,
+  DEFAULT_BASE_CURRENCY,
+  formatDateOnly,
+  fxProviderLabel,
+  GLOBAL_KV_COST_BASE_CURRENCY,
+  GLOBAL_KV_COST_FX_CACHE,
+  GLOBAL_KV_COST_FX_PROVIDER,
+  getCycleProgress,
+  getRemainingDays,
+  getRemainingValue,
+  isExactMonthlyBaseDisplay,
+  isExactRemainingBaseDisplay,
+  isFxSnapshotFresh,
+  normalizeBaseCurrency,
+  parseFxProviderTemplate,
+  parseFxSnapshot,
+  supportedCurrenciesForNodes,
+  SUPPORTED_BASE_CURRENCIES,
+  type BaseCurrency,
+  type EvaluatedCostNode,
+  type FrankfurterLatestResponse,
+  type FxSnapshot,
+} from "@/utils/costSummary";
 
 definePage({
   meta: {
@@ -36,17 +76,25 @@ definePage({
 });
 
 const kv = useKv();
-const { parseMetadataFields, initDefaultMetadata } = useNodeMetadata(kv);
+const { initDefaultMetadata, parseMetadataFields } = useNodeMetadata(kv);
 
 const nodes = ref<NodeItem[]>([]);
 const loading = ref(false);
-// 排序状态：字段 + 方向，null 表示无排序
+const fxLoading = ref(false);
+const fxState = ref<"idle" | "loading" | "live" | "cached" | "grouped">("idle");
+const fxMessage = ref<string | null>(null);
+const baseCurrency = ref<BaseCurrency>(DEFAULT_BASE_CURRENCY);
+const fxSnapshot = ref<FxSnapshot | null>(null);
+const fxProviderTemplate = ref<string | null>(null);
+
 type SortField = "price" | "remaining";
 type SortDir = "asc" | "desc";
+
 const sortField = ref<SortField | null>(null);
 const sortDir = ref<SortDir>("asc");
 
-// 三态切换：asc → desc → 取消
+const globalNamespace = "global";
+
 function toggleSort(field: SortField) {
   if (sortField.value !== field) {
     sortField.value = field;
@@ -58,184 +106,377 @@ function toggleSort(field: SortField) {
   }
 }
 
-// 计算距今天剩余天数（负数表示已过期）
-function getRemainingDays(expireTime: string): number | null {
-  if (!expireTime) return null;
-  const expire = new Date(expireTime);
-  if (isNaN(expire.getTime())) return null;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  expire.setHours(0, 0, 0, 0);
-  return Math.round((expire.getTime() - today.getTime()) / 86400000);
+function formatAmount(symbol: string, value: number): string {
+  return `${symbol}${value.toFixed(2)}`;
 }
 
-// 进度条：当前周期已使用百分比（0~100）
-function getCycleProgress(expireTime: string, priceCycle: number): number {
-  const remaining = getRemainingDays(expireTime);
-  if (remaining === null) return 0;
-  const total = priceCycle || 30;
-  if (remaining <= 0) return 0;
-  if (remaining >= total) return 100;
-  return Math.round((remaining / total) * 100);
+function formatTimestamp(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString();
 }
 
-// 根据剩余天数返回进度条颜色
-function getProgressColor(expireTime: string): string {
-  const remaining = getRemainingDays(expireTime);
-  if (remaining === null || remaining > 30) return "bg-green-500";
-  if (remaining > 15) return "bg-orange-500";
-  return "bg-red-500";
+function formatNodeNames(names: string[], limit = 5): string {
+  if (names.length <= limit) return names.join("、");
+  return `${names.slice(0, limit).join("、")} 等 ${names.length} 台`;
 }
 
-// 计算剩余价值（按剩余天数比例）
-function getRemainingValue(
-  expireTime: string,
-  price: number,
-  priceCycle: number,
-): number {
-  const remaining = getRemainingDays(expireTime);
-  if (remaining === null || remaining <= 0) return 0;
-  const ratio = Math.min(remaining / priceCycle, 1);
-  return price * ratio;
+async function ensureGlobalNamespace() {
+  await kv.fetchNamespaces();
+  if (!kv.namespaces.value.includes(globalNamespace)) {
+    await kv.createNamespace(globalNamespace);
+    kv.namespaces.value.push(globalNamespace);
+  }
 }
 
-const sortedNodes = computed(() => {
+async function loadNodes() {
+  const uuids = await kv.listAgentUuids();
+  if (!uuids.length) {
+    nodes.value = [];
+    return;
+  }
+
+  const namespaceKeys = uuids.map((uuid) => ({
+    namespace: uuid,
+    key: "metadata_*",
+  }));
+  let results: { namespace: string; key: string; value: unknown }[] = [];
+
+  for (let attempt = 0; attempt <= uuids.length; attempt++) {
+    try {
+      results = await kv.getMultiValue(namespaceKeys);
+      break;
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      const match = message.match(/Namespace '([^']+)' not found/);
+      if (match && attempt < uuids.length) {
+        await kv.createNamespace(match[1]!);
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  const namespacesWithData = new Set(results.map((row) => row.namespace));
+  const emptyUuids = uuids.filter((uuid) => !namespacesWithData.has(uuid));
+  for (const emptyUuid of emptyUuids) {
+    await initDefaultMetadata(emptyUuid);
+  }
+  if (emptyUuids.length > 0) {
+    const newResults = await kv.getMultiValue(
+      emptyUuids.map((uuid) => ({ namespace: uuid, key: "metadata_*" })),
+    );
+    results = [...results, ...newResults];
+  }
+
+  const grouped = new Map<string, { key: string; value: unknown }[]>();
+  for (const row of results) {
+    if (!grouped.has(row.namespace)) grouped.set(row.namespace, []);
+    grouped.get(row.namespace)!.push({ key: row.key, value: row.value });
+  }
+
+  const parsed: NodeItem[] = [];
+  for (const [namespace, entries] of grouped) {
+    parsed.push({ id: namespace, ...parseMetadataFields(entries, namespace) });
+  }
+  nodes.value = parsed;
+}
+
+async function loadCostSettings() {
+  await ensureGlobalNamespace();
+  kv.namespace.value = globalNamespace;
+
+  const [rawBaseCurrency, rawFxCache, rawFxProvider] = await Promise.all([
+    kv.getValue(GLOBAL_KV_COST_BASE_CURRENCY).catch(() => null),
+    kv.getValue(GLOBAL_KV_COST_FX_CACHE).catch(() => null),
+    kv.getValue(GLOBAL_KV_COST_FX_PROVIDER).catch(() => null),
+  ]);
+
+  const parsedBaseCurrency =
+    normalizeBaseCurrency(rawBaseCurrency) ?? DEFAULT_BASE_CURRENCY;
+  baseCurrency.value = parsedBaseCurrency;
+  fxSnapshot.value = parseFxSnapshot(rawFxCache);
+  fxProviderTemplate.value = parseFxProviderTemplate(rawFxProvider);
+
+  if (normalizeBaseCurrency(rawBaseCurrency) !== parsedBaseCurrency) {
+    await kv.setValue(GLOBAL_KV_COST_BASE_CURRENCY, parsedBaseCurrency);
+  }
+}
+
+async function saveBaseCurrency(value: BaseCurrency) {
+  await ensureGlobalNamespace();
+  kv.namespace.value = globalNamespace;
+  await kv.setValue(GLOBAL_KV_COST_BASE_CURRENCY, value);
+}
+
+async function saveFxSnapshot(snapshot: FxSnapshot) {
+  await ensureGlobalNamespace();
+  kv.namespace.value = globalNamespace;
+  await kv.setValue(GLOBAL_KV_COST_FX_CACHE, snapshot);
+}
+
+const effectiveFxSnapshot = computed(() => {
+  if (!fxSnapshot.value) return null;
+  return fxSnapshot.value.base === baseCurrency.value ? fxSnapshot.value : null;
+});
+
+const effectiveFxProviderLabel = computed(() => {
+  if (effectiveFxSnapshot.value?.provider) {
+    return effectiveFxSnapshot.value.provider;
+  }
+  return fxProviderLabel(fxProviderTemplate.value);
+});
+
+async function refreshFxRates(showToast = false) {
+  const hasSupportedCurrency = nodes.value.some((node) =>
+    currencyFromPriceUnit(node.priceUnit),
+  );
+
+  const targets = supportedCurrenciesForNodes(nodes.value, baseCurrency.value);
+  if (!hasSupportedCurrency) {
+    fxState.value = "grouped";
+    fxMessage.value = "当前节点价格单位均不支持折算，已退化为按币种分组汇总。";
+    fxSnapshot.value = null;
+    return;
+  }
+
+  fxLoading.value = true;
+  fxState.value = "loading";
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+  try {
+    const response = await fetch(
+      buildFxUrl(baseCurrency.value, targets, fxProviderTemplate.value),
+      {
+        signal: controller.signal,
+      },
+    );
+    if (!response.ok) {
+      throw new Error(`汇率接口返回 ${response.status}`);
+    }
+    const data = (await response.json()) as FrankfurterLatestResponse;
+    const snapshot = createFxSnapshot(
+      baseCurrency.value,
+      data,
+      new Date().toISOString(),
+      fxProviderLabel(fxProviderTemplate.value),
+    );
+    fxSnapshot.value = snapshot;
+    fxState.value = "live";
+    fxMessage.value = null;
+    await saveFxSnapshot(snapshot);
+    if (showToast) {
+      toast.success("汇率已刷新");
+    }
+  } catch (error: unknown) {
+    const reason = error instanceof Error ? error.message : "实时汇率拉取失败";
+    const cachedSnapshot = effectiveFxSnapshot.value;
+    if (cachedSnapshot) {
+      fxState.value = "cached";
+      fxSnapshot.value = cachedSnapshot;
+      fxMessage.value = isFxSnapshotFresh(cachedSnapshot)
+        ? `${reason}，当前使用最近一次缓存汇率（${formatTimestamp(
+            cachedSnapshot.fetched_at,
+          )}）。`
+        : `${reason}，当前使用已过期缓存汇率（${formatTimestamp(
+            cachedSnapshot.fetched_at,
+          )}）。`;
+    } else {
+      fxState.value = "grouped";
+      fxSnapshot.value = null;
+      fxMessage.value = `${reason}，当前退化为按币种分组汇总，不显示跨币种总额。`;
+    }
+
+    if (showToast) {
+      toast.error(error instanceof Error ? error.message : "汇率刷新失败");
+    }
+  } finally {
+    clearTimeout(timeout);
+    fxLoading.value = false;
+  }
+}
+
+async function handleBaseCurrencyChange(value: unknown) {
+  const normalized = normalizeBaseCurrency(value);
+  if (!normalized || normalized === baseCurrency.value) return;
+
+  baseCurrency.value = normalized;
+  try {
+    await saveBaseCurrency(normalized);
+    await refreshFxRates();
+  } catch (error: unknown) {
+    toast.error(error instanceof Error ? error.message : "保存基准币种失败");
+  }
+}
+
+const stats = computed(() =>
+  aggregateCosts(
+    nodes.value,
+    baseCurrency.value,
+    fxState.value === "grouped" ? null : effectiveFxSnapshot.value,
+  ),
+);
+
+const sortedNodes = computed<EvaluatedCostNode[]>(() => {
   const field = sortField.value;
   const dir = sortDir.value;
-  if (!field) return [...nodes.value];
+  const list = [...stats.value.evaluatedNodes];
+  if (!field) return list;
 
-  return [...nodes.value].sort((a, b) => {
+  return list.sort((left, right) => {
     let diff = 0;
     if (field === "price") {
-      diff = a.price - b.price;
+      if (left.monthlyCostBase === null && right.monthlyCostBase === null) diff = 0;
+      else if (left.monthlyCostBase === null) diff = 1;
+      else if (right.monthlyCostBase === null) diff = -1;
+      else diff = left.monthlyCostBase - right.monthlyCostBase;
     } else {
-      const ra = getRemainingDays(a.expireTime);
-      const rb = getRemainingDays(b.expireTime);
-      if (ra === null && rb === null) diff = 0;
-      else if (ra === null) diff = 1;
-      else if (rb === null) diff = -1;
-      else diff = ra - rb;
+      const leftRemaining = getRemainingDays(left.expireTime);
+      const rightRemaining = getRemainingDays(right.expireTime);
+      if (leftRemaining === null && rightRemaining === null) diff = 0;
+      else if (leftRemaining === null) diff = 1;
+      else if (rightRemaining === null) diff = -1;
+      else diff = leftRemaining - rightRemaining;
     }
     if (diff !== 0) return dir === "asc" ? diff : -diff;
-    return a.name.localeCompare(b.name);
+    return left.name.localeCompare(right.name);
   });
 });
 
-// 统计数据
-const stats = computed(() => {
-  const total = nodes.value.reduce((sum, n) => sum + n.price, 0);
-  const avg = nodes.value.length ? total / nodes.value.length : 0;
-  const totalRemaining = nodes.value.reduce((sum, n) => {
-    return sum + getRemainingValue(n.expireTime, n.price, n.priceCycle);
-  }, 0);
-  const expiringSoon = nodes.value.filter((n) => {
-    const r = getRemainingDays(n.expireTime);
-    return r !== null && r >= 0 && r <= 30;
-  }).length;
-  const priceUnit = nodes.value[0]?.priceUnit ?? "$";
-  return { total, avg, totalRemaining, expiringSoon, priceUnit };
+const summaryAlerts = computed(() => {
+  const alerts: string[] = [];
+  if (fxMessage.value) {
+    alerts.push(fxMessage.value);
+  }
+  if (stats.value.unsupportedNodeNames.length > 0) {
+    alerts.push(
+      `以下节点币种暂不支持折算，已从统一总额排除：${formatNodeNames(
+        stats.value.unsupportedNodeNames,
+      )}。`,
+    );
+  }
+  if (stats.value.missingRateNodeNames.length > 0) {
+    alerts.push(
+      `以下节点缺少 ${baseCurrency.value} 汇率，已从统一总额排除：${formatNodeNames(
+        stats.value.missingRateNodeNames,
+      )}。`,
+    );
+  }
+  return alerts;
 });
 
-async function loadNodes() {
+const baseCurrencySymbol = computed(() => currencySymbol(baseCurrency.value));
+
+const adjustLoading = ref<string | null>(null);
+
+async function adjustExpire(
+  node: Pick<NodeItem, "id" | "expireTime" | "priceCycle">,
+  direction: 1 | -1,
+) {
+  const key = `${node.id}:${direction}`;
+  adjustLoading.value = key;
+  try {
+    const current = node.expireTime ? new Date(`${node.expireTime}T00:00:00`) : new Date();
+    current.setHours(0, 0, 0, 0);
+    current.setDate(current.getDate() + direction * node.priceCycle);
+    const newExpire = formatDateOnly(current);
+
+    kv.namespace.value = node.id;
+    await kv.setValue("metadata_expire_time", newExpire);
+
+    nodes.value = nodes.value.map((item) =>
+      item.id === node.id ? { ...item, expireTime: newExpire } : item,
+    );
+  } catch (error: unknown) {
+    toast.error(error instanceof Error ? error.message : "更新失败");
+  } finally {
+    adjustLoading.value = null;
+  }
+}
+
+async function initialize() {
   loading.value = true;
   try {
-    const uuids = await kv.listAgentUuids();
-    if (!uuids.length) {
-      nodes.value = [];
-      return;
-    }
-
-    const namespaceKeys = uuids.map((uuid) => ({
-      namespace: uuid,
-      key: "metadata_*",
-    }));
-    let results: { namespace: string; key: string; value: unknown }[] = [];
-
-    for (let attempt = 0; attempt <= uuids.length; attempt++) {
-      try {
-        results = await kv.getMultiValue(namespaceKeys);
-        break;
-      } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message : String(e);
-        const match = msg.match(/Namespace '([^']+)' not found/);
-        if (match && attempt < uuids.length) {
-          await kv.createNamespace(match[1]!);
-          continue;
-        }
-        throw e;
-      }
-    }
-
-    const namespacesWithData = new Set(results.map((r) => r.namespace));
-    const emptyUuids = uuids.filter((uuid) => !namespacesWithData.has(uuid));
-    for (const emptyUuid of emptyUuids) {
-      await initDefaultMetadata(emptyUuid);
-    }
-    if (emptyUuids.length > 0) {
-      const newResults = await kv.getMultiValue(
-        emptyUuids.map((uuid) => ({ namespace: uuid, key: "metadata_*" })),
-      );
-      results = [...results, ...newResults];
-    }
-
-    const grouped = new Map<string, { key: string; value: unknown }[]>();
-    for (const r of results) {
-      if (!grouped.has(r.namespace)) grouped.set(r.namespace, []);
-      grouped.get(r.namespace)!.push({ key: r.key, value: r.value });
-    }
-
-    const parsed: NodeItem[] = [];
-    for (const [ns, entries] of grouped) {
-      parsed.push({ id: ns, ...parseMetadataFields(entries, ns) });
-    }
-    nodes.value = parsed;
-  } catch (e: unknown) {
-    toast.error(e instanceof Error ? e.message : "加载节点失败");
+    await loadNodes();
+    await loadCostSettings();
+    await refreshFxRates();
+  } catch (error: unknown) {
+    toast.error(error instanceof Error ? error.message : "加载成本数据失败");
     nodes.value = [];
   } finally {
     loading.value = false;
   }
 }
 
-// 调整到期时间：+/- 一个计费周期
-const adjustLoading = ref<string | null>(null);
-
-async function adjustExpire(node: NodeItem, direction: 1 | -1) {
-  const key = node.id + direction;
-  adjustLoading.value = key;
-  try {
-    const current = node.expireTime ? new Date(node.expireTime) : new Date();
-    current.setDate(current.getDate() + direction * node.priceCycle);
-    const newExpire = current.toISOString().slice(0, 10);
-
-    kv.namespace.value = node.id;
-    await kv.setValue("metadata_expire_time", newExpire);
-
-    nodes.value = nodes.value.map((n) =>
-      n.id === node.id ? { ...n, expireTime: newExpire } : n,
-    );
-  } catch (e: unknown) {
-    toast.error(e instanceof Error ? e.message : "更新失败");
-  } finally {
-    adjustLoading.value = null;
-  }
-}
-
-onMounted(loadNodes);
+onMounted(initialize);
 </script>
 
 <template>
   <div class="h-full flex flex-col gap-4 overflow-hidden p-1">
-    <!-- 统计卡片 -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="text-sm text-muted-foreground">基准币种：</span>
+      <Select
+        :model-value="baseCurrency"
+        @update:model-value="handleBaseCurrencyChange"
+      >
+        <SelectTrigger class="w-36">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem
+            v-for="currency in SUPPORTED_BASE_CURRENCIES"
+            :key="currency"
+            :value="currency"
+          >
+            {{ currency }} ({{ currencySymbol(currency) }})
+          </SelectItem>
+        </SelectContent>
+      </Select>
+      <Button
+        size="sm"
+        variant="outline"
+        :disabled="fxLoading || loading"
+        @click="refreshFxRates(true)"
+      >
+        <Loader2 v-if="fxLoading" class="h-3.5 w-3.5 animate-spin" />
+        <template v-else>刷新汇率</template>
+      </Button>
+      <Badge v-if="fxState === 'live'" variant="secondary">实时汇率</Badge>
+      <Badge v-else-if="fxState === 'cached'" variant="secondary">缓存汇率</Badge>
+      <Badge v-else-if="fxState === 'grouped'" variant="secondary">
+        按币种分组
+      </Badge>
+      <span
+        v-if="effectiveFxSnapshot"
+        class="text-xs text-muted-foreground"
+      >
+        汇率来源：{{ effectiveFxProviderLabel }}，更新于
+        {{ formatTimestamp(effectiveFxSnapshot.fetched_at) }}
+      </span>
+    </div>
+
+    <Alert v-if="summaryAlerts.length > 0">
+      <AlertTriangle class="h-4 w-4" />
+      <AlertTitle>成本汇总说明</AlertTitle>
+      <AlertDescription class="space-y-1">
+        <p v-for="message in summaryAlerts" :key="message">
+          {{ message }}
+        </p>
+      </AlertDescription>
+    </Alert>
+
+    <div
+      v-if="stats.unified"
+      class="grid grid-cols-2 md:grid-cols-4 gap-4"
+    >
       <div class="rounded-lg border bg-card p-4 flex items-center gap-3">
         <div class="p-2 rounded-md bg-primary/10">
           <CreditCard class="h-5 w-5 text-primary" />
         </div>
         <div>
-          <p class="text-xs text-muted-foreground">总费用 / 周期</p>
+          <p class="text-xs text-muted-foreground">折算月成本</p>
           <p class="text-xl font-semibold font-mono">
-            {{ stats.priceUnit }}{{ stats.total.toFixed(2) }}
+            {{ formatAmount(baseCurrencySymbol, stats.totalMonthlyCost) }}
           </p>
         </div>
       </div>
@@ -245,9 +486,9 @@ onMounted(loadNodes);
           <TrendingUp class="h-5 w-5 text-blue-500" />
         </div>
         <div>
-          <p class="text-xs text-muted-foreground">平均每台</p>
+          <p class="text-xs text-muted-foreground">平均每台 / 月</p>
           <p class="text-xl font-semibold font-mono">
-            {{ stats.priceUnit }}{{ stats.avg.toFixed(2) }}
+            {{ formatAmount(baseCurrencySymbol, stats.avgMonthlyCost) }}
           </p>
         </div>
       </div>
@@ -257,9 +498,9 @@ onMounted(loadNodes);
           <TrendingUp class="h-5 w-5 text-green-500" />
         </div>
         <div>
-          <p class="text-xs text-muted-foreground">总剩余价值</p>
+          <p class="text-xs text-muted-foreground">折算剩余价值</p>
           <p class="text-xl font-semibold font-mono">
-            {{ stats.priceUnit }}{{ stats.totalRemaining.toFixed(2) }}
+            {{ formatAmount(baseCurrencySymbol, stats.totalRemainingValue) }}
           </p>
         </div>
       </div>
@@ -278,7 +519,44 @@ onMounted(loadNodes);
       </div>
     </div>
 
-    <!-- 排序按钮 -->
+    <div
+      v-else
+      class="grid grid-cols-2 md:grid-cols-4 gap-4"
+    >
+      <div
+        v-for="group in stats.groupedMonthlyTotals"
+        :key="group.currency"
+        class="rounded-lg border bg-card p-4 flex items-center gap-3"
+      >
+        <div class="p-2 rounded-md bg-primary/10">
+          <CreditCard class="h-5 w-5 text-primary" />
+        </div>
+        <div>
+          <p class="text-xs text-muted-foreground">{{ group.currency }} 月成本</p>
+          <p class="text-xl font-semibold font-mono">
+            {{ formatAmount(group.symbol, group.monthlyCost) }}
+          </p>
+          <p class="text-xs text-muted-foreground">
+            剩余价值 {{ formatAmount(group.symbol, group.remainingValue) }} ·
+            {{ group.count }} 台
+          </p>
+        </div>
+      </div>
+
+      <div class="rounded-lg border bg-card p-4 flex items-center gap-3">
+        <div class="p-2 rounded-md bg-orange-500/10">
+          <AlertTriangle class="h-5 w-5 text-orange-500" />
+        </div>
+        <div>
+          <p class="text-xs text-muted-foreground">30 天内到期</p>
+          <p class="text-xl font-semibold">
+            {{ stats.expiringSoon }}
+            <span class="text-sm font-normal text-muted-foreground">台</span>
+          </p>
+        </div>
+      </div>
+    </div>
+
     <div class="flex items-center gap-2">
       <span class="text-sm text-muted-foreground">排序：</span>
       <Button
@@ -311,11 +589,10 @@ onMounted(loadNodes);
           class="h-3.5 w-3.5"
         />
         <ArrowUpDown v-else class="h-3.5 w-3.5" />
-        价格
+        折算月成本
       </Button>
     </div>
 
-    <!-- 加载中 -->
     <div
       v-if="loading"
       class="flex items-center justify-center py-16 text-muted-foreground"
@@ -324,7 +601,6 @@ onMounted(loadNodes);
       加载中...
     </div>
 
-    <!-- 空状态 -->
     <div
       v-else-if="nodes.length === 0"
       class="py-16 text-center text-muted-foreground text-sm"
@@ -332,7 +608,6 @@ onMounted(loadNodes);
       暂无节点数据
     </div>
 
-    <!-- 节点列表 -->
     <div
       v-else
       class="flex-1 min-h-0 rounded-md border bg-card overflow-auto cost-table-wrap"
@@ -350,7 +625,6 @@ onMounted(loadNodes);
         </TableHeader>
         <TableBody>
           <TableRow v-for="node in sortedNodes" :key="node.id">
-            <!-- 名称 -->
             <TableCell>
               <RouterLink
                 :to="`/dashboard/node/${node.id}/setting`"
@@ -363,15 +637,22 @@ onMounted(loadNodes);
               </div>
             </TableCell>
 
-            <!-- 价格 -->
             <TableCell class="text-right font-mono">
-              {{ node.priceUnit }}{{ node.price }}
-              <span class="text-xs text-muted-foreground">
-                / {{ node.priceCycle }}天
-              </span>
+              <div>
+                {{ node.priceUnit }}{{ node.price.toFixed(2) }}
+                <span class="text-xs text-muted-foreground">
+                  / {{ node.priceCycle }}天
+                </span>
+              </div>
+              <div
+                v-if="node.monthlyCostBase !== null"
+                class="text-xs text-muted-foreground"
+              >
+                {{ isExactMonthlyBaseDisplay(node, baseCurrency) ? "=" : "≈" }}
+                {{ formatAmount(baseCurrencySymbol, node.monthlyCostBase) }} / 30天
+              </div>
             </TableCell>
 
-            <!-- 到期时间 -->
             <TableCell>
               <template v-if="node.expireTime">
                 <span
@@ -392,28 +673,50 @@ onMounted(loadNodes);
               <span v-else class="text-muted-foreground">—</span>
             </TableCell>
 
-            <!-- 剩余价值 -->
             <TableCell class="text-right font-mono">
               <template
                 v-if="
                   node.expireTime &&
-                  getRemainingDays(node.expireTime) !== null &&
-                  getRemainingDays(node.expireTime)! > 0
+                  getRemainingDays(node.expireTime) !== null
                 "
               >
-                {{ node.priceUnit
-                }}{{
-                  getRemainingValue(
-                    node.expireTime,
-                    node.price,
-                    node.priceCycle,
-                  ).toFixed(2)
-                }}
+                <div>
+                  {{
+                    formatAmount(
+                      node.priceUnit,
+                      getRemainingValue(
+                        node.expireTime,
+                        node.price,
+                        node.priceCycle,
+                      ),
+                    )
+                  }}
+                </div>
+                <div
+                  v-if="node.remainingValueBase !== null"
+                  class="text-xs text-muted-foreground"
+                >
+                  {{ isExactRemainingBaseDisplay(node, baseCurrency) ? "=" : "≈" }}
+                  {{ formatAmount(baseCurrencySymbol, node.remainingValueBase) }}
+                </div>
+                <div
+                  v-else-if="node.excludedReason === 'unsupported_currency'"
+                  class="text-xs text-muted-foreground"
+                >
+                  不支持折算
+                </div>
+                <div
+                  v-else
+                  class="text-xs text-muted-foreground"
+                >
+                  等待汇率
+                </div>
               </template>
-              <span v-else class="text-muted-foreground">—</span>
+              <template v-else>
+                <span class="text-muted-foreground">—</span>
+              </template>
             </TableCell>
 
-            <!-- 剩余时间占比 + 进度条 -->
             <TableCell>
               <template
                 v-if="
@@ -442,12 +745,17 @@ onMounted(loadNodes);
                       </span>
                     </template>
                   </div>
-                  <div
-                    class="h-1.5 w-full rounded-full bg-muted overflow-hidden"
-                  >
+                  <div class="h-1.5 w-full rounded-full bg-muted overflow-hidden">
                     <div
                       class="h-full rounded-full transition-all"
-                      :class="getProgressColor(node.expireTime)"
+                      :class="
+                        getRemainingDays(node.expireTime) === null ||
+                        getRemainingDays(node.expireTime)! > 30
+                          ? 'bg-green-500'
+                          : getRemainingDays(node.expireTime)! > 15
+                            ? 'bg-orange-500'
+                            : 'bg-red-500'
+                      "
                       :style="`width: ${getCycleProgress(node.expireTime, node.priceCycle)}%`"
                     />
                   </div>
@@ -456,19 +764,18 @@ onMounted(loadNodes);
               <span v-else class="text-muted-foreground text-sm">未设置</span>
             </TableCell>
 
-            <!-- 操作 -->
             <TableCell class="text-right">
               <div class="flex items-center justify-end gap-1">
                 <Button
                   variant="outline"
                   size="icon"
                   class="h-7 w-7"
-                  :disabled="adjustLoading === node.id + 1"
+                  :disabled="adjustLoading === `${node.id}:1`"
                   title="到期时间 +1 周期"
                   @click="adjustExpire(node, 1)"
                 >
                   <Loader2
-                    v-if="adjustLoading === node.id + 1"
+                    v-if="adjustLoading === `${node.id}:1`"
                     class="h-3.5 w-3.5 animate-spin"
                   />
                   <Plus v-else class="h-3.5 w-3.5" />
@@ -477,12 +784,12 @@ onMounted(loadNodes);
                   variant="outline"
                   size="icon"
                   class="h-7 w-7"
-                  :disabled="adjustLoading === node.id + -1"
+                  :disabled="adjustLoading === `${node.id}:-1`"
                   title="到期时间 -1 周期"
                   @click="adjustExpire(node, -1)"
                 >
                   <Loader2
-                    v-if="adjustLoading === node.id + -1"
+                    v-if="adjustLoading === `${node.id}:-1`"
                     class="h-3.5 w-3.5 animate-spin"
                   />
                   <Minus v-else class="h-3.5 w-3.5" />
