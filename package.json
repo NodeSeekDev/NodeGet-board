@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
+    "test": "node --test --experimental-strip-types tests/*.test.ts",
     "prepare": "husky"
   },
   "dependencies": {
