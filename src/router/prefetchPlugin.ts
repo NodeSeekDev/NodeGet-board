@@ -138,10 +138,6 @@ class LoaderRegistry {
     return this.loaded.size;
   }
 
-  values() {
-    return this.originalLoaders.values();
-  }
-
   find(loader: Loader) {
     return this.wrappedLoaders.get(loader) ?? this.originalLoaders.get(loader);
   }
@@ -182,6 +178,38 @@ class LoaderRegistry {
       !this.isExhausted(entry) &&
       !this.isBackoffActive(entry, now)
     );
+  }
+
+  pending(now = Date.now()) {
+    return [...this.originalLoaders.values()]
+      .filter((entry) => this.canPrefetch(entry, now))
+      .sort((a, b) => b.priority - a.priority || a.path.localeCompare(b.path));
+  }
+
+  statusForPath(path: string) {
+    const matchedLoaders = [...this.originalLoaders.values()].filter(
+      (entry) => entry.path === path,
+    );
+
+    if (!matchedLoaders.length) return "unknown";
+    if (matchedLoaders.every((entry) => this.isLoaded(entry))) {
+      return "loaded";
+    }
+    return "pending";
+  }
+
+  resetStaleFailures() {
+    let resetCount = 0;
+    for (const entry of this.originalLoaders.values()) {
+      if (this.isLoaded(entry)) continue;
+      if (this.isInFlight(entry)) continue;
+      if (entry.prefetchAttempts > 0 || entry.prefetchRetryAt) {
+        entry.prefetchAttempts = 0;
+        entry.prefetchRetryAt = undefined;
+        resetCount++;
+      }
+    }
+    return resetCount;
   }
 }
 
@@ -418,13 +446,15 @@ class DevtoolsBridge {
             {
               key: "loaded",
               value: entries.filter(
-                (entry) => getRouteLoadStatus(entry) === "loaded",
+                (entry) =>
+                  loaderRegistry.statusForPath(entry.path) === "loaded",
               ).length,
             },
             {
               key: "pending",
               value: entries.filter(
-                (entry) => getRouteLoadStatus(entry) === "pending",
+                (entry) =>
+                  loaderRegistry.statusForPath(entry.path) === "pending",
               ).length,
             },
           ],
@@ -433,7 +463,7 @@ class DevtoolsBridge {
             value: {
               priority: entry.priority,
               reason: entry.reason,
-              status: getRouteLoadStatus(entry),
+              status: loaderRegistry.statusForPath(entry.path),
             },
           })),
         };
@@ -450,7 +480,7 @@ class DevtoolsBridge {
             { key: "path", value: entry.path },
             { key: "bucket", value: this.bucketLabels[entry.bucket] },
             { key: "priority", value: entry.priority },
-            { key: "status", value: getRouteLoadStatus(entry) },
+            { key: "status", value: loaderRegistry.statusForPath(entry.path) },
             { key: "reason", value: entry.reason },
           ],
         };
@@ -466,7 +496,7 @@ class DevtoolsBridge {
   }
 
   private buildRouteTags(entry: RouteInspectorEntry) {
-    const status = getRouteLoadStatus(entry);
+    const status = loaderRegistry.statusForPath(entry.path);
     const tags = [
       {
         label: status,
@@ -585,20 +615,6 @@ function getGroupedRouteEntries() {
   return groups;
 }
 
-function getRouteLoadStatus(entry: RouteInspectorEntry) {
-  if (entry.priority === null) return "skipped";
-
-  const matchedLoaders = [...loaderRegistry.values()].filter(
-    (loaderEntry) => loaderEntry.path === entry.path,
-  );
-
-  if (!matchedLoaders.length) return "unknown";
-  if (matchedLoaders.every((entry) => loaderRegistry.isLoaded(entry))) {
-    return "loaded";
-  }
-  return "pending";
-}
-
 function debouncePreload() {
   if (typeof window === "undefined") return;
 
@@ -638,10 +654,7 @@ function scheduleIdle(fn: (deadline?: IdleDeadline) => void) {
 }
 
 function getPendingLoaders() {
-  const now = Date.now();
-  return [...loaderRegistry.values()]
-    .filter((entry) => loaderRegistry.canPrefetch(entry, now))
-    .sort((a, b) => b.priority - a.priority || a.path.localeCompare(b.path));
+  return loaderRegistry.pending();
 }
 
 function preload(deadline?: IdleDeadline) {
@@ -1013,16 +1026,7 @@ function setupVisibilityListener() {
     // 重新可见时重置所有未加载条目的失败计数，让队列可以再走一遍。
     // 跳过 in-flight 条目：它们自己会在 then/catch 里收敛状态，
     // 在飞行中重置 attempts 会让随后的 catch 算出 idx=-1。
-    let resetCount = 0;
-    for (const entry of loaderRegistry.values()) {
-      if (loaderRegistry.isLoaded(entry)) continue;
-      if (loaderRegistry.isInFlight(entry)) continue;
-      if (entry.prefetchAttempts > 0 || entry.prefetchRetryAt) {
-        entry.prefetchAttempts = 0;
-        entry.prefetchRetryAt = undefined;
-        resetCount++;
-      }
-    }
+    const resetCount = loaderRegistry.resetStaleFailures();
 
     if (resetCount > 0 || getPendingLoaders().length > 0) {
       requestPreload("tab became visible", { resetCount });
