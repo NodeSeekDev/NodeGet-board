@@ -1,4 +1,4 @@
-import type { App, Plugin } from "vue";
+import type { App } from "vue";
 import type { RouteComponent, RouteRecordRaw, Router } from "vue-router";
 
 /** `() => import(...)` 形式生成的懒加载组件加载器。 */
@@ -125,8 +125,67 @@ type DevtoolsApi = {
   now?(): number;
 };
 
-const loaders = new Map<Loader, LoaderEntry>();
-const loaded = new Set<Loader>();
+class LoaderRegistry {
+  private originalLoaders = new Map<Loader, LoaderEntry>();
+  private wrappedLoaders = new Map<Loader, LoaderEntry>();
+  private loaded = new Set<Loader>();
+
+  get size() {
+    return this.originalLoaders.size;
+  }
+
+  get loadedSize() {
+    return this.loaded.size;
+  }
+
+  values() {
+    return this.originalLoaders.values();
+  }
+
+  find(loader: Loader) {
+    return this.wrappedLoaders.get(loader) ?? this.originalLoaders.get(loader);
+  }
+
+  add(original: Loader, entry: LoaderEntry) {
+    this.originalLoaders.set(original, entry);
+    this.wrappedLoaders.set(entry.loader, entry);
+  }
+
+  markLoaded(entry: LoaderEntry) {
+    this.loaded.add(entry.loader);
+  }
+
+  markFailed(entry: LoaderEntry) {
+    this.loaded.delete(entry.loader);
+  }
+
+  isLoaded(entry: LoaderEntry) {
+    return this.loaded.has(entry.loader);
+  }
+
+  isInFlight(entry: LoaderEntry) {
+    return entry.inFlight !== undefined;
+  }
+
+  isExhausted(entry: LoaderEntry) {
+    return entry.prefetchAttempts >= PREFETCH_MAX_ATTEMPTS;
+  }
+
+  isBackoffActive(entry: LoaderEntry, now = Date.now()) {
+    return entry.prefetchRetryAt !== undefined && now < entry.prefetchRetryAt;
+  }
+
+  canPrefetch(entry: LoaderEntry, now = Date.now()) {
+    return (
+      !this.isLoaded(entry) &&
+      !this.isInFlight(entry) &&
+      !this.isExhausted(entry) &&
+      !this.isBackoffActive(entry, now)
+    );
+  }
+}
+
+const loaderRegistry = new LoaderRegistry();
 const pendingDevtoolsEvents: DevtoolsTimelineEvent[] = [];
 const routeEntries = new Map<string, RouteInspectorEntry>();
 const recentEvents: Array<
@@ -137,6 +196,7 @@ const recentEvents: Array<
   }
 > = [];
 
+const configuredRouters = new WeakSet<Router>();
 let debounceTimer: number | null = null;
 let isPreloading = false;
 let devtoolsApi: DevtoolsApi | null = null;
@@ -215,7 +275,7 @@ function ensureDevtoolsInspector() {
             backgroundColor: 0x3b82f6,
           },
           {
-            label: `${loaded.size} loaded`,
+            label: `${loaderRegistry.loadedSize} loaded`,
             textColor: 0xffffff,
             backgroundColor: 0x10b981,
           },
@@ -255,8 +315,8 @@ function ensureDevtoolsInspector() {
       payload.state = {
         summary: [
           { key: "registered routes", value: routeEntries.size },
-          { key: "preload targets", value: loaders.size },
-          { key: "loaded routes", value: loaded.size },
+          { key: "preload targets", value: loaderRegistry.size },
+          { key: "loaded routes", value: loaderRegistry.loadedSize },
           { key: "pending routes", value: getPendingLoaders().length },
           { key: "is preloading", value: isPreloading },
         ],
@@ -377,12 +437,12 @@ function getGroupedRouteEntries() {
 function getRouteLoadStatus(entry: RouteInspectorEntry) {
   if (entry.priority === null) return "skipped";
 
-  const matchedLoaders = [...loaders.values()].filter(
+  const matchedLoaders = [...loaderRegistry.values()].filter(
     (loaderEntry) => loaderEntry.path === entry.path,
   );
 
   if (!matchedLoaders.length) return "unknown";
-  if (matchedLoaders.every((loaderEntry) => loaded.has(loaderEntry.loader))) {
+  if (matchedLoaders.every((entry) => loaderRegistry.isLoaded(entry))) {
     return "loaded";
   }
   return "pending";
@@ -526,14 +586,8 @@ function scheduleIdle(fn: (deadline?: IdleDeadline) => void) {
 
 function getPendingLoaders() {
   const now = Date.now();
-  return [...loaders.values()]
-    .filter((entry) => {
-      if (loaded.has(entry.loader)) return false;
-      if (entry.inFlight) return false;
-      if (entry.prefetchAttempts >= PREFETCH_MAX_ATTEMPTS) return false;
-      if (entry.prefetchRetryAt && now < entry.prefetchRetryAt) return false;
-      return true;
-    })
+  return [...loaderRegistry.values()]
+    .filter((entry) => loaderRegistry.canPrefetch(entry, now))
     .sort((a, b) => b.priority - a.priority || a.path.localeCompare(b.path));
 }
 
@@ -571,7 +625,7 @@ function preload(deadline?: IdleDeadline) {
         priority: next.priority,
         attempts: next.prefetchAttempts,
         retryAt: next.prefetchRetryAt,
-        givenUp: next.prefetchAttempts >= PREFETCH_MAX_ATTEMPTS,
+        givenUp: loaderRegistry.isExhausted(next),
         error,
       });
     })
@@ -598,7 +652,8 @@ function scheduleRetryBackoff(entry: LoaderEntry) {
 function makeWrappedLoader(entry: LoaderEntry): Loader {
   return () => {
     // 同一加载请求并发去重；若上一轮成功，inFlight 仍指向已 resolve 的 promise，复用即可。
-    if (entry.inFlight) return entry.inFlight;
+    const inFlight = getInFlightLoaderPromise(entry);
+    if (inFlight) return inFlight;
 
     entry.prefetchAttempts++;
     let p: Promise<unknown>;
@@ -612,19 +667,46 @@ function makeWrappedLoader(entry: LoaderEntry): Loader {
     entry.inFlight = p;
     p.then(
       () => {
-        loaded.add(entry.loader);
+        loaderRegistry.markLoaded(entry);
         entry.prefetchAttempts = 0;
         entry.prefetchRetryAt = undefined;
       },
       () => {
         // 失败时丢弃 promise 缓存，让下次调用（用户点击或下次 prefetch tick）重新发起 import()。
-        if (entry.inFlight === p) entry.inFlight = undefined;
-        loaded.delete(entry.loader);
+        clearInFlightLoader(entry, p);
+        loaderRegistry.markFailed(entry);
         scheduleRetryBackoff(entry);
       },
     );
     return p;
   };
+}
+
+function getInFlightLoaderPromise(entry: LoaderEntry) {
+  return entry.inFlight;
+}
+
+function clearInFlightLoader(entry: LoaderEntry, promise: Promise<unknown>) {
+  if (entry.inFlight === promise) entry.inFlight = undefined;
+}
+
+function updateRegisteredLoaderEntry(
+  entry: LoaderEntry,
+  priority: number,
+  path: string,
+) {
+  const nextPriority = Math.max(entry.priority, priority);
+  if (nextPriority !== entry.priority || entry.path !== path) {
+    log("update preload target", {
+      path,
+      previousPath: entry.path,
+      previousPriority: entry.priority,
+      priority: nextPriority,
+    });
+  }
+  entry.priority = nextPriority;
+  entry.path = path;
+  debouncePreload();
 }
 
 function registerLoader<T = unknown>(
@@ -634,24 +716,13 @@ function registerLoader<T = unknown>(
 ): Loader<T> {
   if (priority === null) return loader;
 
-  const existing = loaders.get(loader as Loader);
+  const existing = loaderRegistry.find(loader as Loader);
   if (existing) {
-    const nextPriority = Math.max(existing.priority, priority);
-    if (nextPriority !== existing.priority || existing.path !== path) {
-      log("update preload target", {
-        path,
-        previousPath: existing.path,
-        previousPriority: existing.priority,
-        priority: nextPriority,
-      });
-    }
-    existing.priority = nextPriority;
-    existing.path = path;
-    debouncePreload();
+    updateRegisteredLoaderEntry(existing, priority, path);
     return existing.loader as Loader<T>;
   }
 
-  // loaders 仍以 original loader 为 key 用于去重；entry.loader 是返回给 vue-router 的 wrapped 版本。
+  // registry 同时按 original/wrapped loader 建索引，避免重复预处理时二次包装。
   const entry: LoaderEntry = {
     loader: undefined as unknown as Loader,
     original: loader as Loader,
@@ -660,7 +731,7 @@ function registerLoader<T = unknown>(
     prefetchAttempts: 0,
   };
   entry.loader = makeWrappedLoader(entry);
-  loaders.set(loader as Loader, entry);
+  loaderRegistry.add(loader as Loader, entry);
   log("register preload target", { path, priority });
 
   debouncePreload();
@@ -672,11 +743,17 @@ function wrapLoader(
   priority: number | null,
   path: string,
 ): RouteComp {
-  if (typeof component === "function") {
+  if (isRouteComponentLoader(component)) {
     return registerLoader(component as AsyncComponent, priority, path);
   }
 
   return component;
+}
+
+function isRouteComponentLoader(
+  component: RouteComp,
+): component is AsyncComponent {
+  return typeof component === "function";
 }
 
 function normalizePath(path: string) {
@@ -787,24 +864,6 @@ function getRoutePriority(
   return { priority: null, reason: "no prefetch heuristic matched" };
 }
 
-function reconcileNormalizedRoutes(router: Router) {
-  // vue-router 在 createRouter 时已把 record.component 规范化为 record.components.default，
-  // 之后再写 route.component 不会同步到 matcher 内的规范化记录，
-  // 导致 vue-router 在导航时仍然调用未包裹的 loader（用户导航不更新 loaded / attempts）。
-  // 这里直接对 matcher 拿到的规范化记录做指针替换，把原始 loader 换成对应的 wrapped 版本。
-  for (const record of router.getRoutes()) {
-    if (!record.components) continue;
-    for (const name in record.components) {
-      const comp = record.components[name];
-      if (typeof comp !== "function") continue;
-      const entry = loaders.get(comp as Loader);
-      if (entry && record.components[name] !== entry.loader) {
-        record.components[name] = entry.loader as RouteComponent;
-      }
-    }
-  }
-}
-
 function processRoutes(routes: RouteRecordRaw[], parentPath = "") {
   for (const route of routes) {
     const fullPath = joinPath(parentPath, route.path);
@@ -844,6 +903,51 @@ function processRoutes(routes: RouteRecordRaw[], parentPath = "") {
   }
 }
 
+export function preparePrefetchableRoutes<T extends readonly RouteRecordRaw[]>(
+  routes: T,
+): T {
+  processRoutes(routes as unknown as RouteRecordRaw[]);
+  return routes;
+}
+
+function installRoutePrefetch(
+  app: App,
+  router: Router,
+  installRouter: () => void,
+) {
+  const shouldInstallPrefetch = !installedRouters.has(router);
+
+  if (shouldInstallPrefetch) {
+    installedRouters.add(router);
+    attachRoutePrefetchDevtools(app);
+    setupVisibilityListener();
+    log("apply route prefetch plugin");
+    if (loaderRegistry.size === 0) {
+      logWarn("no preload targets were registered");
+    } else {
+      requestPreload("prefetch targets registered", {
+        targets: loaderRegistry.size,
+      });
+    }
+  }
+
+  installRouter();
+
+  if (!shouldInstallPrefetch) return;
+
+  router.isReady().then(() => {
+    requestPreload("router ready, request idle preload");
+  });
+
+  router.afterEach((to) => {
+    if (getPendingLoaders().length === 0) return;
+
+    requestPreload("route changed, request idle preload", {
+      path: to.fullPath,
+    });
+  });
+}
+
 function setupVisibilityListener() {
   if (typeof document === "undefined") return;
   if (visibilityListenerAttached) return;
@@ -857,9 +961,9 @@ function setupVisibilityListener() {
     // 跳过 in-flight 条目：它们自己会在 then/catch 里收敛状态，
     // 在飞行中重置 attempts 会让随后的 catch 算出 idx=-1。
     let resetCount = 0;
-    for (const entry of loaders.values()) {
-      if (loaded.has(entry.loader)) continue;
-      if (entry.inFlight) continue;
+    for (const entry of loaderRegistry.values()) {
+      if (loaderRegistry.isLoaded(entry)) continue;
+      if (loaderRegistry.isInFlight(entry)) continue;
       if (entry.prefetchAttempts > 0 || entry.prefetchRetryAt) {
         entry.prefetchAttempts = 0;
         entry.prefetchRetryAt = undefined;
@@ -923,40 +1027,14 @@ function attachRoutePrefetchDevtools(app: App) {
   });
 }
 
-export default function routePrefetchPlugin(router: Router): Plugin {
-  return {
-    install(app) {
-      if (installedRouters.has(router)) return;
-      installedRouters.add(router);
+export function setupRoutePrefetchRouter(router: Router): Router {
+  if (configuredRouters.has(router)) return router;
+  configuredRouters.add(router);
 
-      attachRoutePrefetchDevtools(app);
-      setupVisibilityListener();
-      log("apply route prefetch plugin");
-      processRoutes(router.options.routes as RouteRecordRaw[]);
-      // vue-router 已在 createRouter 时把 component 规范化进 matcher；
-      // 必须先把规范化记录里的 loader 也换成 wrapped，再让 app.use(router) 触发首次导航解析。
-      reconcileNormalizedRoutes(router);
-      if (loaders.size === 0) {
-        logWarn("no preload targets were registered");
-      } else {
-        requestPreload("prefetch targets registered", {
-          targets: loaders.size,
-        });
-      }
-
-      app.use(router);
-
-      router.isReady().then(() => {
-        requestPreload("router ready, request idle preload");
-      });
-
-      router.afterEach((to) => {
-        if (getPendingLoaders().length === 0) return;
-
-        requestPreload("route changed, request idle preload", {
-          path: to.fullPath,
-        });
-      });
-    },
+  const originalInstall = router.install.bind(router);
+  router.install = (app: App) => {
+    installRoutePrefetch(app, router, () => originalInstall(app));
   };
+
+  return router;
 }
