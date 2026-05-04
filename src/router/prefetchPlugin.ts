@@ -593,15 +593,27 @@ class DevtoolsBridge {
 
     this.ensureLayer();
     this.ensureInspector();
+    const timelineEvent: {
+      time: number;
+      title: string;
+      subtitle?: string;
+      data: Record<string, unknown>;
+      logType?: DevtoolsLogType;
+    } = {
+      time: this.api.now?.() ?? Date.now(),
+      title: event.title,
+      data: event.data,
+    };
+    if (event.subtitle !== undefined) {
+      timelineEvent.subtitle = event.subtitle;
+    }
+    if (event.logType !== undefined) {
+      timelineEvent.logType = event.logType;
+    }
+
     this.api.addTimelineEvent({
       layerId: this.layerId,
-      event: {
-        time: this.api.now?.() ?? Date.now(),
-        title: event.title,
-        subtitle: event.subtitle,
-        data: event.data,
-        logType: event.logType,
-      },
+      event: timelineEvent,
     });
     this.updateInspector();
   }
@@ -741,7 +753,7 @@ function scheduleRetryBackoff(entry: LoaderEntry) {
 function makeWrappedLoader(entry: LoaderEntry): Loader {
   return () => {
     // 同一加载请求并发去重；若上一轮成功，inFlight 仍指向已 resolve 的 promise，复用即可。
-    const inFlight = getInFlightLoaderPromise(entry);
+    const inFlight = entry.inFlight;
     if (inFlight) return inFlight;
 
     entry.prefetchAttempts++;
@@ -769,10 +781,6 @@ function makeWrappedLoader(entry: LoaderEntry): Loader {
     );
     return p;
   };
-}
-
-function getInFlightLoaderPromise(entry: LoaderEntry) {
-  return entry.inFlight;
 }
 
 function clearInFlightLoader(entry: LoaderEntry, promise: Promise<unknown>) {
