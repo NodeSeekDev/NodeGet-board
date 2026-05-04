@@ -225,7 +225,7 @@ onMounted(loadNodes);
 </script>
 
 <template>
-  <div class="h-full flex flex-col gap-4 overflow-auto p-1">
+  <div class="h-full flex flex-col gap-4 overflow-hidden p-1">
     <!-- 统计卡片 -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
       <div class="rounded-lg border bg-card p-4 flex items-center gap-3">
@@ -333,9 +333,12 @@ onMounted(loadNodes);
     </div>
 
     <!-- 节点列表 -->
-    <div v-else class="rounded-md border bg-card overflow-hidden">
+    <div
+      v-else
+      class="flex-1 min-h-0 rounded-md border bg-card overflow-auto cost-table-wrap"
+    >
       <Table>
-        <TableHeader>
+        <TableHeader class="sticky top-0 bg-card z-10">
           <TableRow>
             <TableHead>节点名称</TableHead>
             <TableHead class="text-right">价格 / 周期</TableHead>
@@ -492,3 +495,9 @@ onMounted(loadNodes);
     </div>
   </div>
 </template>
+
+<style scoped>
+.cost-table-wrap :deep([data-slot="table-container"]) {
+  overflow: visible;
+}
+</style>

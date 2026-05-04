@@ -216,18 +216,7 @@ const persistOrders = async () => {
   if (!currentBackend.value) return;
   const changed: { uuid: string; order: number }[] = [];
   agents.value.forEach((agent, i) => {
-    let newOrder: number;
-    if (i === 0) {
-      const next = agents.value[1];
-      newOrder = next ? next.order - 1 : agent.order;
-    } else if (i === agents.value.length - 1) {
-      const prev = agents.value[i - 1]!;
-      newOrder = prev.order + 1;
-    } else {
-      const prev = agents.value[i - 1]!;
-      const next = agents.value[i + 1]!;
-      newOrder = (prev.order + next.order) / 2;
-    }
+    const newOrder = i + 1;
     if (newOrder !== agent.order) {
       agent.order = newOrder;
       changed.push({ uuid: agent.uuid, order: newOrder });
