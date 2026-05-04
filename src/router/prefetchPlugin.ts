@@ -126,12 +126,11 @@ type DevtoolsApi = {
 };
 
 class LoaderRegistry {
-  private originalLoaders = new Map<Loader, LoaderEntry>();
-  private wrappedLoaders = new Map<Loader, LoaderEntry>();
+  private entries = new Map<Loader, LoaderEntry>();
   private loaded = new Set<Loader>();
 
   get size() {
-    return this.originalLoaders.size;
+    return this.entries.size;
   }
 
   get loadedSize() {
@@ -139,12 +138,11 @@ class LoaderRegistry {
   }
 
   find(loader: Loader) {
-    return this.wrappedLoaders.get(loader) ?? this.originalLoaders.get(loader);
+    return this.entries.get(loader);
   }
 
-  add(original: Loader, entry: LoaderEntry) {
-    this.originalLoaders.set(original, entry);
-    this.wrappedLoaders.set(entry.loader, entry);
+  add(entry: LoaderEntry) {
+    this.entries.set(entry.loader, entry);
   }
 
   markLoaded(entry: LoaderEntry) {
@@ -181,13 +179,13 @@ class LoaderRegistry {
   }
 
   pending(now = Date.now()) {
-    return [...this.originalLoaders.values()]
+    return [...this.entries.values()]
       .filter((entry) => this.canPrefetch(entry, now))
       .sort((a, b) => b.priority - a.priority || a.path.localeCompare(b.path));
   }
 
   statusForPath(path: string) {
-    const matchedLoaders = [...this.originalLoaders.values()].filter(
+    const matchedLoaders = [...this.entries.values()].filter(
       (entry) => entry.path === path,
     );
 
@@ -200,7 +198,7 @@ class LoaderRegistry {
 
   resetStaleFailures() {
     let resetCount = 0;
-    for (const entry of this.originalLoaders.values()) {
+    for (const entry of this.entries.values()) {
       if (this.isLoaded(entry)) continue;
       if (this.isInFlight(entry)) continue;
       if (entry.prefetchAttempts > 0 || entry.prefetchRetryAt) {
@@ -791,7 +789,6 @@ function registerLoader<T = unknown>(
     return existing.loader as Loader<T>;
   }
 
-  // registry 同时按 original/wrapped loader 建索引，避免重复预处理时二次包装。
   const entry: LoaderEntry = {
     loader: undefined as unknown as Loader,
     original: loader as Loader,
@@ -800,7 +797,7 @@ function registerLoader<T = unknown>(
     prefetchAttempts: 0,
   };
   entry.loader = makeWrappedLoader(entry);
-  loaderRegistry.add(loader as Loader, entry);
+  loaderRegistry.add(entry);
   devtools.log("register preload target", { path, priority });
 
   debouncePreload();
