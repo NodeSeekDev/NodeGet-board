@@ -4,7 +4,7 @@ import { toast } from "vue-sonner";
 import { Loader2 } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import NodeMetadataForm from "@/components/node/NodeMetadataForm.vue";
-import type { NodeMetadata } from "@/types/node";
+import type { NodeMetadata } from "@/types/agent";
 import { useKv } from "@/composables/useKv";
 import { useNodeMetadata } from "@/composables/useNodeMetadata";
 import { useI18n } from "vue-i18n";
@@ -20,7 +20,7 @@ const loading = ref(false);
 const saveLoading = ref(false);
 
 const form = ref<NodeMetadata>({
-  name: "",
+  customName: "",
   tags: [],
   price: 0,
   priceUnit: "$",

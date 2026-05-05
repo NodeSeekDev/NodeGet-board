@@ -4,6 +4,8 @@ import { useRouter } from "vue-router";
 import { useOverviewData } from "@/composables/useOverviewData";
 import { colors } from "@/composables/color";
 import { formatLoad, formatBytes, formatUptime } from "@/utils/format";
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-vue-next";
 import {
   showHostname,
   showOS,
@@ -63,7 +65,8 @@ definePage({
 
 const router = useRouter();
 
-const { servers, loading, error, inactive, start, stop } = useOverviewData();
+const { servers, loading, error, inactive, start, stop, refresh } =
+  useOverviewData();
 
 const selectedTag = ref("all");
 
@@ -108,6 +111,14 @@ const goToServerDetail = (uuid: string) => {
           Manage and monitor your servers in a list layout.
         </p>
       </div>
+      <Button
+        class="ml-auto"
+        variant="outline"
+        size="sm"
+        @click="() => refresh()"
+      >
+        <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': loading }" />
+      </Button>
       <div v-if="allTags.length > 0" class="w-40 shrink-0">
         <Select v-model="selectedTag">
           <SelectTrigger class="w-full">

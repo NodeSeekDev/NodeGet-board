@@ -103,6 +103,17 @@ async function handleDelete() {
   } catch {
     // API may not be implemented yet, continue
   }
+  try {
+    // disable token, stop data report
+    await rpc("token_delete", {
+      token: currentBackend.value?.token,
+      target_token: `[agent]:${props.uuid}`,
+    });
+
+    // todo: delete server block
+  } catch {
+    // API may not be implemented yet, continue
+  }
   setStep(0, "done");
 
   // Step 2: clean cron

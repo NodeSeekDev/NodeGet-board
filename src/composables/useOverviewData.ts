@@ -1,11 +1,13 @@
-import { ref } from "vue";
+import { ref, watch } from "vue";
 import { useBackendStore } from "@/composables/useBackendStore";
 import { WsConnection, getWsConnection } from "@/composables/useWsConnection";
 import { useKv } from "@/composables/useKv";
 import type { SummaryField } from "@/types/monitoring";
+import type { NodeMetadata } from "@/types/agent";
 import { OFFLINE_AFTER_MS } from "@/utils/show";
+import { currentAgentInfo } from "@/composables/useAgentInfo";
 
-const SUMMARY_FIELDS: SummaryField[] = [
+export const SUMMARY_FIELDS: SummaryField[] = [
   "cpu_usage",
   "gpu_usage",
   "used_swap",
@@ -29,7 +31,8 @@ const SUMMARY_FIELDS: SummaryField[] = [
   "total_transmitted",
   "transmit_speed",
   "receive_speed",
-];
+] as const;
+
 const STATIC_FIELDS = ["cpu", "system", "gpu"];
 const POLL_INTERVAL_MS = 1000;
 const STATIC_POLL_INTERVAL_MS = 60_000;
@@ -86,18 +89,7 @@ let pollConn: WsConnection | null = null;
 let visibilityListenerAttached = false;
 let lastFetchTime = 0;
 let uuids: string[] = [];
-let metaMap = new Map<
-  string,
-  {
-    customName: string;
-    hidden: boolean;
-    region: string;
-    latitude: number | null;
-    longitude: number | null;
-    tags: string[];
-    order: number;
-  }
->();
+let metaMap = new Map<string, NodeMetadata>();
 let staticMap = new Map<string, AgentRow>();
 let fetchDynamicInFlight = false;
 let fetchStaticInFlight = false;
@@ -110,76 +102,28 @@ let _fetchStatic: AsyncFn | null = null;
 let _fetchDynamic: AsyncFn | null = null;
 let _fetchStaticPeriodic: AsyncFn | null = null;
 
+const { currentBackend } = useBackendStore();
+
 function initFunctions() {
   if (_fetchUuidsAndMeta) return;
 
-  const { currentBackend } = useBackendStore();
   const kv = useKv();
   const conn = () => getWsConnection(currentBackend.value?.url ?? "");
 
   _fetchUuidsAndMeta = async () => {
+    await currentAgentInfo.fetchAgents();
     try {
-      uuids = await kv.listAgentUuids();
+      uuids = currentAgentInfo.agents.value.map((v) => v.uuid);
     } catch {
       uuids = [];
     }
 
     if (uuids.length === 0) return;
-
-    try {
-      const namespaceKeys = uuids.flatMap((uuid) => [
-        { namespace: uuid, key: "metadata_name" },
-        { namespace: uuid, key: "metadata_hidden" },
-        { namespace: uuid, key: "metadata_region" },
-        { namespace: uuid, key: "metadata_latitude" },
-        { namespace: uuid, key: "metadata_longitude" },
-        { namespace: uuid, key: "metadata_tags" },
-        { namespace: uuid, key: "metadata_order" },
-      ]);
-      const results = await kv.getMultiValue(namespaceKeys);
-      metaMap = new Map();
-      const parseNullableNumber = (value: unknown): number | null => {
-        if (value === null || value === undefined || value === "") return null;
-        const parsed = Number(value);
-        return Number.isFinite(parsed) ? parsed : null;
-      };
-      const parseTags = (value: unknown): string[] =>
-        Array.isArray(value) ? value.map((v) => String(v)).filter(Boolean) : [];
-      for (const uuid of uuids) {
-        const nameEntry = results.find(
-          (r) => r.namespace === uuid && r.key === "metadata_name",
-        );
-        const hiddenEntry = results.find(
-          (r) => r.namespace === uuid && r.key === "metadata_hidden",
-        );
-        const regionEntry = results.find(
-          (r) => r.namespace === uuid && r.key === "metadata_region",
-        );
-        const latitudeEntry = results.find(
-          (r) => r.namespace === uuid && r.key === "metadata_latitude",
-        );
-        const longitudeEntry = results.find(
-          (r) => r.namespace === uuid && r.key === "metadata_longitude",
-        );
-        const tagsEntry = results.find(
-          (r) => r.namespace === uuid && r.key === "metadata_tags",
-        );
-        const orderEntry = results.find(
-          (r) => r.namespace === uuid && r.key === "metadata_order",
-        );
-        metaMap.set(uuid, {
-          customName: nameEntry ? String(nameEntry.value ?? "") : "",
-          hidden: hiddenEntry ? Boolean(hiddenEntry.value) : false,
-          region: regionEntry ? String(regionEntry.value ?? "") : "",
-          latitude: parseNullableNumber(latitudeEntry?.value),
-          longitude: parseNullableNumber(longitudeEntry?.value),
-          tags: parseTags(tagsEntry?.value),
-          order: Number(orderEntry?.value ?? 0),
-        });
-      }
-    } catch {
-      metaMap = new Map();
-    }
+    metaMap = new Map(
+      currentAgentInfo.agents.value
+        .filter((v) => !!v.metadata)
+        .map((v) => [v.uuid, v.metadata as NodeMetadata]),
+    );
   };
 
   _fetchStatic = async () => {
@@ -323,72 +267,12 @@ function initFunctions() {
       }
 
       // 拉取新 UUID 的 KV metadata
-      try {
-        const namespaceKeys = newUuids.flatMap((uuid) => [
-          { namespace: uuid, key: "metadata_name" },
-          { namespace: uuid, key: "metadata_hidden" },
-          { namespace: uuid, key: "metadata_region" },
-          { namespace: uuid, key: "metadata_latitude" },
-          { namespace: uuid, key: "metadata_longitude" },
-          { namespace: uuid, key: "metadata_tags" },
-          { namespace: uuid, key: "metadata_order" },
-        ]);
-        const kvResults = await kv.getMultiValue(namespaceKeys);
-        const parseNullableNumber = (value: unknown): number | null => {
-          if (value === null || value === undefined || value === "")
-            return null;
-          const parsed = Number(value);
-          return Number.isFinite(parsed) ? parsed : null;
-        };
-        const parseTags = (value: unknown): string[] =>
-          Array.isArray(value)
-            ? value.map((v) => String(v)).filter(Boolean)
-            : [];
-        for (const uuid of newUuids) {
-          const nameEntry = kvResults.find(
-            (r) => r.namespace === uuid && r.key === "metadata_name",
-          );
-          const hiddenEntry = kvResults.find(
-            (r) => r.namespace === uuid && r.key === "metadata_hidden",
-          );
-          const regionEntry = kvResults.find(
-            (r) => r.namespace === uuid && r.key === "metadata_region",
-          );
-          const latitudeEntry = kvResults.find(
-            (r) => r.namespace === uuid && r.key === "metadata_latitude",
-          );
-          const longitudeEntry = kvResults.find(
-            (r) => r.namespace === uuid && r.key === "metadata_longitude",
-          );
-          const tagsEntry = kvResults.find(
-            (r) => r.namespace === uuid && r.key === "metadata_tags",
-          );
-          const orderEntry = kvResults.find(
-            (r) => r.namespace === uuid && r.key === "metadata_order",
-          );
-          metaMap.set(uuid, {
-            customName: nameEntry ? String(nameEntry.value ?? "") : "",
-            hidden: hiddenEntry ? Boolean(hiddenEntry.value) : false,
-            region: regionEntry ? String(regionEntry.value ?? "") : "",
-            latitude: parseNullableNumber(latitudeEntry?.value),
-            longitude: parseNullableNumber(longitudeEntry?.value),
-            tags: parseTags(tagsEntry?.value),
-            order: Number(orderEntry?.value ?? 0),
-          });
-        }
-      } catch {
-        for (const uuid of newUuids) {
-          metaMap.set(uuid, {
-            customName: "",
-            hidden: false,
-            region: "",
-            latitude: null,
-            longitude: null,
-            tags: [],
-            order: 0,
-          });
-        }
-      }
+      await currentAgentInfo.fetchAgents();
+      metaMap = new Map(
+        currentAgentInfo.agents.value
+          .filter((v) => !!v.metadata)
+          .map((v) => [v.uuid, v.metadata as NodeMetadata]),
+      );
 
       // 追加新 UUID，等下次 fetchDynamic 自动重建 servers.value
       uuids.push(...newUuids);
@@ -399,7 +283,13 @@ function initFunctions() {
 }
 
 export function useOverviewData() {
-  initFunctions();
+  watch(
+    () => currentBackend.value,
+    async () => {
+      initFunctions();
+    },
+    { deep: true, immediate: true },
+  );
 
   if (!visibilityListenerAttached && typeof document !== "undefined") {
     visibilityListenerAttached = true;
@@ -417,10 +307,7 @@ export function useOverviewData() {
     servers.value = [];
   }
 
-  const start = async () => {
-    refCount++;
-    if (pollTimer) return; // 已在运行，直接共享现有状态
-
+  const refresh = async () => {
     loading.value = true;
     error.value = null;
 
@@ -429,6 +316,13 @@ export function useOverviewData() {
     await _fetchStatic!();
     await _fetchDynamic!();
     loading.value = false;
+  };
+
+  const start = async () => {
+    refCount++;
+    if (pollTimer) return; // 已在运行，直接共享现有状态
+
+    await refresh();
 
     // await 期间 stop() 可能已被调用（用户快速切换路由），此时不启动轮询
     // 也防止另一个 start() 在此期间先完成并设置了 pollTimer（避免重复 interval 泄漏）
@@ -460,5 +354,5 @@ export function useOverviewData() {
     }
   };
 
-  return { servers, loading, error, inactive, start, stop };
+  return { servers, loading, error, inactive, start, stop, refresh };
 }

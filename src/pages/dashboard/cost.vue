@@ -12,11 +12,7 @@ import {
   Plus,
   TrendingUp,
 } from "lucide-vue-next";
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,7 +32,7 @@ import {
 } from "@/components/ui/table";
 import { useKv } from "@/composables/useKv";
 import { useNodeMetadata } from "@/composables/useNodeMetadata";
-import type { NodeItem } from "@/types/node";
+import type { NodeItem } from "@/types/agent";
 import {
   aggregateCosts,
   buildFxUrl,
@@ -326,7 +322,8 @@ const sortedNodes = computed<EvaluatedCostNode[]>(() => {
   return list.sort((left, right) => {
     let diff = 0;
     if (field === "price") {
-      if (left.monthlyCostBase === null && right.monthlyCostBase === null) diff = 0;
+      if (left.monthlyCostBase === null && right.monthlyCostBase === null)
+        diff = 0;
       else if (left.monthlyCostBase === null) diff = 1;
       else if (right.monthlyCostBase === null) diff = -1;
       else diff = left.monthlyCostBase - right.monthlyCostBase;
@@ -339,7 +336,7 @@ const sortedNodes = computed<EvaluatedCostNode[]>(() => {
       else diff = leftRemaining - rightRemaining;
     }
     if (diff !== 0) return dir === "asc" ? diff : -diff;
-    return left.name.localeCompare(right.name);
+    return left.customName.localeCompare(right.customName);
   });
 });
 
@@ -376,7 +373,9 @@ async function adjustExpire(
   const key = `${node.id}:${direction}`;
   adjustLoading.value = key;
   try {
-    const current = node.expireTime ? new Date(`${node.expireTime}T00:00:00`) : new Date();
+    const current = node.expireTime
+      ? new Date(`${node.expireTime}T00:00:00`)
+      : new Date();
     current.setHours(0, 0, 0, 0);
     current.setDate(current.getDate() + direction * node.priceCycle);
     const newExpire = formatDateOnly(current);
@@ -442,14 +441,13 @@ onMounted(initialize);
         <template v-else>刷新汇率</template>
       </Button>
       <Badge v-if="fxState === 'live'" variant="secondary">实时汇率</Badge>
-      <Badge v-else-if="fxState === 'cached'" variant="secondary">缓存汇率</Badge>
+      <Badge v-else-if="fxState === 'cached'" variant="secondary"
+        >缓存汇率</Badge
+      >
       <Badge v-else-if="fxState === 'grouped'" variant="secondary">
         按币种分组
       </Badge>
-      <span
-        v-if="effectiveFxSnapshot"
-        class="text-xs text-muted-foreground"
-      >
+      <span v-if="effectiveFxSnapshot" class="text-xs text-muted-foreground">
         汇率来源：{{ effectiveFxProviderLabel }}，更新于
         {{ formatTimestamp(effectiveFxSnapshot.fetched_at) }}
       </span>
@@ -465,10 +463,7 @@ onMounted(initialize);
       </AlertDescription>
     </Alert>
 
-    <div
-      v-if="stats.unified"
-      class="grid grid-cols-2 md:grid-cols-4 gap-4"
-    >
+    <div v-if="stats.unified" class="grid grid-cols-2 md:grid-cols-4 gap-4">
       <div class="rounded-lg border bg-card p-4 flex items-center gap-3">
         <div class="p-2 rounded-md bg-primary/10">
           <CreditCard class="h-5 w-5 text-primary" />
@@ -519,10 +514,7 @@ onMounted(initialize);
       </div>
     </div>
 
-    <div
-      v-else
-      class="grid grid-cols-2 md:grid-cols-4 gap-4"
-    >
+    <div v-else class="grid grid-cols-2 md:grid-cols-4 gap-4">
       <div
         v-for="group in stats.groupedMonthlyTotals"
         :key="group.currency"
@@ -532,7 +524,9 @@ onMounted(initialize);
           <CreditCard class="h-5 w-5 text-primary" />
         </div>
         <div>
-          <p class="text-xs text-muted-foreground">{{ group.currency }} 月成本</p>
+          <p class="text-xs text-muted-foreground">
+            {{ group.currency }} 月成本
+          </p>
           <p class="text-xl font-semibold font-mono">
             {{ formatAmount(group.symbol, group.monthlyCost) }}
           </p>
@@ -630,7 +624,7 @@ onMounted(initialize);
                 :to="`/dashboard/node/${node.id}/setting`"
                 class="font-medium hover:underline"
               >
-                {{ node.name }}
+                {{ node.customName }}
               </RouterLink>
               <div class="text-xs text-muted-foreground font-mono">
                 {{ node.id.slice(-8) }}
@@ -649,7 +643,8 @@ onMounted(initialize);
                 class="text-xs text-muted-foreground"
               >
                 {{ isExactMonthlyBaseDisplay(node, baseCurrency) ? "=" : "≈" }}
-                {{ formatAmount(baseCurrencySymbol, node.monthlyCostBase) }} / 30天
+                {{ formatAmount(baseCurrencySymbol, node.monthlyCostBase) }} /
+                30天
               </div>
             </TableCell>
 
@@ -676,8 +671,7 @@ onMounted(initialize);
             <TableCell class="text-right font-mono">
               <template
                 v-if="
-                  node.expireTime &&
-                  getRemainingDays(node.expireTime) !== null
+                  node.expireTime && getRemainingDays(node.expireTime) !== null
                 "
               >
                 <div>
@@ -696,8 +690,12 @@ onMounted(initialize);
                   v-if="node.remainingValueBase !== null"
                   class="text-xs text-muted-foreground"
                 >
-                  {{ isExactRemainingBaseDisplay(node, baseCurrency) ? "=" : "≈" }}
-                  {{ formatAmount(baseCurrencySymbol, node.remainingValueBase) }}
+                  {{
+                    isExactRemainingBaseDisplay(node, baseCurrency) ? "=" : "≈"
+                  }}
+                  {{
+                    formatAmount(baseCurrencySymbol, node.remainingValueBase)
+                  }}
                 </div>
                 <div
                   v-else-if="node.excludedReason === 'unsupported_currency'"
@@ -705,12 +703,7 @@ onMounted(initialize);
                 >
                   不支持折算
                 </div>
-                <div
-                  v-else
-                  class="text-xs text-muted-foreground"
-                >
-                  等待汇率
-                </div>
+                <div v-else class="text-xs text-muted-foreground">等待汇率</div>
               </template>
               <template v-else>
                 <span class="text-muted-foreground">—</span>
@@ -745,7 +738,9 @@ onMounted(initialize);
                       </span>
                     </template>
                   </div>
-                  <div class="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                  <div
+                    class="h-1.5 w-full rounded-full bg-muted overflow-hidden"
+                  >
                     <div
                       class="h-full rounded-full transition-all"
                       :class="
