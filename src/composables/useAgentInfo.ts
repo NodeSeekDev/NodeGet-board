@@ -22,9 +22,12 @@ import {
 
 import { useNodeMetadata } from "@/composables/useNodeMetadata";
 import { useLifecycle } from "@/composables/useLifecycle";
+import { useInFlightDedupe } from "@/composables/useInFlightDedupe";
 
 import { metaKey2Attr, type NodeMetadata } from "@/types/agent";
 import { groupBy } from "@/utils/groupBy";
+
+// ============ Types ============
 
 interface AgentInfo {
   uuid: string;
@@ -33,6 +36,13 @@ interface AgentInfo {
 
   metadata?: NodeMetadata;
 }
+
+interface FetchOptions {
+  withIP?: boolean;
+  withVersion?: boolean;
+}
+
+// ============ Utilities ============
 
 function nodeSortFunc(a: AgentInfo, b: AgentInfo) {
   const ao = a?.metadata?.order;
@@ -59,22 +69,11 @@ export function useAgentInfo(
   { withIP = false, withVersion = false } = {},
 ) {
   const agents = ref<AgentInfo[]>([]);
-  const loading = ref(false);
-
   const kv = useKv(backend);
   const task = useTask(backend);
   // const metadata = useNodeMetadata(kv)
   const { afterAgentCreate } = useLifecycle();
   const { parseMetadataFields } = useNodeMetadata(kv);
-
-  let fetchPromise = Promise.resolve();
-  async function fetchAgents() {
-    if (loading.value) {
-      return fetchPromise;
-    }
-    fetchPromise = _fetchAgents();
-    return fetchPromise;
-  }
 
   async function _fetchAgents() {
     if (!backend.value) {
@@ -82,14 +81,15 @@ export function useAgentInfo(
     }
 
     try {
-      loading.value = true;
-
       const conn = getWsConnection(backend.value.url);
 
+      const timeout = 7000; //ms
       const [result, _] = await Promise.all([
-        conn.call<{ uuids: string[] }>("nodeget-server_list_all_agent_uuid", {
-          token: backend.value.token,
-        }),
+        conn.call<{ uuids: string[] }>(
+          "nodeget-server_list_all_agent_uuid",
+          { token: backend.value.token },
+          timeout,
+        ),
         kv.fetchNamespaces(),
       ]);
       const uuids = result?.uuids ?? [];
@@ -135,8 +135,6 @@ export function useAgentInfo(
         }))
         .sort(nodeSortFunc);
 
-      loading.value = false;
-
       // 每个 agent 单独发任务，谁先回来谁先刷新自己那行；不阻塞列表渲染。
       for (const agent of agents.value) {
         if (withIP) void fetchAgentIp(agent);
@@ -146,9 +144,11 @@ export function useAgentInfo(
       console.error(error);
       toast.error(`获取agent信息失败`);
     } finally {
-      loading.value = false;
     }
   }
+
+  const { execute: fetchAgents, isLoading: loading } =
+    useInFlightDedupe(_fetchAgents);
 
   const fixAgentNamespace = async (agentUUID: string) => {
     if (!backend.value) {
@@ -186,7 +186,6 @@ export function useAgentInfo(
       if (version) {
         agent.version = version.cargo_version + "-" + version.git_commit_sha;
       }
-      console.debug("version", version);
     } catch (e) {
       console.error("version error", e);
     }
@@ -204,4 +203,50 @@ export function useAgentInfo(
   };
 }
 
-export const currentAgentInfo = useAgentInfo();
+// ============ Pool Management ============
+
+/**
+ * Pool to store useAgentInfo instances by backend URL
+ * Prevents creating multiple instances for the same backend
+ */
+type AgentInfoReturn = ReturnType<typeof useAgentInfo>;
+const agentInfoPool = new Map<string, AgentInfoReturn>();
+
+/**
+ * Get or create a useAgentInfo instance from pool by backend URL
+ * @param backend Backend ref (defaults to currentBackend)
+ * @param options Fetch options for withIP and withVersion
+ * @returns useAgentInfo instance for the specified backend
+ */
+export function getAgentInfoFromPool(
+  backend: Ref<Backend | null> = useBackendStore().currentBackend,
+  options: FetchOptions = {},
+): AgentInfoReturn {
+  const url = backend.value?.url;
+
+  // If no URL, return a new instance (not pooled)
+  if (!url) {
+    return useAgentInfo(backend, options);
+  }
+
+  // Return existing instance or create and cache new one
+  if (!agentInfoPool.has(url)) {
+    agentInfoPool.set(url, useAgentInfo(backend, options));
+  }
+
+  return agentInfoPool.get(url)!;
+}
+
+/**
+ * Clear a specific backend from pool by URL
+ */
+export function clearAgentInfoPool(url: string): void {
+  agentInfoPool.delete(url);
+}
+
+/**
+ * Clear entire pool
+ */
+export function clearAllAgentInfoPool(): void {
+  agentInfoPool.clear();
+}

@@ -2,7 +2,7 @@ import { ref, watch, computed } from "vue";
 import { useBackendStore } from "@/composables/useBackendStore";
 import type { NodeMetadata } from "@/types/agent";
 import { OFFLINE_AFTER_MS } from "@/utils/show";
-import { currentAgentInfo } from "@/composables/useAgentInfo";
+import { getAgentInfoFromPool } from "@/composables/useAgentInfo";
 import { useStaticMonitoring } from "@/composables/monitoring/useStaticMonitoring";
 import { useDynamicSummaryMultiLast } from "@/composables/monitoring/useDynamicMonitoring";
 
@@ -196,26 +196,25 @@ export function useOverviewData() {
   // Initialize monitoring composables
   const staticMonitoring = useStaticMonitoring(currentBackend);
   const dynamicMonitoring = useDynamicSummaryMultiLast(currentBackend);
+  const agentInfo = getAgentInfoFromPool(currentBackend);
 
   // Build metadata map from agent info
   const metadataMap = computed(() => {
     return new Map(
-      currentAgentInfo.agents.value
+      agentInfo.agents.value
         .filter((v) => !!v.metadata)
         .map((v) => [v.uuid, v.metadata as NodeMetadata]),
     );
   });
 
   // Get current UUID list
-  const uuids = computed(() =>
-    currentAgentInfo.agents.value.map((v) => v.uuid),
-  );
+  const uuids = computed(() => agentInfo.agents.value.map((v) => v.uuid));
 
   // Watch backend changes
   watch(
     () => currentBackend.value,
     async () => {
-      await currentAgentInfo.fetchAgents();
+      await agentInfo.fetchAgents();
     },
     { deep: true, immediate: true },
   );
@@ -229,7 +228,7 @@ export function useOverviewData() {
       error.value = null;
 
       // Fetch agents and metadata
-      await currentAgentInfo.fetchAgents();
+      await agentInfo.fetchAgents();
 
       if (uuids.value.length === 0) {
         servers.value = [];
@@ -306,9 +305,9 @@ export function useOverviewData() {
    */
   const fetchNewAgents = async () => {
     try {
-      await currentAgentInfo.fetchAgents();
+      await agentInfo.fetchAgents();
 
-      const newUuids = currentAgentInfo.agents.value
+      const newUuids = agentInfo.agents.value
         .map((v) => v.uuid)
         .filter((u) => !uuids.value.includes(u));
 

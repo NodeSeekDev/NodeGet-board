@@ -1,7 +1,7 @@
 import { ref, watch } from "vue";
 import { useBackendStore } from "@/composables/useBackendStore";
 import { getWsConnection } from "@/composables/useWsConnection";
-import { useAgentInfo } from "@/composables/useAgentInfo";
+import { getAgentInfoFromPool } from "@/composables/useAgentInfo";
 import { useInFlightDedupe } from "@/composables/useInFlightDedupe";
 import type { FullDynamicMonitoringSummaryData } from "@/types/monitoring";
 import { DYNAMIC_SUMMARY_FIELDS } from "@/types/monitoring";
@@ -25,7 +25,8 @@ export function useDynamicSummaryMultiLast(
   const error = ref("");
   const servers = ref<FullDynamicMonitoringSummaryData[]>([]);
   const queryFields = DYNAMIC_SUMMARY_FIELDS;
-  const { fetchAgents, agents } = useAgentInfo(backend);
+  const agentInfo = getAgentInfoFromPool(backend);
+  const { fetchAgents, agents } = agentInfo;
 
   async function _refresh(uuids: string[] = []) {
     try {

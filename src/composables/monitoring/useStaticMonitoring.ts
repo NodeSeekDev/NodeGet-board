@@ -2,7 +2,7 @@ import { ref, watch } from "vue";
 import { useBackendStore } from "@/composables/useBackendStore";
 import { getWsConnection } from "@/composables/useWsConnection";
 import type { StaticResponseItem } from "@/types/monitoring";
-import { useAgentInfo } from "@/composables/useAgentInfo";
+import { getAgentInfoFromPool } from "@/composables/useAgentInfo";
 import { Deferred } from "@/lib/Defered";
 
 /*
@@ -18,7 +18,7 @@ export function useStaticMonitoring(
   const error = ref("");
   const servers = ref<StaticResponseItem[]>([]);
   const queryFields = ["cpu", "system", "gpu"];
-  const { agents } = useAgentInfo(backend);
+  const { agents } = getAgentInfoFromPool(backend);
   const loading = ref(false);
   let deferred: null | Deferred = null;
 
