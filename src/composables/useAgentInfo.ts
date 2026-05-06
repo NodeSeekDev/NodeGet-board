@@ -1,3 +1,11 @@
+/*
+  Agent infomation, include:
+    - uuid
+    - metadata
+    - version
+    - ip
+*/
+
 import { ref, watch, computed, type Ref, version } from "vue";
 import { toast } from "vue-sonner";
 import { useBackendStore, type Backend } from "@/composables/useBackendStore";
@@ -22,9 +30,6 @@ interface AgentInfo {
   uuid: string;
   version: string | null | undefined;
   ip: string | null | undefined;
-
-  // serverCount: number;
-  // undefined = 任务进行中，null = 拿不到，string = IP
 
   metadata?: NodeMetadata;
 }
