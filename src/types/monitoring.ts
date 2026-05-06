@@ -26,6 +26,13 @@ export interface DynamicMonitoringSummaryData {
   receive_speed?: number;
 }
 
+type StrictRequired<T> = {
+  [K in keyof T]-?: NonNullable<T[K]>;
+};
+
+export type FullDynamicMonitoringSummaryData =
+  StrictRequired<DynamicMonitoringSummaryData>;
+
 export interface DynamicSummaryResponseItem {
   uuid: string;
   timestamp: number;
@@ -137,3 +144,29 @@ export interface DynamicDetailData {
   disk?: DynamicDisk[];
   network?: DynamicNetwork;
 }
+
+export const DYNAMIC_SUMMARY_FIELDS: SummaryField[] = [
+  "cpu_usage",
+  "gpu_usage",
+  "used_swap",
+  "total_swap",
+  "used_memory",
+  "total_memory",
+  "available_memory",
+  "load_one",
+  "load_five",
+  "load_fifteen",
+  "uptime",
+  "boot_time",
+  "process_count",
+  "total_space",
+  "available_space",
+  "read_speed",
+  "write_speed",
+  "tcp_connections",
+  "udp_connections",
+  "total_received",
+  "total_transmitted",
+  "transmit_speed",
+  "receive_speed",
+] as const;

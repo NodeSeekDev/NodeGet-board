@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/select";
 import { REGIONS } from "@/data/regions";
 import { cn } from "@/lib/utils";
-import type { NodeMetadata } from "@/types/node";
+import type { NodeMetadata } from "@/types/agent";
 import { useI18n } from "vue-i18n";
 
 const { t } = useI18n();
@@ -97,9 +97,9 @@ const filteredRegions = computed(() => {
       <Label for="nm-name">{{ $t("dashboard.node.metadata.name") }}</Label>
       <Input
         id="nm-name"
-        :model-value="modelValue.name"
+        :model-value="modelValue.customName"
         :placeholder="$t('dashboard.node.metadata.namePlaceholder')"
-        @update:model-value="update({ name: String($event) })"
+        @update:model-value="update({ customName: String($event) })"
       />
     </div>
 

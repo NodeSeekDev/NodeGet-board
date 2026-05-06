@@ -109,7 +109,6 @@ function getSingleBackendProperty(
         ...serverInfo.value[backend.url],
         [property]: value,
       };
-      console.debug(serverInfo.value);
     })
     .catch((e) => {
       console.error(e);

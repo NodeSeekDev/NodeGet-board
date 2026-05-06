@@ -358,6 +358,13 @@ declare module 'vue-router/auto-routes' {
       Record<never, never>,
       | never
     >,
+    '/index.deprecated': RouteRecordInfo<
+      '/index.deprecated',
+      '/index/deprecated',
+      Record<never, never>,
+      Record<never, never>,
+      | never
+    >,
     '/server-detail': RouteRecordInfo<
       '/server-detail',
       '/s/:uuid',
@@ -674,6 +681,12 @@ declare module 'vue-router/auto-routes' {
     'src/pages/dashboard/worker-route-preview.vue': {
       routes:
         | '/dashboard/worker-route-preview'
+      views:
+        | never
+    }
+    'src/pages/index.deprecated.vue': {
+      routes:
+        | '/index.deprecated'
       views:
         | never
     }

@@ -3,58 +3,56 @@ import { useBackendStore } from "./useBackendStore";
 import { getWsConnection } from "./useWsConnection";
 import type { StaticResponseItem } from "@/types/monitoring";
 
-const staticStatus = ref<"disconnected" | "connecting" | "connected">(
-  "disconnected",
-);
-const staticError = ref("");
-const staticServers = ref<StaticResponseItem[]>([]);
+export function useStaticData(backend = useBackendStore().currentBackend) {
+  const staticStatus = ref<"disconnected" | "connecting" | "connected">(
+    "disconnected",
+  );
+  const staticError = ref("");
+  const staticServers = ref<StaticResponseItem[]>([]);
 
-const { currentBackend } = useBackendStore();
+  const queryFields = ["cpu", "system", "gpu"];
 
-const queryFields = ["cpu", "system", "gpu"];
+  const fetchStatic = async () => {
+    if (!backend.value?.url || !backend.value?.token) {
+      staticError.value = "Invalid backend configuration.";
+      staticStatus.value = "disconnected";
+      return;
+    }
 
-const fetchStatic = async () => {
-  if (!currentBackend.value?.url || !currentBackend.value?.token) {
-    staticError.value = "Invalid backend configuration.";
-    staticStatus.value = "disconnected";
-    return;
-  }
+    staticStatus.value = "connecting";
+    staticError.value = "";
 
-  staticStatus.value = "connecting";
-  staticError.value = "";
-
-  try {
-    const result = await getWsConnection(currentBackend.value.url).call<
-      StaticResponseItem[]
-    >("agent_query_static", [
-      currentBackend.value.token,
-      { fields: queryFields, condition: [{ last: null }] },
-    ]);
-    if (Array.isArray(result)) {
-      staticServers.value = result;
-      staticStatus.value = "connected";
-    } else {
+    try {
+      const result = await getWsConnection(backend.value.url).call<
+        StaticResponseItem[]
+      >("agent_query_static", [
+        backend.value.token,
+        { fields: queryFields, condition: [{ last: null }] },
+      ]);
+      if (Array.isArray(result)) {
+        staticServers.value = result;
+        staticStatus.value = "connected";
+      } else {
+        staticStatus.value = "disconnected";
+      }
+    } catch (e) {
+      console.error("[Static] fetch failed:", e);
+      staticError.value = e instanceof Error ? e.message : String(e);
       staticStatus.value = "disconnected";
     }
-  } catch (e) {
-    console.error("[Static] fetch failed:", e);
-    staticError.value = e instanceof Error ? e.message : String(e);
-    staticStatus.value = "disconnected";
-  }
-};
+  };
 
-watch(
-  currentBackend,
-  (newVal, oldVal) => {
-    if (newVal?.url === oldVal?.url && newVal?.token === oldVal?.token) return;
-    staticServers.value = [];
-    staticStatus.value = "disconnected";
-    if (newVal) void fetchStatic();
-  },
-  { deep: true },
-);
-
-export function useStaticData() {
+  watch(
+    backend,
+    (newVal, oldVal) => {
+      if (newVal?.url === oldVal?.url && newVal?.token === oldVal?.token)
+        return;
+      staticServers.value = [];
+      staticStatus.value = "disconnected";
+      if (newVal) void fetchStatic();
+    },
+    { deep: true },
+  );
   return {
     status: staticStatus,
     error: staticError,

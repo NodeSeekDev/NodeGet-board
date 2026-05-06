@@ -34,11 +34,11 @@ onMounted(() => {
     background.value = "flickering";
   }
 });
-  
+
 async function ensureBackend() {
   // Check if we need to force open backend switcher
-  await router.isReady()
-  
+  await router.isReady();
+
   if (backends.value.length === 0) {
     if (route.name !== "/dashboard/node-manage" || !route.query.fill)
       router.push({
@@ -62,23 +62,23 @@ watch(
     ensureBackend();
   },
   {
-    immediate:true
-  }
+    immediate: true,
+  },
 );
 
 watch(
   currentBackend,
   async (backend) => {
     await permissionStore.refreshByBackend(backend);
-    const tokenKey = permissionStore.tokenInfo?.token_key;
-    if (backend?.url && backend?.token && tokenKey) {
-      getWsConnection(backend.url)
-        .call("kv_create", {
-          token: backend.token,
-          namespace: tokenKey,
-        })
-        .catch(() => {});
-    }
+    // const tokenKey = permissionStore.tokenInfo?.token_key;
+    // if (backend?.url && backend?.token && tokenKey) {
+    //   getWsConnection(backend.url)
+    //     .call("kv_create", {
+    //       token: backend.token,
+    //       namespace: tokenKey,
+    //     })
+    //     .catch(() => {});
+    // }
   },
   { deep: true, immediate: true },
 );

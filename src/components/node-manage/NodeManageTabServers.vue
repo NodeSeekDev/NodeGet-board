@@ -19,6 +19,7 @@ import { useBackendStore, type Backend } from "@/composables/useBackendStore";
 import BackendSwitcher from "@/components/BackendSwitcher.vue";
 import { useBackendExtra } from "@/composables/useBackendExtra";
 import { useLifecycle } from "@/composables/useLifecycle";
+import { delay } from "@/lib/delay";
 
 const { t } = useI18n();
 const route = useRoute();
@@ -44,6 +45,12 @@ const handleManage = (backend: Backend) => {
   router.push(
     `/dashboard/servers-detail/${encodeURIComponent(backend.url)}:::${encodeURIComponent(backend.token)}`,
   );
+};
+
+const handleSelect = async (backend: Backend) => {
+  selectBackend(backend);
+  await delay(10);
+  location.reload();
 };
 
 watch(
@@ -132,7 +139,7 @@ watch(
                 v-else
                 size="sm"
                 variant="secondary"
-                @click="selectBackend(backend)"
+                @click="handleSelect(backend)"
               >
                 {{ t("dashboard.servers.select") }}
               </Button>

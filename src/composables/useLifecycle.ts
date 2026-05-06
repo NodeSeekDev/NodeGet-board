@@ -8,6 +8,7 @@ import { type BackendCron } from "@/composables/useCron";
 import { useBackendStore } from "@/composables/useBackendStore";
 import { makeRpcFunction } from "@/composables/useWsConnection";
 import { delay } from "@/lib/delay";
+import { useNodeMetadata, makeDefaultMetadata } from "./useNodeMetadata";
 
 export interface agentPostprocessOptions {
   cronList: BackendCron[];
@@ -94,16 +95,12 @@ async function afterServerCreate(backend: Backend) {
   }
 }
 
-const createdAgent = new Set();
 async function afterAgentCreate(
   agentUUID: string,
   option: agentPostprocessOptions,
   backend = useBackendStore().currentBackend,
 ) {
-  const agentKey = backend.value?.url + "-" + agentUUID;
-  if (createdAgent.has(agentKey)) {
-    return;
-  }
+  // const agentKey = backend.value?.url + "-" + agentUUID;
   const { runWorker } = useJsRuntime(backend);
 
   try {
@@ -121,6 +118,7 @@ async function afterAgentCreate(
 
     // Set KV values for databaseLimit and metadata
     kvClient.namespace.value = agentUUID;
+    const metadata = useNodeMetadata(kvClient);
 
     // Store databaseLimit fields
     for (const [key, value] of Object.entries(option.databaseLimit)) {
@@ -130,11 +128,16 @@ async function afterAgentCreate(
     }
 
     // Store metadata fields
-    for (const [key, value] of Object.entries(option.metadata)) {
-      if (value !== undefined && value !== null) {
-        await kvClient.setValue(key, value);
-      }
-    }
+    metadata.initDefaultMetadata(agentUUID, {
+      ...makeDefaultMetadata(agentUUID),
+      ...option.metadata,
+    });
+    // for (const [key, value] of Object.entries({
+    // })) {
+    //   if (value !== undefined && value !== null) {
+    //     await kvClient.setValue(key, value);
+    //   }
+    // }
 
     // Update cron tasks to include this agent
     const cronClient = useCron(backend);
@@ -152,7 +155,6 @@ async function afterAgentCreate(
         });
       }
     }
-    createdAgent.add(agentKey);
 
     await runWorker("ip-location-update", "call", {
       uuids: [agentUUID],
