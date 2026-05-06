@@ -1,4 +1,4 @@
-import type { App, Plugin } from "vue";
+import type { App } from "vue";
 import type { RouteComponent, RouteRecordRaw, Router } from "vue-router";
 
 /** `() => import(...)` 形式生成的懒加载组件加载器。 */
@@ -125,215 +125,511 @@ type DevtoolsApi = {
   now?(): number;
 };
 
-const loaders = new Map<Loader, LoaderEntry>();
-const loaded = new Set<Loader>();
-const pendingDevtoolsEvents: DevtoolsTimelineEvent[] = [];
-const routeEntries = new Map<string, RouteInspectorEntry>();
-const recentEvents: Array<
-  DevtoolsTimelineEvent & {
-    time: number;
-    path?: string;
-    priority?: number | null;
-  }
-> = [];
+class LoaderRegistry {
+  private entries = new Map<Loader, LoaderEntry>();
+  private loaded = new Set<Loader>();
 
+  get size() {
+    return this.entries.size;
+  }
+
+  get loadedSize() {
+    return this.loaded.size;
+  }
+
+  find(loader: Loader) {
+    return this.entries.get(loader);
+  }
+
+  add(entry: LoaderEntry) {
+    this.entries.set(entry.loader, entry);
+  }
+
+  markLoaded(entry: LoaderEntry) {
+    this.loaded.add(entry.loader);
+  }
+
+  markFailed(entry: LoaderEntry) {
+    this.loaded.delete(entry.loader);
+  }
+
+  isLoaded(entry: LoaderEntry) {
+    return this.loaded.has(entry.loader);
+  }
+
+  isInFlight(entry: LoaderEntry) {
+    return entry.inFlight !== undefined;
+  }
+
+  isExhausted(entry: LoaderEntry) {
+    return entry.prefetchAttempts >= PREFETCH_MAX_ATTEMPTS;
+  }
+
+  isBackoffActive(entry: LoaderEntry, now = Date.now()) {
+    return entry.prefetchRetryAt !== undefined && now < entry.prefetchRetryAt;
+  }
+
+  canPrefetch(entry: LoaderEntry, now = Date.now()) {
+    return (
+      !this.isLoaded(entry) &&
+      !this.isInFlight(entry) &&
+      !this.isExhausted(entry) &&
+      !this.isBackoffActive(entry, now)
+    );
+  }
+
+  pending(now = Date.now()) {
+    return [...this.entries.values()]
+      .filter((entry) => this.canPrefetch(entry, now))
+      .sort((a, b) => b.priority - a.priority || a.path.localeCompare(b.path));
+  }
+
+  statusForPath(path: string) {
+    const matchedLoaders = [...this.entries.values()].filter(
+      (entry) => entry.path === path,
+    );
+
+    if (!matchedLoaders.length) return "unknown";
+    if (matchedLoaders.every((entry) => this.isLoaded(entry))) {
+      return "loaded";
+    }
+    return "pending";
+  }
+
+  resetStaleFailures() {
+    let resetCount = 0;
+    for (const entry of this.entries.values()) {
+      if (this.isLoaded(entry)) continue;
+      if (this.isInFlight(entry)) continue;
+      if (entry.prefetchAttempts > 0 || entry.prefetchRetryAt) {
+        entry.prefetchAttempts = 0;
+        entry.prefetchRetryAt = undefined;
+        resetCount++;
+      }
+    }
+    return resetCount;
+  }
+}
+
+const loaderRegistry = new LoaderRegistry();
+const routeEntries = new Map<string, RouteInspectorEntry>();
+
+const configuredRouters = new WeakSet<Router>();
 let debounceTimer: number | null = null;
 let isPreloading = false;
-let devtoolsApi: DevtoolsApi | null = null;
-let devtoolsLayerAdded = false;
-let devtoolsInspectorAdded = false;
 let visibilityListenerAttached = false;
 const installedRouters = new WeakSet<Router>();
 
-/** 在 Devtools 中注册插件时使用的稳定插件标识。 */
-const DEVTOOLS_PLUGIN_ID = "nodeget:router-prefetch";
-/** 预加载生命周期事件所在的时间线层标识。 */
-const DEVTOOLS_LAYER_ID = "nodeget:router-prefetch:timeline";
-/** 自定义路由预加载 Inspector 面板的标识。 */
-const DEVTOOLS_INSPECTOR_ID = "nodeget:router-prefetch:inspector";
-/** 自定义 Inspector 树中根摘要节点的标识。 */
-const DEVTOOLS_INSPECTOR_NODE_ID = "summary";
 /** `requestIdleCallback` 最长等待时间，超过后允许以超时形式执行预加载。 */
 const IDLE_CALLBACK_TIMEOUT = 1000;
 /** 单条目 prefetch 最大尝试次数；超过后等待 visibility/导航事件重置。 */
 const PREFETCH_MAX_ATTEMPTS = 3;
 /** prefetch 失败后的退避时长（毫秒），按尝试次数取索引。 */
 const PREFETCH_BACKOFF_MS = [5_000, 15_000, 30_000];
-/** 在 devtools 接入前缓存的事件上限，避免生产环境无 devtools 时无界增长。 */
-const PENDING_DEVTOOLS_EVENTS_MAX = 200;
 
-/** Devtools 中各优先级分组对应的人类可读标签。 */
-const PRIORITY_BUCKET_LABELS: Record<PriorityBucket, string> = {
-  high: "High",
-  normal: "Normal",
-  low: "Low",
-  skipped: "Skipped",
-};
+class DevtoolsBridge {
+  /** 在 Devtools 中注册插件时使用的稳定插件标识。 */
+  private readonly pluginId = "nodeget:router-prefetch";
+  /** 预加载生命周期事件所在的时间线层标识。 */
+  private readonly layerId = "nodeget:router-prefetch:timeline";
+  /** 自定义路由预加载 Inspector 面板的标识。 */
+  private readonly inspectorId = "nodeget:router-prefetch:inspector";
+  private readonly summaryNodeId = "summary";
+  /** 在 devtools 接入前缓存的事件上限，避免生产环境无 devtools 时无界增长。 */
+  private readonly pendingEventsMax = 200;
+  /** Devtools 中各优先级分组对应的人类可读标签。 */
+  private readonly bucketLabels: Record<PriorityBucket, string> = {
+    high: "High",
+    normal: "Normal",
+    low: "Low",
+    skipped: "Skipped",
+  };
+  /** 各优先级分组在 Inspector 标签和分组展示中复用的颜色。 */
+  private readonly bucketColors: Record<PriorityBucket, number> = {
+    high: 0xef4444,
+    normal: 0x3b82f6,
+    low: 0xf59e0b,
+    skipped: 0x6b7280,
+  };
 
-/** 各优先级分组在 Inspector 标签和分组展示中复用的颜色。 */
-const PRIORITY_BUCKET_COLORS: Record<PriorityBucket, number> = {
-  high: 0xef4444,
-  normal: 0x3b82f6,
-  low: 0xf59e0b,
-  skipped: 0x6b7280,
-};
+  private api: DevtoolsApi | null = null;
+  private layerAdded = false;
+  private inspectorAdded = false;
+  private snapshotActive = false;
+  private routeGroupsSnapshot: Record<
+    PriorityBucket,
+    RouteInspectorEntry[]
+  > | null = null;
+  private pendingEvents: DevtoolsTimelineEvent[] = [];
+  private recentEvents: Array<
+    DevtoolsTimelineEvent & {
+      time: number;
+      path?: string;
+      priority?: number | null;
+    }
+  > = [];
 
-function ensureDevtoolsLayer() {
-  if (!devtoolsApi || devtoolsLayerAdded) return;
+  attach(app: App) {
+    if (typeof window === "undefined") return;
 
-  devtoolsApi.addTimelineLayer({
-    id: DEVTOOLS_LAYER_ID,
-    label: "Route Prefetch",
-    color: 0x3b82f6,
-  });
-  devtoolsLayerAdded = true;
-}
+    const target = window as Window & {
+      __VUE_DEVTOOLS_GLOBAL_HOOK__?: {
+        emit: (
+          event: string,
+          pluginDescriptor: Record<string, unknown>,
+          setupFn: (api: DevtoolsApi) => void,
+        ) => void;
+      };
+      __VUE_DEVTOOLS_PLUGIN_API_AVAILABLE__?: boolean;
+      __VUE_DEVTOOLS_PLUGINS__?: Array<{
+        pluginDescriptor: Record<string, unknown>;
+        setupFn: (api: DevtoolsApi) => void;
+        proxy: null;
+      }>;
+    };
 
-function ensureDevtoolsInspector() {
-  if (!devtoolsApi || devtoolsInspectorAdded) return;
+    const pluginDescriptor = {
+      id: this.pluginId,
+      label: "Route Prefetch",
+      packageName: "nodeget-board",
+      homepage: "https://github.com",
+      app,
+      enableEarlyProxy: false,
+    };
 
-  devtoolsApi.addInspector({
-    id: DEVTOOLS_INSPECTOR_ID,
-    label: "Route Prefetch",
-    icon: "route",
-  });
+    const setupFn = (api: DevtoolsApi) => {
+      this.api = api;
+      this.ensureLayer();
+      this.ensureInspector();
+      this.flushPendingEvents();
+      this.updateInspector();
+    };
 
-  devtoolsApi.on.getInspectorTree((payload) => {
-    if (payload.inspectorId !== DEVTOOLS_INSPECTOR_ID) return;
+    const hook = target.__VUE_DEVTOOLS_GLOBAL_HOOK__;
+    if (hook) {
+      hook.emit("devtools-plugin:setup", pluginDescriptor, setupFn);
+      return;
+    }
 
-    const filter = payload.filter.trim().toLowerCase();
-    const groupedEntries = getGroupedRouteEntries();
+    target.__VUE_DEVTOOLS_PLUGINS__ = target.__VUE_DEVTOOLS_PLUGINS__ || [];
+    target.__VUE_DEVTOOLS_PLUGINS__.push({
+      pluginDescriptor,
+      setupFn,
+      proxy: null,
+    });
+  }
 
-    payload.rootNodes = [
-      {
-        id: DEVTOOLS_INSPECTOR_NODE_ID,
-        label: "Summary",
-        tags: [
-          {
-            label: `${getPendingLoaders().length} pending`,
-            textColor: 0xffffff,
-            backgroundColor: 0x3b82f6,
-          },
-          {
-            label: `${loaded.size} loaded`,
-            textColor: 0xffffff,
-            backgroundColor: 0x10b981,
-          },
-        ],
-      },
-      ...(["high", "normal", "low", "skipped"] as PriorityBucket[]).map(
-        (bucket) => {
-          const entries = groupedEntries[bucket].filter((entry) =>
-            !filter ? true : entry.path.toLowerCase().includes(filter),
-          );
+  log(message: string, data: Record<string, unknown> = {}) {
+    this.pushEvent({
+      title: message,
+      data,
+    });
+  }
 
-          return {
-            id: `bucket:${bucket}`,
-            label: PRIORITY_BUCKET_LABELS[bucket],
-            tags: [
-              {
-                label: String(entries.length),
-                textColor: 0xffffff,
-                backgroundColor: PRIORITY_BUCKET_COLORS[bucket],
-              },
-            ],
-            children: entries.map((entry) => ({
-              id: `route:${entry.path}`,
-              label: entry.path,
-              tags: buildRouteTags(entry),
-            })),
-          };
+  warn(message: string, data: Record<string, unknown> = {}) {
+    this.pushEvent({
+      title: message,
+      data,
+      logType: "warning",
+    });
+  }
+
+  updateInspector() {
+    if (!this.api || !this.inspectorAdded) return;
+    this.snapshotActive = true;
+    this.routeGroupsSnapshot = null;
+    try {
+      this.api.sendInspectorTree(this.inspectorId);
+      this.api.sendInspectorState(this.inspectorId);
+    } finally {
+      this.routeGroupsSnapshot = null;
+      this.snapshotActive = false;
+    }
+  }
+
+  private ensureLayer() {
+    if (!this.api || this.layerAdded) return;
+
+    this.api.addTimelineLayer({
+      id: this.layerId,
+      label: "Route Prefetch",
+      color: 0x3b82f6,
+    });
+    this.layerAdded = true;
+  }
+
+  private ensureInspector() {
+    if (!this.api || this.inspectorAdded) return;
+
+    this.api.addInspector({
+      id: this.inspectorId,
+      label: "Route Prefetch",
+      icon: "route",
+    });
+
+    this.api.on.getInspectorTree((payload) => {
+      if (payload.inspectorId !== this.inspectorId) return;
+
+      const filter = payload.filter.trim().toLowerCase();
+      const groupedEntries = this.getRouteGroups();
+
+      payload.rootNodes = [
+        {
+          id: this.summaryNodeId,
+          label: "Summary",
+          tags: [
+            {
+              label: `${getPendingLoaders().length} pending`,
+              textColor: 0xffffff,
+              backgroundColor: 0x3b82f6,
+            },
+            {
+              label: `${loaderRegistry.loadedSize} loaded`,
+              textColor: 0xffffff,
+              backgroundColor: 0x10b981,
+            },
+          ],
         },
-      ),
-    ];
-  });
+        ...(["high", "normal", "low", "skipped"] as PriorityBucket[]).map(
+          (bucket) => {
+            const entries = groupedEntries[bucket].filter((entry) =>
+              !filter ? true : entry.path.toLowerCase().includes(filter),
+            );
 
-  devtoolsApi.on.getInspectorState((payload) => {
-    if (payload.inspectorId !== DEVTOOLS_INSPECTOR_ID) return;
+            return {
+              id: `bucket:${bucket}`,
+              label: this.bucketLabels[bucket],
+              tags: [
+                {
+                  label: String(entries.length),
+                  textColor: 0xffffff,
+                  backgroundColor: this.bucketColors[bucket],
+                },
+              ],
+              children: entries.map((entry) => ({
+                id: `route:${entry.path}`,
+                label: entry.path,
+                tags: this.buildRouteTags(entry),
+              })),
+            };
+          },
+        ),
+      ];
+    });
 
-    if (payload.nodeId === DEVTOOLS_INSPECTOR_NODE_ID) {
-      payload.state = {
-        summary: [
-          { key: "registered routes", value: routeEntries.size },
-          { key: "preload targets", value: loaders.size },
-          { key: "loaded routes", value: loaded.size },
-          { key: "pending routes", value: getPendingLoaders().length },
-          { key: "is preloading", value: isPreloading },
-        ],
-        recent: recentEvents
-          .slice(-10)
-          .reverse()
-          .map((event) => ({
-            key: `${new Date(event.time).toLocaleTimeString()} ${event.title}`,
+    this.api.on.getInspectorState((payload) => {
+      if (payload.inspectorId !== this.inspectorId) return;
+
+      if (payload.nodeId === this.summaryNodeId) {
+        payload.state = {
+          summary: [
+            { key: "registered routes", value: routeEntries.size },
+            { key: "preload targets", value: loaderRegistry.size },
+            { key: "loaded routes", value: loaderRegistry.loadedSize },
+            { key: "pending routes", value: getPendingLoaders().length },
+            { key: "is preloading", value: isPreloading },
+          ],
+          recent: this.recentEvents
+            .slice(-10)
+            .reverse()
+            .map((event) => ({
+              key: `${new Date(event.time).toLocaleTimeString()} ${event.title}`,
+              value: {
+                subtitle: event.subtitle,
+                path: event.path,
+                priority: event.priority,
+                data: event.data,
+              },
+            })),
+        };
+        return;
+      }
+
+      if (payload.nodeId.startsWith("bucket:")) {
+        const bucket = payload.nodeId.slice("bucket:".length) as PriorityBucket;
+        const entries = this.getRouteGroups()[bucket];
+
+        payload.state = {
+          summary: [
+            { key: "bucket", value: this.bucketLabels[bucket] },
+            { key: "routes", value: entries.length },
+            {
+              key: "loaded",
+              value: entries.filter(
+                (entry) =>
+                  loaderRegistry.statusForPath(entry.path) === "loaded",
+              ).length,
+            },
+            {
+              key: "pending",
+              value: entries.filter(
+                (entry) =>
+                  loaderRegistry.statusForPath(entry.path) === "pending",
+              ).length,
+            },
+          ],
+          routes: entries.map((entry) => ({
+            key: entry.path,
             value: {
-              subtitle: event.subtitle,
-              path: event.path,
-              priority: event.priority,
-              data: event.data,
+              priority: entry.priority,
+              reason: entry.reason,
+              status: loaderRegistry.statusForPath(entry.path),
             },
           })),
-      };
+        };
+        return;
+      }
+
+      if (payload.nodeId.startsWith("route:")) {
+        const path = payload.nodeId.slice("route:".length);
+        const entry = routeEntries.get(path);
+        if (!entry) return;
+
+        payload.state = {
+          route: [
+            { key: "path", value: entry.path },
+            { key: "bucket", value: this.bucketLabels[entry.bucket] },
+            { key: "priority", value: entry.priority },
+            { key: "status", value: loaderRegistry.statusForPath(entry.path) },
+            { key: "reason", value: entry.reason },
+          ],
+        };
+      }
+    });
+
+    this.inspectorAdded = true;
+  }
+
+  private pushEvent(event: DevtoolsTimelineEvent) {
+    this.recordRecentEvent(event);
+    this.emitEvent(event);
+  }
+
+  private getRouteGroups() {
+    if (this.routeGroupsSnapshot) return this.routeGroupsSnapshot;
+
+    const groups = this.buildRouteGroups();
+    if (this.snapshotActive) {
+      this.routeGroupsSnapshot = groups;
+    }
+    return groups;
+  }
+
+  private buildRouteGroups() {
+    const groups: Record<PriorityBucket, RouteInspectorEntry[]> = {
+      high: [],
+      normal: [],
+      low: [],
+      skipped: [],
+    };
+
+    for (const entry of routeEntries.values()) {
+      groups[entry.bucket].push(entry);
+    }
+
+    for (const bucket of Object.keys(groups) as PriorityBucket[]) {
+      groups[bucket].sort((a, b) => {
+        const pa = a.priority ?? -1;
+        const pb = b.priority ?? -1;
+        return pb - pa || a.path.localeCompare(b.path);
+      });
+    }
+
+    return groups;
+  }
+
+  private buildRouteTags(entry: RouteInspectorEntry) {
+    const status = loaderRegistry.statusForPath(entry.path);
+    const tags = [
+      {
+        label: status,
+        textColor: 0xffffff,
+        backgroundColor:
+          status === "loaded"
+            ? 0x10b981
+            : status === "pending"
+              ? 0x3b82f6
+              : 0x6b7280,
+      },
+    ];
+
+    if (entry.priority !== null) {
+      tags.push({
+        label: String(entry.priority),
+        textColor: 0xffffff,
+        backgroundColor: this.bucketColors[entry.bucket],
+      });
+    }
+
+    return tags;
+  }
+
+  private recordRecentEvent(event: DevtoolsTimelineEvent) {
+    this.recentEvents.push({
+      ...event,
+      time: Date.now(),
+      path: typeof event.data.path === "string" ? event.data.path : undefined,
+      priority:
+        typeof event.data.priority === "number" || event.data.priority === null
+          ? (event.data.priority as number | null)
+          : undefined,
+    });
+    if (this.recentEvents.length > 50) {
+      this.recentEvents.splice(0, this.recentEvents.length - 50);
+    }
+  }
+
+  private emitEvent(event: DevtoolsTimelineEvent) {
+    if (!this.api) {
+      this.pendingEvents.push(event);
+      if (this.pendingEvents.length > this.pendingEventsMax) {
+        this.pendingEvents.splice(
+          0,
+          this.pendingEvents.length - this.pendingEventsMax,
+        );
+      }
       return;
     }
 
-    if (payload.nodeId.startsWith("bucket:")) {
-      const bucket = payload.nodeId.slice("bucket:".length) as PriorityBucket;
-      const entries = getGroupedRouteEntries()[bucket];
-
-      payload.state = {
-        summary: [
-          { key: "bucket", value: PRIORITY_BUCKET_LABELS[bucket] },
-          { key: "routes", value: entries.length },
-          {
-            key: "loaded",
-            value: entries.filter(
-              (entry) => getRouteLoadStatus(entry) === "loaded",
-            ).length,
-          },
-          {
-            key: "pending",
-            value: entries.filter(
-              (entry) => getRouteLoadStatus(entry) === "pending",
-            ).length,
-          },
-        ],
-        routes: entries.map((entry) => ({
-          key: entry.path,
-          value: {
-            priority: entry.priority,
-            reason: entry.reason,
-            status: getRouteLoadStatus(entry),
-          },
-        })),
-      };
-      return;
+    this.ensureLayer();
+    this.ensureInspector();
+    const timelineEvent: {
+      time: number;
+      title: string;
+      subtitle?: string;
+      data: Record<string, unknown>;
+      logType?: DevtoolsLogType;
+    } = {
+      time: this.api.now?.() ?? Date.now(),
+      title: event.title,
+      data: event.data,
+    };
+    if (event.subtitle !== undefined) {
+      timelineEvent.subtitle = event.subtitle;
+    }
+    if (event.logType !== undefined) {
+      timelineEvent.logType = event.logType;
     }
 
-    if (payload.nodeId.startsWith("route:")) {
-      const path = payload.nodeId.slice("route:".length);
-      const entry = routeEntries.get(path);
-      if (!entry) return;
+    this.api.addTimelineEvent({
+      layerId: this.layerId,
+      event: timelineEvent,
+    });
+    this.updateInspector();
+  }
 
-      payload.state = {
-        route: [
-          { key: "path", value: entry.path },
-          { key: "bucket", value: PRIORITY_BUCKET_LABELS[entry.bucket] },
-          { key: "priority", value: entry.priority },
-          { key: "status", value: getRouteLoadStatus(entry) },
-          { key: "reason", value: entry.reason },
-        ],
-      };
+  private flushPendingEvents() {
+    if (!this.api || this.pendingEvents.length === 0) return;
+
+    // 仅重新派发到 devtools timeline；recentEvents 在事件首次触发时已记录，
+    // 这里再走一次 record 会产生重复条目并刷新 time 字段。
+    for (const event of this.pendingEvents.splice(0)) {
+      this.emitEvent(event);
     }
-  });
-
-  devtoolsInspectorAdded = true;
+  }
 }
 
-function updateDevtoolsInspector() {
-  if (!devtoolsApi || !devtoolsInspectorAdded) return;
-  devtoolsApi.sendInspectorTree(DEVTOOLS_INSPECTOR_ID);
-  devtoolsApi.sendInspectorState(DEVTOOLS_INSPECTOR_ID);
-}
+const devtools = new DevtoolsBridge();
 
 function getPriorityBucket(priority: number | null): PriorityBucket {
   if (priority === null) return "skipped";
@@ -351,141 +647,6 @@ function upsertRouteEntry(path: string, result: PriorityResult) {
   });
 }
 
-function getGroupedRouteEntries() {
-  const groups: Record<PriorityBucket, RouteInspectorEntry[]> = {
-    high: [],
-    normal: [],
-    low: [],
-    skipped: [],
-  };
-
-  for (const entry of routeEntries.values()) {
-    groups[entry.bucket].push(entry);
-  }
-
-  for (const bucket of Object.keys(groups) as PriorityBucket[]) {
-    groups[bucket].sort((a, b) => {
-      const pa = a.priority ?? -1;
-      const pb = b.priority ?? -1;
-      return pb - pa || a.path.localeCompare(b.path);
-    });
-  }
-
-  return groups;
-}
-
-function getRouteLoadStatus(entry: RouteInspectorEntry) {
-  if (entry.priority === null) return "skipped";
-
-  const matchedLoaders = [...loaders.values()].filter(
-    (loaderEntry) => loaderEntry.path === entry.path,
-  );
-
-  if (!matchedLoaders.length) return "unknown";
-  if (matchedLoaders.every((loaderEntry) => loaded.has(loaderEntry.loader))) {
-    return "loaded";
-  }
-  return "pending";
-}
-
-function buildRouteTags(entry: RouteInspectorEntry) {
-  const status = getRouteLoadStatus(entry);
-  const tags = [
-    {
-      label: status,
-      textColor: 0xffffff,
-      backgroundColor:
-        status === "loaded"
-          ? 0x10b981
-          : status === "pending"
-            ? 0x3b82f6
-            : 0x6b7280,
-    },
-  ];
-
-  if (entry.priority !== null) {
-    tags.push({
-      label: String(entry.priority),
-      textColor: 0xffffff,
-      backgroundColor: PRIORITY_BUCKET_COLORS[entry.bucket],
-    });
-  }
-
-  return tags;
-}
-
-function recordRecentEvent(event: DevtoolsTimelineEvent) {
-  recentEvents.push({
-    ...event,
-    time: Date.now(),
-    path: typeof event.data.path === "string" ? event.data.path : undefined,
-    priority:
-      typeof event.data.priority === "number" || event.data.priority === null
-        ? (event.data.priority as number | null)
-        : undefined,
-  });
-  if (recentEvents.length > 50) {
-    recentEvents.splice(0, recentEvents.length - 50);
-  }
-}
-
-function emitDevtoolsEvent(event: DevtoolsTimelineEvent) {
-  if (!devtoolsApi) {
-    pendingDevtoolsEvents.push(event);
-    if (pendingDevtoolsEvents.length > PENDING_DEVTOOLS_EVENTS_MAX) {
-      pendingDevtoolsEvents.splice(
-        0,
-        pendingDevtoolsEvents.length - PENDING_DEVTOOLS_EVENTS_MAX,
-      );
-    }
-    return;
-  }
-
-  ensureDevtoolsLayer();
-  ensureDevtoolsInspector();
-  devtoolsApi.addTimelineEvent({
-    layerId: DEVTOOLS_LAYER_ID,
-    event: {
-      time: devtoolsApi.now?.() ?? Date.now(),
-      title: event.title,
-      subtitle: event.subtitle,
-      data: event.data,
-      logType: event.logType,
-    },
-  });
-  updateDevtoolsInspector();
-}
-
-function pushDevtoolsEvent(event: DevtoolsTimelineEvent) {
-  recordRecentEvent(event);
-  emitDevtoolsEvent(event);
-}
-
-function flushPendingDevtoolsEvents() {
-  if (!devtoolsApi || pendingDevtoolsEvents.length === 0) return;
-
-  // 仅重新派发到 devtools timeline；recentEvents 在事件首次触发时已记录，
-  // 这里再走一次 record 会产生重复条目并刷新 time 字段。
-  for (const event of pendingDevtoolsEvents.splice(0)) {
-    emitDevtoolsEvent(event);
-  }
-}
-
-function log(message: string, data: Record<string, unknown> = {}) {
-  pushDevtoolsEvent({
-    title: message,
-    data,
-  });
-}
-
-function logWarn(message: string, data: Record<string, unknown> = {}) {
-  pushDevtoolsEvent({
-    title: message,
-    data,
-    logType: "warning",
-  });
-}
-
 function debouncePreload() {
   if (typeof window === "undefined") return;
 
@@ -495,13 +656,13 @@ function debouncePreload() {
 
   debounceTimer = window.setTimeout(() => {
     debounceTimer = null;
-    log("schedule preload on idle");
+    devtools.log("schedule preload on idle");
     scheduleIdle(preload);
   }, 200);
 }
 
 function requestPreload(reason: string, data: Record<string, unknown> = {}) {
-  log(reason, data);
+  devtools.log(reason, data);
   debouncePreload();
 }
 
@@ -525,27 +686,18 @@ function scheduleIdle(fn: (deadline?: IdleDeadline) => void) {
 }
 
 function getPendingLoaders() {
-  const now = Date.now();
-  return [...loaders.values()]
-    .filter((entry) => {
-      if (loaded.has(entry.loader)) return false;
-      if (entry.inFlight) return false;
-      if (entry.prefetchAttempts >= PREFETCH_MAX_ATTEMPTS) return false;
-      if (entry.prefetchRetryAt && now < entry.prefetchRetryAt) return false;
-      return true;
-    })
-    .sort((a, b) => b.priority - a.priority || a.path.localeCompare(b.path));
+  return loaderRegistry.pending();
 }
 
 function preload(deadline?: IdleDeadline) {
   if (isPreloading) {
-    log("skip preload tick because another loader is running");
+    devtools.log("skip preload tick because another loader is running");
     return;
   }
 
   const next = getPendingLoaders()[0];
   if (!next) {
-    log("no pending routes to preload");
+    devtools.log("no pending routes to preload");
     return;
   }
 
@@ -553,7 +705,7 @@ function preload(deadline?: IdleDeadline) {
   // wrapped loader 在内部维护 prefetchAttempts / prefetchRetryAt：
   // 同步递增 attempts，并在 then/catch 中重置或安排退避。
   const promise = next.loader();
-  log("start preload", {
+  devtools.log("start preload", {
     path: next.path,
     priority: next.priority,
     attempt: next.prefetchAttempts,
@@ -563,25 +715,28 @@ function preload(deadline?: IdleDeadline) {
 
   promise
     .then(() => {
-      log("preload success", { path: next.path, priority: next.priority });
+      devtools.log("preload success", {
+        path: next.path,
+        priority: next.priority,
+      });
     })
     .catch((error) => {
-      logWarn("preload failed", {
+      devtools.warn("preload failed", {
         path: next.path,
         priority: next.priority,
         attempts: next.prefetchAttempts,
         retryAt: next.prefetchRetryAt,
-        givenUp: next.prefetchAttempts >= PREFETCH_MAX_ATTEMPTS,
+        givenUp: loaderRegistry.isExhausted(next),
         error,
       });
     })
     .finally(() => {
       isPreloading = false;
       if (getPendingLoaders().length > 0) {
-        log("pending routes remain, scheduling next preload");
+        devtools.log("pending routes remain, scheduling next preload");
         debouncePreload();
       } else {
-        log("all queued routes have been preloaded");
+        devtools.log("all queued routes have been preloaded");
       }
     });
 }
@@ -598,7 +753,8 @@ function scheduleRetryBackoff(entry: LoaderEntry) {
 function makeWrappedLoader(entry: LoaderEntry): Loader {
   return () => {
     // 同一加载请求并发去重；若上一轮成功，inFlight 仍指向已 resolve 的 promise，复用即可。
-    if (entry.inFlight) return entry.inFlight;
+    const inFlight = entry.inFlight;
+    if (inFlight) return inFlight;
 
     entry.prefetchAttempts++;
     let p: Promise<unknown>;
@@ -612,19 +768,42 @@ function makeWrappedLoader(entry: LoaderEntry): Loader {
     entry.inFlight = p;
     p.then(
       () => {
-        loaded.add(entry.loader);
+        loaderRegistry.markLoaded(entry);
         entry.prefetchAttempts = 0;
         entry.prefetchRetryAt = undefined;
       },
       () => {
         // 失败时丢弃 promise 缓存，让下次调用（用户点击或下次 prefetch tick）重新发起 import()。
-        if (entry.inFlight === p) entry.inFlight = undefined;
-        loaded.delete(entry.loader);
+        clearInFlightLoader(entry, p);
+        loaderRegistry.markFailed(entry);
         scheduleRetryBackoff(entry);
       },
     );
     return p;
   };
+}
+
+function clearInFlightLoader(entry: LoaderEntry, promise: Promise<unknown>) {
+  if (entry.inFlight === promise) entry.inFlight = undefined;
+}
+
+function updateRegisteredLoaderEntry(
+  entry: LoaderEntry,
+  priority: number,
+  path: string,
+) {
+  const nextPriority = Math.max(entry.priority, priority);
+  if (nextPriority !== entry.priority || entry.path !== path) {
+    devtools.log("update preload target", {
+      path,
+      previousPath: entry.path,
+      previousPriority: entry.priority,
+      priority: nextPriority,
+    });
+  }
+  entry.priority = nextPriority;
+  entry.path = path;
+  debouncePreload();
 }
 
 function registerLoader<T = unknown>(
@@ -634,24 +813,12 @@ function registerLoader<T = unknown>(
 ): Loader<T> {
   if (priority === null) return loader;
 
-  const existing = loaders.get(loader as Loader);
+  const existing = loaderRegistry.find(loader as Loader);
   if (existing) {
-    const nextPriority = Math.max(existing.priority, priority);
-    if (nextPriority !== existing.priority || existing.path !== path) {
-      log("update preload target", {
-        path,
-        previousPath: existing.path,
-        previousPriority: existing.priority,
-        priority: nextPriority,
-      });
-    }
-    existing.priority = nextPriority;
-    existing.path = path;
-    debouncePreload();
+    updateRegisteredLoaderEntry(existing, priority, path);
     return existing.loader as Loader<T>;
   }
 
-  // loaders 仍以 original loader 为 key 用于去重；entry.loader 是返回给 vue-router 的 wrapped 版本。
   const entry: LoaderEntry = {
     loader: undefined as unknown as Loader,
     original: loader as Loader,
@@ -660,8 +827,8 @@ function registerLoader<T = unknown>(
     prefetchAttempts: 0,
   };
   entry.loader = makeWrappedLoader(entry);
-  loaders.set(loader as Loader, entry);
-  log("register preload target", { path, priority });
+  loaderRegistry.add(entry);
+  devtools.log("register preload target", { path, priority });
 
   debouncePreload();
   return entry.loader as Loader<T>;
@@ -672,11 +839,17 @@ function wrapLoader(
   priority: number | null,
   path: string,
 ): RouteComp {
-  if (typeof component === "function") {
+  if (isRouteComponentLoader(component)) {
     return registerLoader(component as AsyncComponent, priority, path);
   }
 
   return component;
+}
+
+function isRouteComponentLoader(
+  component: RouteComp,
+): component is AsyncComponent {
+  return typeof component === "function";
 }
 
 function normalizePath(path: string) {
@@ -787,24 +960,6 @@ function getRoutePriority(
   return { priority: null, reason: "no prefetch heuristic matched" };
 }
 
-function reconcileNormalizedRoutes(router: Router) {
-  // vue-router 在 createRouter 时已把 record.component 规范化为 record.components.default，
-  // 之后再写 route.component 不会同步到 matcher 内的规范化记录，
-  // 导致 vue-router 在导航时仍然调用未包裹的 loader（用户导航不更新 loaded / attempts）。
-  // 这里直接对 matcher 拿到的规范化记录做指针替换，把原始 loader 换成对应的 wrapped 版本。
-  for (const record of router.getRoutes()) {
-    if (!record.components) continue;
-    for (const name in record.components) {
-      const comp = record.components[name];
-      if (typeof comp !== "function") continue;
-      const entry = loaders.get(comp as Loader);
-      if (entry && record.components[name] !== entry.loader) {
-        record.components[name] = entry.loader as RouteComponent;
-      }
-    }
-  }
-}
-
 function processRoutes(routes: RouteRecordRaw[], parentPath = "") {
   for (const route of routes) {
     const fullPath = joinPath(parentPath, route.path);
@@ -814,9 +969,13 @@ function processRoutes(routes: RouteRecordRaw[], parentPath = "") {
     upsertRouteEntry(fullPath, result);
 
     if (priority === null) {
-      log("skip preload target", { path: fullPath, reason });
+      devtools.log("skip preload target", { path: fullPath, reason });
     } else {
-      log("resolved preload priority", { path: fullPath, priority, reason });
+      devtools.log("resolved preload priority", {
+        path: fullPath,
+        priority,
+        reason,
+      });
     }
 
     if (route.component) {
@@ -844,6 +1003,44 @@ function processRoutes(routes: RouteRecordRaw[], parentPath = "") {
   }
 }
 
+function installRoutePrefetch(
+  app: App,
+  router: Router,
+  installRouter: () => void,
+) {
+  const shouldInstallPrefetch = !installedRouters.has(router);
+
+  if (shouldInstallPrefetch) {
+    installedRouters.add(router);
+    devtools.attach(app);
+    setupVisibilityListener();
+    devtools.log("apply route prefetch plugin");
+    if (loaderRegistry.size === 0) {
+      devtools.warn("no preload targets were registered");
+    } else {
+      requestPreload("prefetch targets registered", {
+        targets: loaderRegistry.size,
+      });
+    }
+  }
+
+  installRouter();
+
+  if (!shouldInstallPrefetch) return;
+
+  router.isReady().then(() => {
+    requestPreload("router ready, request idle preload");
+  });
+
+  router.afterEach((to) => {
+    if (getPendingLoaders().length === 0) return;
+
+    requestPreload("route changed, request idle preload", {
+      path: to.fullPath,
+    });
+  });
+}
+
 function setupVisibilityListener() {
   if (typeof document === "undefined") return;
   if (visibilityListenerAttached) return;
@@ -856,16 +1053,7 @@ function setupVisibilityListener() {
     // 重新可见时重置所有未加载条目的失败计数，让队列可以再走一遍。
     // 跳过 in-flight 条目：它们自己会在 then/catch 里收敛状态，
     // 在飞行中重置 attempts 会让随后的 catch 算出 idx=-1。
-    let resetCount = 0;
-    for (const entry of loaders.values()) {
-      if (loaded.has(entry.loader)) continue;
-      if (entry.inFlight) continue;
-      if (entry.prefetchAttempts > 0 || entry.prefetchRetryAt) {
-        entry.prefetchAttempts = 0;
-        entry.prefetchRetryAt = undefined;
-        resetCount++;
-      }
-    }
+    const resetCount = loaderRegistry.resetStaleFailures();
 
     if (resetCount > 0 || getPendingLoaders().length > 0) {
       requestPreload("tab became visible", { resetCount });
@@ -873,90 +1061,21 @@ function setupVisibilityListener() {
   });
 }
 
-function attachRoutePrefetchDevtools(app: App) {
-  if (typeof window === "undefined") return;
-
-  const target = window as Window & {
-    __VUE_DEVTOOLS_GLOBAL_HOOK__?: {
-      emit: (
-        event: string,
-        pluginDescriptor: Record<string, unknown>,
-        setupFn: (api: DevtoolsApi) => void,
-      ) => void;
-    };
-    __VUE_DEVTOOLS_PLUGIN_API_AVAILABLE__?: boolean;
-    __VUE_DEVTOOLS_PLUGINS__?: Array<{
-      pluginDescriptor: Record<string, unknown>;
-      setupFn: (api: DevtoolsApi) => void;
-      proxy: null;
-    }>;
-  };
-
-  const pluginDescriptor = {
-    id: DEVTOOLS_PLUGIN_ID,
-    label: "Route Prefetch",
-    packageName: "nodeget-board",
-    homepage: "https://github.com",
-    app,
-    enableEarlyProxy: false,
-  };
-
-  const setupFn = (api: DevtoolsApi) => {
-    devtoolsApi = api;
-    ensureDevtoolsLayer();
-    ensureDevtoolsInspector();
-    flushPendingDevtoolsEvents();
-    updateDevtoolsInspector();
-  };
-
-  const hook = target.__VUE_DEVTOOLS_GLOBAL_HOOK__;
-  if (hook) {
-    hook.emit("devtools-plugin:setup", pluginDescriptor, setupFn);
-    return;
-  }
-
-  target.__VUE_DEVTOOLS_PLUGINS__ = target.__VUE_DEVTOOLS_PLUGINS__ || [];
-  target.__VUE_DEVTOOLS_PLUGINS__.push({
-    pluginDescriptor,
-    setupFn,
-    proxy: null,
-  });
+export function preparePrefetchableRoutes<T extends readonly RouteRecordRaw[]>(
+  routes: T,
+): T {
+  processRoutes(routes as unknown as RouteRecordRaw[]);
+  return routes;
 }
 
-export default function routePrefetchPlugin(router: Router): Plugin {
-  return {
-    install(app) {
-      if (installedRouters.has(router)) return;
-      installedRouters.add(router);
+export function setupRoutePrefetchRouter(router: Router): Router {
+  if (configuredRouters.has(router)) return router;
+  configuredRouters.add(router);
 
-      attachRoutePrefetchDevtools(app);
-      setupVisibilityListener();
-      log("apply route prefetch plugin");
-      processRoutes(router.options.routes as RouteRecordRaw[]);
-      // vue-router 已在 createRouter 时把 component 规范化进 matcher；
-      // 必须先把规范化记录里的 loader 也换成 wrapped，再让 app.use(router) 触发首次导航解析。
-      reconcileNormalizedRoutes(router);
-      if (loaders.size === 0) {
-        logWarn("no preload targets were registered");
-      } else {
-        requestPreload("prefetch targets registered", {
-          targets: loaders.size,
-        });
-      }
-
-      app.use(router);
-
-      router.isReady().then(() => {
-        requestPreload("router ready, request idle preload");
-      });
-
-      router.afterEach((to) => {
-        if (getPendingLoaders().length === 0) return;
-
-        requestPreload("route changed, request idle preload", {
-          path: to.fullPath,
-        });
-      });
-    },
+  const originalInstall = router.install.bind(router);
+  router.install = (app: App) => {
+    installRoutePrefetch(app, router, () => originalInstall(app));
   };
+
+  return router;
 }
