@@ -78,7 +78,8 @@ const changeVersionOpen = ref(false);
 const availableVersions = ref<string[]>([]);
 const pendingUpdateUUIDs = ref<string[]>([]);
 
-const installScript = ref(`
+const installScript = ref(
+  `
 grep -q 'allow_self_update' /etc/nodeget-agent.conf || \\
 sed -i '/^allow_task = true$/a allow_self_update = true' /etc/nodeget-agent.conf
 nohup bash <(curl -sL https://install.nodeget.com | sed  '/^set -e/a sleep 1') update-agent > /dev/null 2>&1 < /dev/null &
@@ -294,7 +295,8 @@ async function confirmVersion(version: string) {
 }
 
 function fetchVersion() {
-  return fetch("https://api.github.com/repos/NodeSeekDev/NodeGet/releases")
+  const repo = import.meta.env.VITE_RELEASE_REPO;
+  return fetch(`https://api.github.com/repos/${repo}/releases`)
     .then((r) => r.json())
     .then((r) => (r as { tag_name: string }[]).map((v) => v.tag_name))
     .then((r) => {

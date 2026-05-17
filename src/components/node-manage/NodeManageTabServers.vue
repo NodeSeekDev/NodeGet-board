@@ -191,7 +191,8 @@ async function confirmVersion(version: string) {
 }
 
 function fetchVersion() {
-  return fetch("https://api.github.com/repos/NodeSeekDev/NodeGet/releases")
+  const repo = import.meta.env.VITE_RELEASE_REPO;
+  return fetch(`https://api.github.com/repos/${repo}/releases`)
     .then((r) => r.json())
     .then((r) => (r as { tag_name: string }[]).map((v) => v.tag_name))
     .then((r) => {
