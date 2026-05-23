@@ -8,8 +8,8 @@ definePage({
   },
 });
 
-const route = useRoute();
-const uuid = (route.params as { uuid: string }).uuid;
+const route = useRoute("/dashboard/node/[uuid]/ping");
+const uuid = route.params.uuid;
 </script>
 
 <template>

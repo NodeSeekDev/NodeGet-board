@@ -41,15 +41,11 @@ import {
 } from "lucide-vue-next";
 import type { DynamicDetailData, DynamicDisk, DynamicNetworkInterface } from "@/types/monitoring";
 
-definePage({
-  path: "/s/:uuid",
-});
-
 const { t } = useI18n();
 
-const route = useRoute();
+const route = useRoute("/server-detail/[uuid]");
 const router = useRouter();
-const uuid = (route.params as { uuid: string }).uuid;
+const uuid = route.params.uuid;
 
 const isSidebarOpen = ref(false);
 

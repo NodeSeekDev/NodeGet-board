@@ -16,8 +16,8 @@ definePage({
   },
 });
 
-const route = useRoute();
-const uuid = computed(() => (route.params as { uuid: string }).uuid);
+const route = useRoute("/dashboard/node/[uuid]/status");
+const uuid = computed(() => route.params.uuid);
 
 const {
   server,

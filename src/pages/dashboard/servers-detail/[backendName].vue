@@ -24,14 +24,14 @@ definePage({
 });
 
 const { t } = useI18n();
-const route = useRoute();
+const route = useRoute("/dashboard/servers-detail/[backendName]");
 const router = useRouter();
 const { backends, currentBackend } = useBackendStore();
 const { serverInfo, saveAgentConfigWsUrl, refreshAll, serverInfoLoading } = useBackendExtra();
 const themeStore = useThemeStore();
 
 const backend = computed(() => {
-  const backendName = (route.params as { backendName: string }).backendName;
+  const backendName = route.params.backendName;
   // const sep = raw.indexOf(":::");
   // if (sep === -1) {
   //   const token = decodeURIComponent(raw);

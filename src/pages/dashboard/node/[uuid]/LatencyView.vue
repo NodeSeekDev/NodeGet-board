@@ -60,8 +60,8 @@ function computeStats(data: TaskQueryResult[], type: "ping" | "tcp_ping"): Serie
     });
 }
 
-const route = useRoute();
-const uuid = computed(() => (route.params as Record<string, string>).uuid ?? "");
+const route = useRoute("/dashboard/node/[uuid]/LatencyView");
+const uuid = computed(() => route.params.uuid);
 
 const { currentBackend } = useBackendStore();
 const { queryTask } = useCronHistory();

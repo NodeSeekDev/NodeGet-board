@@ -14,8 +14,8 @@ definePage({
   },
 });
 
-const route = useRoute();
-const uuid = (route.params as { uuid: string }).uuid;
+const route = useRoute("/dashboard/node/[uuid]/setting");
+const uuid = route.params.uuid;
 const activeTab = ref("basic");
 </script>
 

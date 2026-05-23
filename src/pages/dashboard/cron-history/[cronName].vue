@@ -18,12 +18,12 @@ definePage({
   },
 });
 
-const route = useRoute();
+const route = useRoute("/dashboard/cron-history/[cronName]");
 const router = useRouter();
 const { t } = useI18n();
 const { query } = useCronHistory();
 
-const cronName = computed(() => (route.params as { cronName: string }).cronName);
+const cronName = computed(() => route.params.cronName);
 const taskType = computed(() => {
   const value = route.query.taskType;
   return value === "server" ? "server" : "agent";

@@ -5,13 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "run-p type-check \"build-only {@}\" --",
+    "build": "run-s generate:typed-router \"build:app {@}\" --",
+    "build:app": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
     "format": "prettier --write src/",
     "test": "node --test --experimental-strip-types tests/*.test.ts",
-    "prepare": "husky"
+    "prepare": "husky",
+    "generate:typed-router": "vite build --config scripts/typed-router.d.ts/config.ts"
   },
   "dependencies": {
     "@codemirror/lang-javascript": "^6.2.5",

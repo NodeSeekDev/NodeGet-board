@@ -71,7 +71,7 @@ onUnmounted(() => stop());
         <router-link
           v-for="server in sortedServers"
           :key="server.uuid"
-          :to="{ name: '/server-detail', params: { uuid: server.uuid } }"
+          :to="{ name: '/server-detail/[uuid]', params: { uuid: server.uuid } }"
           class="block h-full"
         >
           <Card class="h-full cursor-pointer transition-shadow hover:shadow-md">

@@ -23,9 +23,9 @@ definePage({
   },
 });
 
-const route = useRoute();
+const route = useRoute("/dashboard/node/[uuid]/latency");
 const cron = useCron();
-const uuid = computed(() => (route.params as { uuid: string }).uuid);
+const uuid = computed(() => route.params.uuid);
 
 const { currentBackend } = useBackendStore();
 const { queryTask } = useCronHistory();
