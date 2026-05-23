@@ -20,13 +20,13 @@ const activeTab = ref("basic");
 </script>
 
 <template>
-  <div class="h-full flex flex-col">
-    <div class="flex-1 overflow-auto rounded-md border bg-card p-6">
+  <div class="flex h-full flex-col">
+    <div class="bg-card flex-1 overflow-auto rounded-md border p-6">
       <div class="mb-6">
         <h2 class="text-lg font-semibold">
           {{ $t("dashboard.node.settingsTitle") }}
         </h2>
-        <p class="text-sm text-muted-foreground mt-1">
+        <p class="text-muted-foreground mt-1 text-sm">
           {{ $t("dashboard.node.settingsDesc") }}
         </p>
       </div>

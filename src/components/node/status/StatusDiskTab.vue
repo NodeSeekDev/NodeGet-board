@@ -37,10 +37,7 @@ function onSummaryRefreshChanged(v: number) {
 }
 
 function startDetailTimer() {
-  const interval = effectiveDetailRefresh(
-    props.detail.windowMs,
-    props.detail.refreshInterval,
-  );
+  const interval = effectiveDetailRefresh(props.detail.windowMs, props.detail.refreshInterval);
   props.detail.startTimer(interval);
 }
 
@@ -54,23 +51,15 @@ function onDetailRefreshChanged(v: number) {
   startDetailTimer();
 }
 
-const detailRefreshList = computed(() =>
-  detailRefreshOptions(props.detail.windowMs),
-);
+const detailRefreshList = computed(() => detailRefreshOptions(props.detail.windowMs));
 const detailEffectiveInterval = computed(() =>
   effectiveDetailRefresh(props.detail.windowMs, props.detail.refreshInterval),
 );
 
 // Summary chart series
-const diskAvgTimestamps = computed(() =>
-  props.summary.data.map((d) => d.timestamp / 1000),
-);
-const diskReadAvgValues = computed(() =>
-  props.summary.data.map((d) => d.read_speed ?? 0),
-);
-const diskWriteAvgValues = computed(() =>
-  props.summary.data.map((d) => d.write_speed ?? 0),
-);
+const diskAvgTimestamps = computed(() => props.summary.data.map((d) => d.timestamp / 1000));
+const diskReadAvgValues = computed(() => props.summary.data.map((d) => d.read_speed ?? 0));
+const diskWriteAvgValues = computed(() => props.summary.data.map((d) => d.write_speed ?? 0));
 const maxDiskSpeed = computed(() =>
   Math.max(...diskReadAvgValues.value, ...diskWriteAvgValues.value, 1),
 );
@@ -85,18 +74,12 @@ function getDiskSpeed(
   return type === "read" ? (disk?.read_speed ?? 0) : (disk?.write_speed ?? 0);
 }
 
-const diskTimestamps = computed(() =>
-  props.detail.data.map((d) => d.timestamp / 1000),
-);
+const diskTimestamps = computed(() => props.detail.data.map((d) => d.timestamp / 1000));
 const displayDiskReadData = computed(() =>
-  props.detail.data.map((record) =>
-    getDiskSpeed(record.disk ?? [], "read", selectedDisk.value),
-  ),
+  props.detail.data.map((record) => getDiskSpeed(record.disk ?? [], "read", selectedDisk.value)),
 );
 const displayDiskWriteData = computed(() =>
-  props.detail.data.map((record) =>
-    getDiskSpeed(record.disk ?? [], "write", selectedDisk.value),
-  ),
+  props.detail.data.map((record) => getDiskSpeed(record.disk ?? [], "write", selectedDisk.value)),
 );
 const latestDiskRecord = computed(() => {
   const data = props.detail.data;
@@ -125,38 +108,29 @@ const maxDiskChartSpeed = computed(() =>
     />
 
     <div>
-      <div class="flex items-center gap-3 mb-3 text-xs font-mono flex-wrap">
-        <span class="text-sm font-medium text-muted-foreground mr-1"
-          >Disk I/O</span
-        >
-        <span class="status-main-text"
-          >↓ {{ formatBytes(server.read_speed ?? 0) }}/s</span
-        >
-        <span class="status-sub-text"
-          >↑ {{ formatBytes(server.write_speed ?? 0) }}/s</span
-        >
+      <div class="mb-3 flex flex-wrap items-center gap-3 font-mono text-xs">
+        <span class="text-muted-foreground mr-1 text-sm font-medium">Disk I/O</span>
+        <span class="status-main-text">↓ {{ formatBytes(server.read_speed ?? 0) }}/s</span>
+        <span class="status-sub-text">↑ {{ formatBytes(server.write_speed ?? 0) }}/s</span>
         <div
           v-if="server.total_space"
-          class="ml-auto flex items-center gap-2 text-muted-foreground"
+          class="text-muted-foreground ml-auto flex items-center gap-2"
         >
           <HardDrive class="h-3 w-3" />
           {{
             (
-              ((server.total_space - (server.available_space ?? 0)) /
-                server.total_space) *
+              ((server.total_space - (server.available_space ?? 0)) / server.total_space) *
               100
             ).toFixed(0)
           }}%
           <span class="font-mono">
-            {{
-              formatBytes(server.total_space - (server.available_space ?? 0))
-            }}
+            {{ formatBytes(server.total_space - (server.available_space ?? 0)) }}
             /
             {{ formatBytes(server.total_space) }}
           </span>
         </div>
       </div>
-      <div class="h-[340px] w-full relative overflow-hidden">
+      <div class="relative h-[340px] w-full overflow-hidden">
         <UPlotChart
           :data="diskReadAvgValues"
           :data2="diskWriteAvgValues"
@@ -174,11 +148,9 @@ const maxDiskChartSpeed = computed(() =>
 
     <!-- Detail divider -->
     <div class="flex items-center gap-3">
-      <div class="h-px flex-1 bg-border"></div>
-      <span class="text-xs text-muted-foreground uppercase tracking-wider"
-        >Detail</span
-      >
-      <div class="h-px flex-1 bg-border"></div>
+      <div class="bg-border h-px flex-1"></div>
+      <span class="text-muted-foreground text-xs tracking-wider uppercase">Detail</span>
+      <div class="bg-border h-px flex-1"></div>
     </div>
 
     <!-- Detail window+refresh controls -->
@@ -194,14 +166,14 @@ const maxDiskChartSpeed = computed(() =>
     <!-- Disk selector cards -->
     <div
       v-if="latestDiskRecord?.disk?.length"
-      class="flex gap-2 overflow-x-auto pb-1 scrollbar-none"
+      class="scrollbar-none flex gap-2 overflow-x-auto pb-1"
     >
       <button
         v-for="disk in latestDiskRecord.disk"
         :key="disk.name"
         @click="selectedDisk = disk.name"
         :class="[
-          'flex flex-col items-start px-3 py-2.5 rounded-lg border text-xs whitespace-nowrap transition-all w-[300px] shrink-0',
+          'flex w-[300px] shrink-0 flex-col items-start rounded-lg border px-3 py-2.5 text-xs whitespace-nowrap transition-all',
           selectedDisk === disk.name
             ? 'border-[var(--status-main-color)] bg-[var(--status-main-color)]/10'
             : 'border-border bg-muted/30 hover:bg-muted/50',
@@ -210,27 +182,24 @@ const maxDiskChartSpeed = computed(() =>
         <span
           :class="
             selectedDisk === disk.name
-              ? 'text-[var(--status-main-color)] font-medium'
+              ? 'font-medium text-[var(--status-main-color)]'
               : 'text-foreground'
           "
-          class="truncate w-full"
+          class="w-full truncate"
           >{{ disk.mount_point }}</span
         >
-        <span
-          class="text-muted-foreground text-[10px] mt-0.5 truncate w-full"
-          >{{ disk.name }}</span
-        >
-        <div class="w-full mt-1.5">
-          <div class="w-full h-1 bg-muted/50 rounded-full overflow-hidden">
+        <span class="text-muted-foreground mt-0.5 w-full truncate text-[10px]">{{
+          disk.name
+        }}</span>
+        <div class="mt-1.5 w-full">
+          <div class="bg-muted/50 h-1 w-full overflow-hidden rounded-full">
             <div
               class="h-full rounded-full transition-all"
               :style="{
                 width:
                   disk.total_space > 0
                     ? Math.min(
-                        ((disk.total_space - disk.available_space) /
-                          disk.total_space) *
-                          100,
+                        ((disk.total_space - disk.available_space) / disk.total_space) * 100,
                         100,
                       ).toFixed(0) + '%'
                     : '0%',
@@ -239,20 +208,16 @@ const maxDiskChartSpeed = computed(() =>
               }"
             ></div>
           </div>
-          <span class="font-mono text-[10px] text-muted-foreground">
+          <span class="text-muted-foreground font-mono text-[10px]">
             {{
               disk.total_space > 0
-                ? Math.round(
-                    ((disk.total_space - disk.available_space) /
-                      disk.total_space) *
-                      100,
-                  )
+                ? Math.round(((disk.total_space - disk.available_space) / disk.total_space) * 100)
                 : 0
             }}% · {{ formatBytes(disk.total_space - disk.available_space) }} /
             {{ formatBytes(disk.total_space) }}
           </span>
         </div>
-        <div class="flex gap-2 mt-1">
+        <div class="mt-1 flex gap-2">
           <span class="font-mono text-[10px]" :style="{ color: MAIN_COLOR }"
             >↓ {{ formatBytes(disk.read_speed) }}/s</span
           >
@@ -265,19 +230,15 @@ const maxDiskChartSpeed = computed(() =>
 
     <!-- Per-Disk I/O Chart -->
     <div v-if="selectedDisk && detail.data.length > 0">
-      <div class="h-px bg-border mb-4"></div>
-      <div class="flex items-center gap-3 mb-3 text-xs font-mono">
-        <span class="text-sm font-medium text-muted-foreground mr-1"
+      <div class="bg-border mb-4 h-px"></div>
+      <div class="mb-3 flex items-center gap-3 font-mono text-xs">
+        <span class="text-muted-foreground mr-1 text-sm font-medium"
           >Disk I/O · {{ selectedDisk }}</span
         >
-        <span class="status-main-text"
-          >↓ {{ formatBytes(currentDiskRead) }}/s</span
-        >
-        <span class="status-sub-text"
-          >↑ {{ formatBytes(currentDiskWrite) }}/s</span
-        >
+        <span class="status-main-text">↓ {{ formatBytes(currentDiskRead) }}/s</span>
+        <span class="status-sub-text">↑ {{ formatBytes(currentDiskWrite) }}/s</span>
       </div>
-      <div class="h-[260px] w-full relative overflow-hidden">
+      <div class="relative h-[260px] w-full overflow-hidden">
         <UPlotChart
           :data="displayDiskReadData"
           :data2="displayDiskWriteData"

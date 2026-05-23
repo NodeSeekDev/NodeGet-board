@@ -31,9 +31,7 @@ export const createEmptyPermissionBuckets = (): PermissionBuckets => ({
   unknownPermissions: [],
 });
 
-export const createPermissionBuckets = (
-  permissions: PermissionEntry[],
-): PermissionBuckets => {
+export const createPermissionBuckets = (permissions: PermissionEntry[]): PermissionBuckets => {
   const buckets = createEmptyPermissionBuckets();
 
   for (const entry of permissions || []) {
@@ -117,11 +115,7 @@ export const replacePermissionBucket = (
 ) => {
   const buckets = createPermissionBuckets(permissions);
   buckets[key] = nextValue;
-  return mergePermissionBuckets(
-    buckets,
-    canShowKvPermission,
-    canShowCrontabResultPermission,
-  );
+  return mergePermissionBuckets(buckets, canShowKvPermission, canShowCrontabResultPermission);
 };
 
 export const arePermissionEntriesEqual = (

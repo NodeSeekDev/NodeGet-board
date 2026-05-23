@@ -12,12 +12,7 @@ import {
 } from "@/components/ui/select";
 import { computed, onMounted, ref, watch } from "vue";
 import { Loader2, Check } from "lucide-vue-next";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useI18n } from "vue-i18n";
 import { type Backend } from "@/composables/useBackendStore";

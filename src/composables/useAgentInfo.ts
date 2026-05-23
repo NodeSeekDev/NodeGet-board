@@ -95,9 +95,7 @@ export function useAgentInfo(
       ]);
       const uuids = result?.uuids ?? [];
 
-      const emptyAgentNS = uuids.filter(
-        (v) => !kv.namespaces.value.includes(v),
-      );
+      const emptyAgentNS = uuids.filter((v) => !kv.namespaces.value.includes(v));
 
       await Promise.all(emptyAgentNS.map((uuid) => fixAgentNamespace(uuid)));
 
@@ -108,18 +106,18 @@ export function useAgentInfo(
           .filter((v) => kv.namespaces.value.includes(v))
           .map((uuid) => ({ namespace: uuid, key: "metadata_*" }));
 
-        const result = await conn.call<
-          { namespace: string; key: string; value: unknown }[]
-        >("kv_get_multi_value", {
-          token: backend.value.token,
-          namespace_key: namespaceKeys,
-        });
+        const result = await conn.call<{ namespace: string; key: string; value: unknown }[]>(
+          "kv_get_multi_value",
+          {
+            token: backend.value.token,
+            namespace_key: namespaceKeys,
+          },
+        );
 
         const grouped = groupBy(result, "namespace");
 
         Object.keys(grouped).forEach((uuid) => {
-          const arr =
-            grouped[uuid]?.map(({ key, value }) => ({ key, value })) ?? [];
+          const arr = grouped[uuid]?.map(({ key, value }) => ({ key, value })) ?? [];
           const metadata = parseMetadataFields(arr, "节点" + shorterUUID(uuid));
           metaMap.set(uuid, metadata);
         });
@@ -148,8 +146,7 @@ export function useAgentInfo(
     }
   }
 
-  const { execute: fetchAgents, isLoading: loading } =
-    useInFlightDedupe(_fetchAgents);
+  const { execute: fetchAgents, isLoading: loading } = useInFlightDedupe(_fetchAgents);
 
   const fixAgentNamespace = async (agentUUID: string) => {
     if (!backend.value) {

@@ -14,14 +14,9 @@ import { useLiveLabel } from "@/components/node/status/composables/useLiveLabel"
 type ZoomRange = { min: number; max: number } | null;
 
 export function useStatusPage(uuid: Ref<string>) {
-  const {
-    error: dynamicError,
-    status: dynamicStatus,
-    servers: dynamicServers,
-  } = useAgentStatus();
+  const { error: dynamicError, status: dynamicStatus, servers: dynamicServers } = useAgentStatus();
 
-  const { servers: staticServers, refresh: connectStatic } =
-    useStaticMonitoring();
+  const { servers: staticServers, refresh: connectStatic } = useStaticMonitoring();
 
   const limits = useDatabaseLimits();
   const summaries = useTabSummaries(uuid);
@@ -83,10 +78,7 @@ export function useStatusPage(uuid: Ref<string>) {
 
   function startDetailTimer(tab: DetailTab) {
     const slice = details[tab];
-    const interval = effectiveDetailRefresh(
-      slice.windowMs,
-      slice.refreshInterval,
-    );
+    const interval = effectiveDetailRefresh(slice.windowMs, slice.refreshInterval);
     slice.startTimer(interval);
   }
 
@@ -153,9 +145,7 @@ export function useStatusPage(uuid: Ref<string>) {
   // Clamp windowMs when limits change
   watch([limits.summaryLimit, limits.dynamicLimit], () => {
     summaries.clampAll((w) => limits.clampWindow(w, limits.summaryLimit.value));
-    details.clampDetail((w) =>
-      limits.clampWindow(w, limits.dynamicLimit.value),
-    );
+    details.clampDetail((w) => limits.clampWindow(w, limits.dynamicLimit.value));
   });
 
   onMounted(() => {

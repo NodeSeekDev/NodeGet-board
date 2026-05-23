@@ -41,32 +41,15 @@ function onRefreshChanged(v: number) {
   props.summary.startTimer();
 }
 
-const cpuAvgTimestamps = computed(() =>
-  props.summary.data.map((d) => d.timestamp / 1000),
-);
-const cpuAvgValues = computed(() =>
-  props.summary.data.map((d) => d.cpu_usage ?? 0),
-);
-const load1Values = computed(() =>
-  props.summary.data.map((d) => d.load_one ?? 0),
-);
-const load5Values = computed(() =>
-  props.summary.data.map((d) => d.load_five ?? 0),
-);
-const load15Values = computed(() =>
-  props.summary.data.map((d) => d.load_fifteen ?? 0),
-);
+const cpuAvgTimestamps = computed(() => props.summary.data.map((d) => d.timestamp / 1000));
+const cpuAvgValues = computed(() => props.summary.data.map((d) => d.cpu_usage ?? 0));
+const load1Values = computed(() => props.summary.data.map((d) => d.load_one ?? 0));
+const load5Values = computed(() => props.summary.data.map((d) => d.load_five ?? 0));
+const load15Values = computed(() => props.summary.data.map((d) => d.load_fifteen ?? 0));
 const maxLoad = computed(() =>
-  Math.max(
-    ...load1Values.value,
-    ...load5Values.value,
-    ...load15Values.value,
-    1,
-  ),
+  Math.max(...load1Values.value, ...load5Values.value, ...load15Values.value, 1),
 );
-const procValues = computed(() =>
-  props.summary.data.map((d) => d.process_count ?? 0),
-);
+const procValues = computed(() => props.summary.data.map((d) => d.process_count ?? 0));
 const maxProc = computed(() => Math.max(...procValues.value, 1));
 
 function formatMHz(mhz: number): string {
@@ -90,13 +73,9 @@ function formatMHz(mhz: number): string {
 
     <!-- Total Utilization -->
     <div>
-      <div class="flex items-center gap-3 mb-3 text-xs font-mono flex-wrap">
-        <span class="text-sm font-medium text-muted-foreground mr-1"
-          >Total Utilization</span
-        >
-        <span class="status-main-text">
-          {{ showCpuPercent(server).toFixed(1) }}%
-        </span>
+      <div class="mb-3 flex flex-wrap items-center gap-3 font-mono text-xs">
+        <span class="text-muted-foreground mr-1 text-sm font-medium">Total Utilization</span>
+        <span class="status-main-text"> {{ showCpuPercent(server).toFixed(1) }}% </span>
         <span class="text-muted-foreground/40">|</span>
         <span class="text-muted-foreground">
           Load
@@ -109,18 +88,16 @@ function formatMHz(mhz: number): string {
           }}</span>
         </span>
         <span class="text-muted-foreground/40">|</span>
-        <span class="text-muted-foreground">
-          {{ server.process_count ?? "-" }} Processes
-        </span>
+        <span class="text-muted-foreground"> {{ server.process_count ?? "-" }} Processes </span>
         <span class="text-muted-foreground/40">|</span>
         <span
-          class="text-muted-foreground truncate max-w-[280px]"
+          class="text-muted-foreground max-w-[280px] truncate"
           :title="server?.cpu_static?.per_core?.[0]?.brand"
         >
           {{ server?.cpu_static?.per_core?.[0]?.brand || "Unknown" }}
         </span>
       </div>
-      <div class="h-[340px] w-full relative overflow-hidden">
+      <div class="relative h-[340px] w-full overflow-hidden">
         <UPlotChart
           :data="cpuAvgValues"
           :timestamps="cpuAvgTimestamps"
@@ -136,21 +113,15 @@ function formatMHz(mhz: number): string {
 
     <!-- Load Average -->
     <div>
-      <div class="flex items-center gap-3 mb-3 text-xs font-mono flex-wrap">
-        <span class="text-sm font-medium text-muted-foreground mr-1"
-          >Load Average</span
-        >
-        <span class="status-main-text"
-          >1m {{ (server.load_one ?? 0).toFixed(2) }}</span
-        >
-        <span class="status-sub-text"
-          >5m {{ (server.load_five ?? 0).toFixed(2) }}</span
-        >
+      <div class="mb-3 flex flex-wrap items-center gap-3 font-mono text-xs">
+        <span class="text-muted-foreground mr-1 text-sm font-medium">Load Average</span>
+        <span class="status-main-text">1m {{ (server.load_one ?? 0).toFixed(2) }}</span>
+        <span class="status-sub-text">5m {{ (server.load_five ?? 0).toFixed(2) }}</span>
         <span :style="{ color: LOAD15_COLOR }"
           >15m {{ (server.load_fifteen ?? 0).toFixed(2) }}</span
         >
       </div>
-      <div class="h-[260px] w-full relative overflow-hidden">
+      <div class="relative h-[260px] w-full overflow-hidden">
         <UPlotChart
           :data="load1Values"
           :data2="load5Values"
@@ -168,28 +139,17 @@ function formatMHz(mhz: number): string {
           @update:zoom-range="onZoomUpdate"
         />
       </div>
-      <div
-        class="flex items-center gap-4 mt-2 text-xs font-mono text-muted-foreground"
-      >
+      <div class="text-muted-foreground mt-2 flex items-center gap-4 font-mono text-xs">
         <span class="flex items-center gap-1">
-          <span
-            class="inline-block w-3 h-0.5"
-            :style="{ backgroundColor: MAIN_COLOR }"
-          ></span>
+          <span class="inline-block h-0.5 w-3" :style="{ backgroundColor: MAIN_COLOR }"></span>
           1m
         </span>
         <span class="flex items-center gap-1">
-          <span
-            class="inline-block w-3 h-0.5"
-            :style="{ backgroundColor: SUB_COLOR }"
-          ></span>
+          <span class="inline-block h-0.5 w-3" :style="{ backgroundColor: SUB_COLOR }"></span>
           5m
         </span>
         <span class="flex items-center gap-1">
-          <span
-            class="inline-block w-3 h-0.5"
-            :style="{ backgroundColor: LOAD15_COLOR }"
-          ></span>
+          <span class="inline-block h-0.5 w-3" :style="{ backgroundColor: LOAD15_COLOR }"></span>
           15m
         </span>
       </div>
@@ -197,15 +157,13 @@ function formatMHz(mhz: number): string {
 
     <!-- Processes -->
     <div>
-      <div class="flex items-center gap-3 mb-3 text-xs font-mono flex-wrap">
-        <span class="text-sm font-medium text-muted-foreground mr-1"
-          >Processes</span
-        >
+      <div class="mb-3 flex flex-wrap items-center gap-3 font-mono text-xs">
+        <span class="text-muted-foreground mr-1 text-sm font-medium">Processes</span>
         <span class="status-main-text">
           {{ server.process_count ?? 0 }}
         </span>
       </div>
-      <div class="h-[260px] w-full relative overflow-hidden">
+      <div class="relative h-[260px] w-full overflow-hidden">
         <UPlotChart
           :data="procValues"
           :timestamps="cpuAvgTimestamps"
@@ -221,29 +179,22 @@ function formatMHz(mhz: number): string {
 
     <!-- Per Core -->
     <div class="flex items-center gap-3">
-      <div class="h-px flex-1 bg-border"></div>
-      <span class="text-xs text-muted-foreground uppercase tracking-wider"
-        >Per Core</span
-      >
-      <div class="h-px flex-1 bg-border"></div>
+      <div class="bg-border h-px flex-1"></div>
+      <span class="text-muted-foreground text-xs tracking-wider uppercase">Per Core</span>
+      <div class="bg-border h-px flex-1"></div>
     </div>
 
-    <div v-if="!cpuDetail.data" class="grid grid-cols-4 gap-2 animate-pulse">
-      <div v-for="i in 8" :key="i" class="h-16 bg-muted rounded-lg"></div>
+    <div v-if="!cpuDetail.data" class="grid animate-pulse grid-cols-4 gap-2">
+      <div v-for="i in 8" :key="i" class="bg-muted h-16 rounded-lg"></div>
     </div>
-    <div
-      v-else-if="cpuDetail.data?.cpu?.per_core?.length"
-      class="grid grid-cols-4 gap-2"
-    >
+    <div v-else-if="cpuDetail.data?.cpu?.per_core?.length" class="grid grid-cols-4 gap-2">
       <div
         v-for="core in cpuDetail.data.cpu.per_core"
         :key="core.id"
-        class="bg-muted/30 border border-border rounded-lg p-3 space-y-2"
+        class="bg-muted/30 border-border space-y-2 rounded-lg border p-3"
       >
-        <div class="text-xs text-muted-foreground font-mono">
-          Core {{ core.id }}
-        </div>
-        <div class="h-1.5 bg-muted rounded-full overflow-hidden">
+        <div class="text-muted-foreground font-mono text-xs">Core {{ core.id }}</div>
+        <div class="bg-muted h-1.5 overflow-hidden rounded-full">
           <div
             class="h-full rounded-full"
             :style="{
@@ -252,13 +203,9 @@ function formatMHz(mhz: number): string {
             }"
           ></div>
         </div>
-        <div class="flex justify-between text-xs font-mono">
-          <span :style="{ color: MAIN_COLOR }"
-            >{{ core.cpu_usage.toFixed(1) }}%</span
-          >
-          <span class="text-muted-foreground">{{
-            formatMHz(core.frequency_mhz)
-          }}</span>
+        <div class="flex justify-between font-mono text-xs">
+          <span :style="{ color: MAIN_COLOR }">{{ core.cpu_usage.toFixed(1) }}%</span>
+          <span class="text-muted-foreground">{{ formatMHz(core.frequency_mhz) }}</span>
         </div>
       </div>
     </div>

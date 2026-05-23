@@ -105,9 +105,7 @@ const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 let hoveredMarker: THREE.Group | null = null;
 
-const themeMode = computed(() =>
-  themeStore.isDark ? MAP_THEME.dark : MAP_THEME.light,
-);
+const themeMode = computed(() => (themeStore.isDark ? MAP_THEME.dark : MAP_THEME.light));
 const themePalette = computed(() => themeMode.value.globe);
 
 const shellClass = computed(() => themeMode.value.shellBorderClass);
@@ -122,10 +120,7 @@ const tooltipMetaClass = computed(() => themeMode.value.tooltipMetaClass);
 
 const tooltipListClass = computed(() => themeMode.value.tooltipListClass);
 
-function getStateSignature(
-  points: MapPoint[],
-  userLocation?: UserLocation | null,
-) {
+function getStateSignature(points: MapPoint[], userLocation?: UserLocation | null) {
   return JSON.stringify({
     points: points.map((point) => ({
       region: point.region,
@@ -139,12 +134,7 @@ function getStateSignature(
   });
 }
 
-function projectTexturePoint(
-  lon: number,
-  lat: number,
-  width: number,
-  height: number,
-) {
+function projectTexturePoint(lon: number, lat: number, width: number, height: number) {
   const x = ((lon + 180) / 360) * width;
   const y = ((90 - lat) / 180) * height;
   return [x, y] as const;
@@ -241,9 +231,7 @@ function buildEarthTextureCanvas(geoJson: GeoJson) {
     const countryName = feature.properties?.name ?? "";
     const isUnlocked = unlockedCountries.has(countryName);
     ctx.fillStyle = isUnlocked ? colors.unlockedLandFill : colors.landFill;
-    ctx.strokeStyle = isUnlocked
-      ? colors.unlockedLandStroke
-      : colors.landStroke;
+    ctx.strokeStyle = isUnlocked ? colors.unlockedLandStroke : colors.landStroke;
     ctx.fill();
     ctx.stroke();
   }
@@ -346,13 +334,11 @@ function clearMarkerGroup() {
   markerGroup.traverse((child: THREE.Object3D) => {
     if (child instanceof THREE.Mesh) {
       child.geometry.dispose();
-      if (Array.isArray(child.material))
-        child.material.forEach((m: THREE.Material) => m.dispose());
+      if (Array.isArray(child.material)) child.material.forEach((m: THREE.Material) => m.dispose());
       else child.material.dispose();
     }
     if (child instanceof THREE.Sprite) {
-      if (Array.isArray(child.material))
-        child.material.forEach((m: THREE.Material) => m.dispose());
+      if (Array.isArray(child.material)) child.material.forEach((m: THREE.Material) => m.dispose());
       else child.material.dispose();
     }
   });
@@ -366,13 +352,11 @@ function clearRouteGroup() {
   routeGroup.traverse((child: THREE.Object3D) => {
     if (child instanceof THREE.Mesh || child instanceof THREE.Line) {
       child.geometry.dispose();
-      if (Array.isArray(child.material))
-        child.material.forEach((m: THREE.Material) => m.dispose());
+      if (Array.isArray(child.material)) child.material.forEach((m: THREE.Material) => m.dispose());
       else child.material.dispose();
     }
     if (child instanceof THREE.Sprite) {
-      if (Array.isArray(child.material))
-        child.material.forEach((m: THREE.Material) => m.dispose());
+      if (Array.isArray(child.material)) child.material.forEach((m: THREE.Material) => m.dispose());
       else child.material.dispose();
     }
   });
@@ -414,19 +398,14 @@ function isPointInRing(lon: number, lat: number, ring: [number, number][]) {
     const [xi, yi] = ring[i]!;
     const [xj, yj] = ring[j]!;
     const intersects =
-      yi > lat !== yj > lat &&
-      lon < ((xj - xi) * (lat - yi)) / (yj - yi || Number.EPSILON) + xi;
+      yi > lat !== yj > lat && lon < ((xj - xi) * (lat - yi)) / (yj - yi || Number.EPSILON) + xi;
     if (intersects) inside = !inside;
   }
 
   return inside;
 }
 
-function isPointInPolygon(
-  lon: number,
-  lat: number,
-  polygon: [number, number][][],
-) {
+function isPointInPolygon(lon: number, lat: number, polygon: [number, number][][]) {
   const [outerRing, ...holes] = polygon;
   if (!outerRing || !isPointInRing(lon, lat, outerRing)) return false;
   return !holes.some((ring) => isPointInRing(lon, lat, ring));
@@ -438,9 +417,7 @@ function findCountryByLonLat(geoJson: GeoJson, lon: number, lat: number) {
     if (!geometry) continue;
 
     if (geometry.type === "Polygon") {
-      if (
-        isPointInPolygon(lon, lat, geometry.coordinates as [number, number][][])
-      ) {
+      if (isPointInPolygon(lon, lat, geometry.coordinates as [number, number][][])) {
         return feature.properties?.name ?? "";
       }
       continue;
@@ -479,11 +456,7 @@ function setMarkerHoverState(marker: THREE.Group | null, hovered: boolean) {
     const material = glowMaterial as THREE.SpriteMaterial;
     material.opacity = hovered || isSelected ? 1 : 0.9;
     material.color.set(
-      isSelected
-        ? colors.markerGlowSelected
-        : hovered
-          ? colors.markerGlowHover
-          : colors.markerGlow,
+      isSelected ? colors.markerGlowSelected : hovered ? colors.markerGlowHover : colors.markerGlow,
     );
   }
 
@@ -491,11 +464,7 @@ function setMarkerHoverState(marker: THREE.Group | null, hovered: boolean) {
   if (coreMaterial && !Array.isArray(coreMaterial)) {
     const material = coreMaterial as THREE.MeshBasicMaterial;
     material.color.set(
-      isSelected
-        ? colors.markerCoreSelected
-        : hovered
-          ? colors.markerCoreHover
-          : colors.markerCore,
+      isSelected ? colors.markerCoreSelected : hovered ? colors.markerCoreHover : colors.markerCore,
     );
   }
 }
@@ -521,8 +490,7 @@ function rebuildMarkers() {
       nodes: point.nodes,
       nodeIds: point.nodeIds ?? [point.id],
       selected:
-        point.nodeIds?.includes(props.selectedNodeId ?? "") ??
-        point.id === props.selectedNodeId,
+        point.nodeIds?.includes(props.selectedNodeId ?? "") ?? point.id === props.selectedNodeId,
     };
     marker.position.copy(position);
     marker.lookAt(position.clone().multiplyScalar(2));
@@ -601,11 +569,7 @@ function rebuildRoutes() {
   routeGroup.add(userCore);
 
   for (const point of props.points) {
-    const targetPosition = lonLatToVector3(
-      point.value[0],
-      point.value[1],
-      radius + 0.028,
-    );
+    const targetPosition = lonLatToVector3(point.value[0], point.value[1], radius + 0.028);
     const distance = userPosition.distanceTo(targetPosition);
     const arcHeight = Math.min(1.18, 0.46 + distance * 0.16);
     const controlPoint = userPosition
@@ -614,11 +578,7 @@ function rebuildRoutes() {
       .multiplyScalar(0.5)
       .normalize()
       .multiplyScalar(radius + arcHeight);
-    const curve = new THREE.QuadraticBezierCurve3(
-      userPosition,
-      controlPoint,
-      targetPosition,
-    );
+    const curve = new THREE.QuadraticBezierCurve3(userPosition, controlPoint, targetPosition);
     const pointsOnCurve = curve.getPoints(72);
     const geometry = new THREE.BufferGeometry().setFromPoints(pointsOnCurve);
     const material = new THREE.LineBasicMaterial({
@@ -662,18 +622,13 @@ function handlePointerMove(event: PointerEvent) {
         const countryName = findCountryByLonLat(currentGeoJson, lon, lat);
 
         if (countryName) {
-          const countryNodes = props.points.filter(
-            (p) => p.isoCode === countryName,
-          );
+          const countryNodes = props.points.filter((p) => p.isoCode === countryName);
           const allNodeNames = countryNodes.flatMap((p) => p.nodes);
           tooltip.value = {
             visible: true,
             x: event.clientX - rect.left + 14,
             y: event.clientY - rect.top + 14,
-            title: getDisplayCountryName(
-              cnameMap.get(countryName) ?? countryName,
-              locale.value,
-            ),
+            title: getDisplayCountryName(cnameMap.get(countryName) ?? countryName, locale.value),
             count: allNodeNames.length,
             nodes: allNodeNames,
           };
@@ -694,9 +649,7 @@ function handlePointerMove(event: PointerEvent) {
     if (hoveredMarker) setMarkerHoverState(hoveredMarker, true);
   }
 
-  const data = marker?.userData as
-    | { region: string; count: number; nodes: string[] }
-    | undefined;
+  const data = marker?.userData as { region: string; count: number; nodes: string[] } | undefined;
 
   if (!data) {
     hideTooltip();
@@ -778,16 +731,13 @@ function animate() {
     const cameraDir = camera.position.clone().normalize();
     const worldPos = new THREE.Vector3();
     for (const marker of markerGroup.children) {
-      const glow = (marker as THREE.Group).userData.glow as
-        | THREE.Sprite
-        | undefined;
+      const glow = (marker as THREE.Group).userData.glow as THREE.Sprite | undefined;
       if (!glow) continue;
       marker.getWorldPosition(worldPos);
       const dot = worldPos.clone().normalize().dot(cameraDir);
       // dot < 0.12 完全隐藏，dot > 0.28 完全显示，中间线性过渡
       const limbFade = Math.max(0, Math.min(1, (dot - 0.12) / 0.16));
-      const baseOpacity =
-        ((marker as THREE.Group).userData.selected ? 1 : 0.9) * limbFade;
+      const baseOpacity = ((marker as THREE.Group).userData.selected ? 1 : 0.9) * limbFade;
       (glow.material as THREE.SpriteMaterial).opacity = baseOpacity;
     }
   }
@@ -1000,10 +950,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div
-    class="globe-shell relative overflow-hidden rounded-[1.4rem] border"
-    :class="shellClass"
-  >
+  <div class="globe-shell relative overflow-hidden rounded-[1.4rem] border" :class="shellClass">
     <div class="globe-grid pointer-events-none absolute inset-0" />
     <div
       class="pointer-events-none absolute top-[0.9rem] left-[0.9rem] z-[1] h-[2.8rem] w-[2.8rem] rounded-tl-[0.6rem] border-t-2 border-l-2"
@@ -1028,26 +975,22 @@ onUnmounted(() => {
     <Transition name="globe-popover">
       <div
         v-if="pickedMarker"
-        class="absolute z-[9] w-64 overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-xl"
+        class="border-border bg-popover text-popover-foreground absolute z-[9] w-64 overflow-hidden rounded-xl border shadow-xl"
         :style="{ left: `${pickedPos.x}px`, top: `${pickedPos.y}px` }"
         @click.stop
         @mousedown.stop
       >
-        <div
-          class="flex items-center gap-2 border-b border-border/70 px-3 py-2.5"
-        >
+        <div class="border-border/70 flex items-center gap-2 border-b px-3 py-2.5">
           <div class="min-w-0 flex-1">
-            <div
-              class="flex items-baseline gap-1.5 truncate text-sm leading-tight font-semibold"
-            >
+            <div class="flex items-baseline gap-1.5 truncate text-sm leading-tight font-semibold">
               <span class="truncate">{{ pickedMarker.region }}</span>
               <span
                 v-if="pickedMarker.isoCode"
-                class="shrink-0 font-mono text-xs font-normal text-muted-foreground"
+                class="text-muted-foreground shrink-0 font-mono text-xs font-normal"
                 >{{ pickedMarker.isoCode }}</span
               >
             </div>
-            <div class="mt-0.5 font-mono text-[11px] text-muted-foreground">
+            <div class="text-muted-foreground mt-0.5 font-mono text-[11px]">
               {{
                 t("dashboard.map.tooltip.nodeCount", {
                   count: pickedMarker.nodes.length,
@@ -1056,7 +999,7 @@ onUnmounted(() => {
             </div>
           </div>
           <button
-            class="-mr-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground"
+            class="text-muted-foreground hover:bg-accent hover:text-foreground -mr-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded"
             @click="closeGlobePopover"
           >
             <X class="h-3.5 w-3.5" />
@@ -1067,18 +1010,12 @@ onUnmounted(() => {
             v-for="(nodeName, i) in pickedMarker.nodes"
             :key="pickedMarker.nodeIds[i] ?? `${i}-${nodeName}`"
             type="button"
-            class="group flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs transition-colors hover:bg-accent"
-            @click="
-              selectNodeFromGlobePopover(
-                pickedMarker.nodeIds[i] ?? pickedMarker.nodeIds[0]!,
-              )
-            "
+            class="group hover:bg-accent flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs transition-colors"
+            @click="selectNodeFromGlobePopover(pickedMarker.nodeIds[i] ?? pickedMarker.nodeIds[0]!)"
           >
-            <span class="flex-1 truncate text-foreground/90">{{
-              nodeName
-            }}</span>
+            <span class="text-foreground/90 flex-1 truncate">{{ nodeName }}</span>
             <ChevronRight
-              class="h-3 w-3 shrink-0 text-muted-foreground/40 transition-transform group-hover:translate-x-0.5 group-hover:text-muted-foreground"
+              class="text-muted-foreground/40 group-hover:text-muted-foreground h-3 w-3 shrink-0 transition-transform group-hover:translate-x-0.5"
             />
           </button>
         </div>
@@ -1095,11 +1032,7 @@ onUnmounted(() => {
       <div v-if="tooltip.count > 0" :class="tooltipMetaClass">
         {{ t("dashboard.map.tooltip.nodeCount", { count: tooltip.count }) }}
       </div>
-      <div
-        v-if="tooltip.nodes.length"
-        class="mt-2 flex flex-col gap-1"
-        :class="tooltipListClass"
-      >
+      <div v-if="tooltip.nodes.length" class="mt-2 flex flex-col gap-1" :class="tooltipListClass">
         <span v-for="node in tooltip.nodes" :key="node">{{ node }}</span>
       </div>
     </div>
@@ -1108,9 +1041,7 @@ onUnmounted(() => {
       class="absolute inset-0 z-[5] flex items-center justify-center text-sm backdrop-blur-[8px]"
       :class="[
         overlayClass,
-        loadError
-          ? themeMode.overlayErrorTextClass
-          : themeMode.overlayLoadingTextClass,
+        loadError ? themeMode.overlayErrorTextClass : themeMode.overlayLoadingTextClass,
       ]"
     >
       {{ loadError || t("dashboard.map.globeLoading") }}
@@ -1121,16 +1052,8 @@ onUnmounted(() => {
 <style scoped>
 .globe-shell {
   background:
-    radial-gradient(
-      circle at top,
-      rgba(255, 255, 255, 0.72),
-      rgba(255, 255, 255, 0) 30%
-    ),
-    linear-gradient(
-      180deg,
-      rgba(244, 247, 250, 0.98) 0%,
-      rgba(231, 237, 243, 0.98) 100%
-    );
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0) 30%),
+    linear-gradient(180deg, rgba(244, 247, 250, 0.98) 0%, rgba(231, 237, 243, 0.98) 100%);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.8),
     inset 0 0 0 1px rgba(148, 163, 184, 0.12),
@@ -1143,11 +1066,7 @@ onUnmounted(() => {
     linear-gradient(90deg, rgba(100, 116, 139, 0.045) 1px, transparent 1px);
   background-size: 40px 40px;
   opacity: 0.2;
-  mask-image: radial-gradient(
-    circle at 50% 50%,
-    rgba(0, 0, 0, 0.88),
-    transparent 100%
-  );
+  mask-image: radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.88), transparent 100%);
 }
 
 .canvas-host :deep(canvas) {
@@ -1158,16 +1077,8 @@ onUnmounted(() => {
 
 .globe-shell.theme-dark {
   background:
-    radial-gradient(
-      circle at 50% 30%,
-      rgba(34, 211, 238, 0.16),
-      transparent 28%
-    ),
-    radial-gradient(
-      circle at 18% 18%,
-      rgba(255, 255, 255, 0.04),
-      transparent 18%
-    ),
+    radial-gradient(circle at 50% 30%, rgba(34, 211, 238, 0.16), transparent 28%),
+    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.04), transparent 18%),
     linear-gradient(180deg, rgba(7, 17, 29, 0.96) 0%, rgba(2, 8, 20, 0.98) 100%);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.04),

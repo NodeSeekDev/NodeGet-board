@@ -26,9 +26,7 @@ const statusLabels: Record<LogStatus, string> = {
   error: "订阅失败",
 };
 
-const subscriptionLabel = computed(
-  () => logsPanel.subscriptionId.value || "暂无订阅",
-);
+const subscriptionLabel = computed(() => logsPanel.subscriptionId.value || "暂无订阅");
 
 watch(selectedLevel, async (level) => {
   if (logsPanel.defaultLevel.value === level) return;
@@ -88,28 +86,20 @@ const logColumns = computed<ColumnDef<LogEntry>[]>(() => [
     <section class="mb-6 rounded-lg border p-5">
       <div class="grid gap-4 lg:grid-cols-[260px_360px_1fr]">
         <label class="grid gap-1.5">
-          <span class="text-xs font-medium text-muted-foreground"
-            >日志级别</span
-          >
+          <span class="text-muted-foreground text-xs font-medium">日志级别</span>
           <select
             v-model="selectedLevel"
-            class="h-10 rounded-md border border-border bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50"
+            class="border-border bg-background focus-visible:border-ring focus-visible:ring-ring/50 h-10 rounded-md border px-3 text-sm outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50"
           >
-            <option
-              v-for="level in LOG_LEVEL_OPTIONS"
-              :key="level"
-              :value="level"
-            >
+            <option v-for="level in LOG_LEVEL_OPTIONS" :key="level" :value="level">
               {{ level }}
             </option>
           </select>
         </label>
         <label class="grid gap-1.5">
-          <span class="text-xs font-medium text-muted-foreground"
-            >当前 SuperToken</span
-          >
+          <span class="text-muted-foreground text-xs font-medium">当前 SuperToken</span>
           <input
-            class="h-10 rounded-md border border-border bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50"
+            class="border-border bg-background focus-visible:border-ring focus-visible:ring-ring/50 h-10 rounded-md border px-3 text-sm outline-none focus-visible:ring-[3px] disabled:pointer-events-none disabled:opacity-50"
             :value="
               currentBackend
                 ? `${currentBackend.name} / ${maskToken(currentBackend.token)}`
@@ -120,7 +110,7 @@ const logColumns = computed<ColumnDef<LogEntry>[]>(() => [
         </label>
         <div class="flex flex-wrap items-end gap-2">
           <button
-            class="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-opacity disabled:pointer-events-none disabled:opacity-50"
+            class="bg-primary text-primary-foreground inline-flex h-10 items-center justify-center gap-2 rounded-md px-4 text-sm font-medium transition-opacity disabled:pointer-events-none disabled:opacity-50"
             type="button"
             :disabled="logsPanel.isBusy.value"
             @click="startSubscription"
@@ -128,7 +118,7 @@ const logColumns = computed<ColumnDef<LogEntry>[]>(() => [
             开始订阅
           </button>
           <button
-            class="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-medium transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50"
+            class="border-border bg-background hover:bg-muted inline-flex h-10 items-center justify-center gap-2 rounded-md border px-3 text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50"
             type="button"
             :disabled="logsPanel.isBusy.value"
             @click="stopSubscription"
@@ -136,13 +126,13 @@ const logColumns = computed<ColumnDef<LogEntry>[]>(() => [
             取消订阅
           </button>
           <span
-            class="inline-flex h-9 items-center rounded-md bg-muted px-3 text-sm text-muted-foreground"
+            class="bg-muted text-muted-foreground inline-flex h-9 items-center rounded-md px-3 text-sm"
           >
             {{ statusLabels[logsPanel.status.value] }}
           </span>
         </div>
       </div>
-      <p v-if="logsPanel.error.value" class="mt-3 text-sm text-destructive">
+      <p v-if="logsPanel.error.value" class="text-destructive mt-3 text-sm">
         {{ logsPanel.error.value }}
       </p>
     </section>
@@ -151,8 +141,8 @@ const logColumns = computed<ColumnDef<LogEntry>[]>(() => [
       <section class="rounded-lg border p-5">
         <h2 class="font-semibold">订阅列表</h2>
         <div class="mt-4 rounded-md border p-3">
-          <div class="break-all font-mono text-xs">{{ subscriptionLabel }}</div>
-          <div class="mt-2 text-xs text-muted-foreground">
+          <div class="font-mono text-xs break-all">{{ subscriptionLabel }}</div>
+          <div class="text-muted-foreground mt-2 text-xs">
             log_filter: {{ logsPanel.defaultLevel.value }}
           </div>
         </div>

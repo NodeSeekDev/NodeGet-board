@@ -117,8 +117,7 @@ export default {
       showUnlockedCountries: "Show unlocked countries",
       showMyLocationLinks: "Show links from my location",
       nodeListTitle: "Node List",
-      nodeListDescription:
-        "Click a map marker or a list item to mark that node as selected.",
+      nodeListDescription: "Click a map marker or a list item to mark that node as selected.",
       selectedNode: "Selected",
       noNodes: "No visible nodes",
       locationStatus: {
@@ -140,8 +139,7 @@ export default {
       regionsDescription:
         "Major regions are marked now so nodes, links, or alerts can be layered on later.",
       legendTitle: "Legend",
-      legendDescription:
-        "A single visual language separates land, ocean, and regional anchors.",
+      legendDescription: "A single visual language separates land, ocean, and regional anchors.",
       futureHint:
         "If you later attach real node coordinates, this base map can carry markers, bubbles, or route overlays directly.",
       tabs: {
@@ -183,8 +181,7 @@ export default {
         detailFailed: "Failed to fetch token detail",
         rollSecretSuccess: "Token secret regenerated successfully",
         rollSecretFailed: "Failed to regenerate token secret",
-        rollSecretFailedWithMessage:
-          "Failed to regenerate token secret: {message}",
+        rollSecretFailedWithMessage: "Failed to regenerate token secret: {message}",
         changePasswordSuccess: "Password changed successfully",
         changePasswordFailed: "Failed to change password",
         changePasswordFailedWithMessage: "Failed to change password: {message}",
@@ -212,8 +209,7 @@ export default {
         },
         deleteDialog: {
           title: "Delete Token",
-          confirm:
-            "Are you sure you want to delete this? This action is irreversible!",
+          confirm: "Are you sure you want to delete this? This action is irreversible!",
         },
         resetDialog: {
           title: "Reset Token",
@@ -231,10 +227,8 @@ export default {
         },
         changePasswordDialog: {
           title: "Change Password",
-          description:
-            "Change the login password for the user linked to this token.",
-          disabledTip:
-            "This token has no username, so its password cannot be changed",
+          description: "Change the login password for the user linked to this token.",
+          disabledTip: "This token has no username, so its password cannot be changed",
           newPassword: "Enter new password",
           confirmPassword: "Enter new password again",
           confirmButton: "Change Password",
@@ -252,21 +246,18 @@ export default {
         returnButtonDescription: "Return to token list",
         mode: {
           title: "Choose how to create this token",
-          description:
-            "Start from a preset template or open the editor with a blank token.",
+          description: "Start from a preset template or open the editor with a blank token.",
           backToSelect: "Back to create options",
         },
         custom: {
           title: "Custom Token",
-          description:
-            "Manually configure scopes and permissions from scratch.",
+          description: "Manually configure scopes and permissions from scratch.",
           hint: "Open the shared editor with a blank token configuration.",
           action: "Create Custom Token",
         },
         templates: {
           title: "Token Templates",
-          description:
-            "Start from a preset configuration, then fine-tune it in the shared editor.",
+          description: "Start from a preset configuration, then fine-tune it in the shared editor.",
           useTemplate: "Use Template",
         },
         createTokenCard: {
@@ -304,14 +295,11 @@ export default {
       },
       import: {
         title: "Import Token",
-        description:
-          "Paste an existing token JSON, then reselect scopes before importing.",
+        description: "Paste an existing token JSON, then reselect scopes before importing.",
         returnButtonDescription: "Return to token list",
         emptyInput: "Please enter the token JSON to import",
-        parseSuccess:
-          "Token parsed successfully. Please choose the scopes again.",
-        parseFailed:
-          "Parse error. Please check whether the token JSON is correct.",
+        parseSuccess: "Token parsed successfully. Please choose the scopes again.",
+        parseFailed: "Parse error. Please check whether the token JSON is correct.",
         parseCard: {
           title: "Import Token",
           description: "Paste the complete token JSON content below.",
@@ -334,8 +322,7 @@ export default {
       },
       detail: {
         title: "Token Detail",
-        description:
-          "View token basics, permission configuration, and the raw JSON payload.",
+        description: "View token basics, permission configuration, and the raw JSON payload.",
         returnButtonDescription: "Return to token list",
         editButton: "Edit Token",
         copyTokenKey: "Copy Token Key",
@@ -490,13 +477,11 @@ export default {
       templates: {
         agent: {
           title: "Agent Default",
-          description:
-            "Preset write-oriented permissions for common agent operations.",
+          description: "Preset write-oriented permissions for common agent operations.",
         },
         visitor: {
           title: "Visitor Readonly",
-          description:
-            "Preset read-oriented permissions for basic monitoring visibility.",
+          description: "Preset read-oriented permissions for basic monitoring visibility.",
         },
       },
     },
@@ -505,10 +490,8 @@ export default {
       desc: "Manage installed extension apps",
       install: "Install Extension",
       installTitle: "Install Extension",
-      installDesc:
-        "Select extension folder, parse app.json, confirm permissions and install.",
-      noExtensions:
-        'No extensions installed. Click "Install Extension" to get started.',
+      installDesc: "Select extension folder, parse app.json, confirm permissions and install.",
+      noExtensions: 'No extensions installed. Click "Install Extension" to get started.',
       colName: "Name",
       colId: "ID",
       colDesc: "Description",
@@ -539,8 +522,7 @@ export default {
       notification: "Notification",
       site: {
         custom: "Custom",
-        securityWarning:
-          "Please ensure code security and avoid untrusted content.",
+        securityWarning: "Please ensure code security and avoid untrusted content.",
         customHeader: "Custom Header",
         customHeaderDesc: "Add custom content to page header",
         customBody: "Custom Body",
@@ -734,13 +716,11 @@ export default {
       dynamicMonitoringSummary: "dynamic_monitoring_summary retention",
       agentTask: "agnet_task retention",
       minuteUnit: "minutes",
-      storageHint:
-        "These settings are in-memory only and take effect immediately.",
+      storageHint: "These settings are in-memory only and take effect immediately.",
       installTitle: "Install",
       installSubtitle: "Run on the target machine",
       waitingOnline: "Waiting for online...",
-      onlineHint:
-        "Polling every 3 seconds. Pre-config will auto-apply once the agent is online.",
+      onlineHint: "Polling every 3 seconds. Pre-config will auto-apply once the agent is online.",
       completed: "Completed",
       continueAdding: "Continue Adding",
       adjustNode: "Adjust Node",
@@ -826,12 +806,10 @@ export default {
       expressionRange: "Range",
       expressionStep: "Step",
       expressionList: "List",
-      hintQuestionMark:
-        "Only for day/weekday fields, meaning no specified value",
+      hintQuestionMark: "Only for day/weekday fields, meaning no specified value",
       hintNumberRange: "Please enter a valid number within the allowed range",
       hintStep: "Interval, e.g. */5 means every 5 units",
-      hintStartStep:
-        "Start/step format, e.g. 0/2 means every 2 units starting from 0",
+      hintStartStep: "Start/step format, e.g. 0/2 means every 2 units starting from 0",
       hintStepPositive: "Step value must be greater than 0",
       hintRange: "Format: start-end, e.g. 1-5",
       hintList: "Comma-separated, e.g. 1,3,5",
@@ -998,8 +976,7 @@ export default {
       updatedTime: "Last Edited",
       actions: "Actions",
       empty: "No script snippets available",
-      deleteConfirm:
-        "Are you sure you want to delete the script snippet {name}?",
+      deleteConfirm: "Are you sure you want to delete the script snippet {name}?",
       edit: "Edit Script Snippet",
       nameRequired: "Script name cannot be empty",
       contentRequired: "Script snippet cannot be empty",

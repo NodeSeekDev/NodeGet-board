@@ -45,14 +45,14 @@ const openInNewWindow = () => {
 </script>
 
 <template>
-  <div class="flex flex-col h-[calc(100vh-100px)] space-y-4">
+  <div class="flex h-[calc(100vh-100px)] flex-col space-y-4">
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-4">
         <Button variant="ghost" size="icon" @click="goBack">
           <ChevronLeft class="h-5 w-5" />
         </Button>
         <div>
-          <h1 class="text-2xl font-semibold flex items-center gap-2">
+          <h1 class="flex items-center gap-2 text-2xl font-semibold">
             {{ t("dashboard.jsRuntime.previewTitle") }}
           </h1>
           <p class="text-muted-foreground font-mono text-sm">
@@ -60,30 +60,20 @@ const openInNewWindow = () => {
           </p>
         </div>
       </div>
-      <Button
-        variant="outline"
-        size="sm"
-        @click="openInNewWindow"
-        :disabled="!previewUrl"
-      >
-        <ExternalLink class="h-4 w-4 mr-2" />
+      <Button variant="outline" size="sm" @click="openInNewWindow" :disabled="!previewUrl">
+        <ExternalLink class="mr-2 h-4 w-4" />
         {{ t("common.openInNewWindow", "在新窗口打开") }}
       </Button>
     </div>
 
-    <div
-      class="flex-1 bg-muted rounded-xl border overflow-hidden relative group"
-    >
+    <div class="bg-muted group relative flex-1 overflow-hidden rounded-xl border">
       <iframe
         v-if="previewUrl"
         :src="previewUrl"
-        class="w-full h-full border-0 bg-white"
+        class="h-full w-full border-0 bg-white"
         sandbox="allow-forms allow-modals allow-popups allow-presentation allow-same-origin allow-scripts"
       ></iframe>
-      <div
-        v-else
-        class="w-full h-full flex items-center justify-center text-muted-foreground"
-      >
+      <div v-else class="text-muted-foreground flex h-full w-full items-center justify-center">
         {{ t("dashboard.jsRuntime.noRoute", "未绑定路由") }}
       </div>
     </div>

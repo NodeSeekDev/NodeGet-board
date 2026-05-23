@@ -25,10 +25,7 @@ const emit = defineEmits<{
 
 const themeStore = useThemeStore();
 
-const extensions = computed(() => [
-  json(),
-  ...(themeStore.isDark ? [oneDark] : []),
-]);
+const extensions = computed(() => [json(), ...(themeStore.isDark ? [oneDark] : [])]);
 
 const displayValue = computed(() =>
   props.value !== undefined ? JSON.stringify(props.value, null, 2) : "",
@@ -43,10 +40,8 @@ const displayValue = computed(() =>
         <DialogDescription class="font-mono">{{ kvKey }}</DialogDescription>
       </DialogHeader>
 
-      <div v-if="loading" class="text-center py-8 text-muted-foreground">
-        加载中...
-      </div>
-      <div v-else class="rounded-md border overflow-hidden">
+      <div v-if="loading" class="text-muted-foreground py-8 text-center">加载中...</div>
+      <div v-else class="overflow-hidden rounded-md border">
         <Codemirror
           :model-value="displayValue"
           :extensions="extensions"

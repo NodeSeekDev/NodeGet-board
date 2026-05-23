@@ -24,17 +24,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useBackendStore } from "@/composables/useBackendStore";
 import { getWsConnection } from "@/composables/useWsConnection";
-import {
-  maskToken,
-  type RpcDebugRecord,
-  useRpcDebugStore,
-} from "../rpcDebugStore";
-import {
-  backendKey,
-  methodCatalog,
-  methodHints,
-  rpcDebugCommandFilter,
-} from "../helpers";
+import { maskToken, type RpcDebugRecord, useRpcDebugStore } from "../rpcDebugStore";
+import { backendKey, methodCatalog, methodHints, rpcDebugCommandFilter } from "../helpers";
 import { buildRpcMethodParams } from "../rpcMethodCatalog";
 import type { ComposerDraft } from "../types";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -62,9 +53,7 @@ const composerSource = ref<ComposerSourceRecord | null>(null);
 
 const backendOptions = computed(() => backendStore.backends.value);
 const currentBackendKey = computed(() =>
-  backendStore.currentBackend.value
-    ? backendKey(backendStore.currentBackend.value)
-    : "",
+  backendStore.currentBackend.value ? backendKey(backendStore.currentBackend.value) : "",
 );
 
 const composer = reactive<ComposerDraft>({
@@ -94,9 +83,7 @@ const sourceRecordLinkText = computed(() =>
   sourceRecordIndex.value ? `#${sourceRecordIndex.value}` : "#?",
 );
 
-const responseMethodTag = computed(
-  () => composer.responseMethod || composer.method.trim() || "-",
-);
+const responseMethodTag = computed(() => composer.responseMethod || composer.method.trim() || "-");
 
 watch(
   currentBackendKey,
@@ -114,8 +101,7 @@ watch(
       record.request && typeof record.request === "object"
         ? (record.request as { method?: unknown; params?: unknown })
         : null;
-    composer.method =
-      typeof req?.method === "string" ? req.method : record.method;
+    composer.method = typeof req?.method === "string" ? req.method : record.method;
     composer.requestId = "";
     composer.paramsText = formatRawComposerPayload(req?.params ?? {});
     composer.responseText = "尚未发送请求";
@@ -174,16 +160,13 @@ function handleMethodFocusOut(event: FocusEvent) {
 }
 
 function handleBackendSelectionChange(value: unknown) {
-  composer.backendKey =
-    typeof value === "string" && value !== NO_BACKEND_VALUE ? value : "";
+  composer.backendKey = typeof value === "string" && value !== NO_BACKEND_VALUE ? value : "";
   fillDefaultParams();
 }
 
 function formatRawComposerPayload(value: unknown) {
   if (typeof value === "string") return JSON.stringify(value);
-  return (
-    JSON.stringify(value, null, debugStore.settings.formatJson ? 2 : 0) ?? ""
-  );
+  return JSON.stringify(value, null, debugStore.settings.formatJson ? 2 : 0) ?? "";
 }
 
 function fillDefaultParams() {
@@ -231,15 +214,10 @@ async function sendComposerRequest() {
     composer.responseText =
       typeof result === "string"
         ? result
-        : JSON.stringify(
-            result ?? null,
-            null,
-            debugStore.settings.formatJson ? 2 : 0,
-          );
+        : JSON.stringify(result ?? null, null, debugStore.settings.formatJson ? 2 : 0);
   } catch (error) {
     composer.responseMeta = "错误";
-    composer.responseText =
-      error instanceof Error ? error.message : String(error);
+    composer.responseText = error instanceof Error ? error.message : String(error);
   } finally {
     composer.sending = false;
   }
@@ -250,12 +228,8 @@ async function sendComposerRequest() {
   <div
     class="grid h-full grid-rows-[minmax(0,1fr)_minmax(0,1fr)] gap-3 overflow-hidden p-4 lg:grid-cols-[minmax(360px,480px)_minmax(0,1fr)] lg:grid-rows-none"
   >
-    <section
-      class="flex min-h-0 flex-col overflow-hidden rounded-md border bg-background"
-    >
-      <div
-        class="flex min-h-10 flex-none items-center justify-between gap-3 border-b px-3 py-1.5"
-      >
+    <section class="bg-background flex min-h-0 flex-col overflow-hidden rounded-md border">
+      <div class="flex min-h-10 flex-none items-center justify-between gap-3 border-b px-3 py-1.5">
         <div class="min-w-0 flex-1">
           <div class="flex min-w-0 flex-wrap items-center gap-1.5">
             <h2 class="shrink-0 text-sm font-semibold">构造请求</h2>
@@ -269,14 +243,14 @@ async function sendComposerRequest() {
             <Badge
               v-else
               variant="outline"
-              class="h-5 rounded px-1.5 text-[10px] text-muted-foreground"
+              class="text-muted-foreground h-5 rounded px-1.5 text-[10px]"
             >
               手动
             </Badge>
           </div>
           <div
             v-if="composerSource"
-            class="mt-1 flex min-w-0 flex-wrap items-center gap-1 text-xs leading-none text-muted-foreground"
+            class="text-muted-foreground mt-1 flex min-w-0 flex-wrap items-center gap-1 text-xs leading-none"
           >
             <span class="shrink-0">记录</span>
             <Button
@@ -288,9 +262,7 @@ async function sendComposerRequest() {
               {{ sourceRecordLinkText }}
             </Button>
             <span class="shrink-0">带入</span>
-            <span
-              class="min-w-0 truncate font-mono text-[11px] text-foreground"
-            >
+            <span class="text-foreground min-w-0 truncate font-mono text-[11px]">
               {{ composerSource.method }}
             </span>
           </div>
@@ -312,11 +284,11 @@ async function sendComposerRequest() {
       <ScrollArea class="min-h-0 flex-1">
         <div class="space-y-3 p-3">
           <div class="relative grid gap-1.5">
-            <Label class="text-xs text-muted-foreground">方法</Label>
+            <Label class="text-muted-foreground text-xs">方法</Label>
             <Command
               :filter="rpcDebugCommandFilter"
               :highlight-on-hover="true"
-              class="relative h-9 overflow-visible rounded-md border bg-background shadow-none **:data-[slot=command-input]:h-8 **:data-[slot=command-input]:py-1 **:data-[slot=command-input]:text-xs **:data-[slot=command-input-wrapper]:h-9 **:data-[slot=command-input-wrapper]:border-b-0 **:data-[slot=command-input-wrapper]:px-2.5"
+              class="bg-background relative h-9 overflow-visible rounded-md border shadow-none **:data-[slot=command-input]:h-8 **:data-[slot=command-input]:py-1 **:data-[slot=command-input]:text-xs **:data-[slot=command-input-wrapper]:h-9 **:data-[slot=command-input-wrapper]:border-b-0 **:data-[slot=command-input-wrapper]:px-2.5"
               @focusout="handleMethodFocusOut"
             >
               <CommandInput
@@ -329,7 +301,7 @@ async function sendComposerRequest() {
               />
               <CommandList
                 v-if="methodFocused"
-                class="absolute top-full left-0 z-50 mt-1 max-h-64 w-full rounded-md border bg-popover shadow-md"
+                class="bg-popover absolute top-full left-0 z-50 mt-1 max-h-64 w-full rounded-md border shadow-md"
                 @mousedown.prevent
               >
                 <CommandEmpty class="py-3 text-xs"> 暂无匹配方法 </CommandEmpty>
@@ -345,9 +317,7 @@ async function sendComposerRequest() {
                     <span class="min-w-0 truncate font-mono text-xs">
                       {{ method }}
                     </span>
-                    <span
-                      class="max-w-24 shrink-0 truncate text-xs text-muted-foreground"
-                    >
+                    <span class="text-muted-foreground max-w-24 shrink-0 truncate text-xs">
                       {{ methodHints[method] ?? "RPC" }}
                     </span>
                   </CommandItem>
@@ -358,7 +328,7 @@ async function sendComposerRequest() {
 
           <div class="grid gap-2 sm:grid-cols-2">
             <div class="grid gap-1.5">
-              <Label class="text-xs text-muted-foreground">请求 ID</Label>
+              <Label class="text-muted-foreground text-xs">请求 ID</Label>
               <Input
                 v-model="composer.requestId"
                 class="h-8 px-2.5 font-mono text-xs"
@@ -367,7 +337,7 @@ async function sendComposerRequest() {
               />
             </div>
             <div class="grid gap-1.5">
-              <Label class="text-xs text-muted-foreground">鉴权来源</Label>
+              <Label class="text-muted-foreground text-xs">鉴权来源</Label>
               <Select
                 :model-value="composer.backendKey || NO_BACKEND_VALUE"
                 @update:model-value="handleBackendSelectionChange"
@@ -390,7 +360,7 @@ async function sendComposerRequest() {
           </div>
 
           <div class="grid gap-1.5">
-            <Label class="text-xs text-muted-foreground">参数 JSON</Label>
+            <Label class="text-muted-foreground text-xs">参数 JSON</Label>
             <Textarea
               v-model="composer.paramsText"
               class="min-h-40 resize-y px-2.5 py-2 font-mono text-xs leading-relaxed"
@@ -434,26 +404,19 @@ async function sendComposerRequest() {
       </ScrollArea>
     </section>
 
-    <section
-      class="flex min-h-0 flex-col overflow-hidden rounded-md border bg-background"
-    >
-      <div
-        class="flex min-h-10 flex-none items-center justify-between gap-3 border-b px-3 py-1.5"
-      >
+    <section class="bg-background flex min-h-0 flex-col overflow-hidden rounded-md border">
+      <div class="flex min-h-10 flex-none items-center justify-between gap-3 border-b px-3 py-1.5">
         <div class="min-w-0 flex-1">
           <div class="flex min-w-0 items-center gap-1.5">
             <h2 class="shrink-0 text-sm font-semibold">响应结果</h2>
-            <Badge
-              variant="outline"
-              class="h-5 max-w-full min-w-0 rounded px-1.5 text-[10px]"
-            >
+            <Badge variant="outline" class="h-5 max-w-full min-w-0 rounded px-1.5 text-[10px]">
               <span class="font-medium">method:</span>
               <span class="min-w-0 truncate font-mono">
                 {{ responseMethodTag }}
               </span>
             </Badge>
           </div>
-          <p class="mt-1 truncate text-xs leading-none text-muted-foreground">
+          <p class="text-muted-foreground mt-1 truncate text-xs leading-none">
             {{ composer.responseMeta }}
           </p>
         </div>

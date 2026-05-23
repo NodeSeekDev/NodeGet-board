@@ -43,23 +43,16 @@ const handleCopy = async (value: string, successMessage: string) => {
     <DialogContent class="sm:max-w-xl">
       <DialogHeader>
         <DialogTitle>
-          {{
-            props.title ?? t("dashboard.token.create.createSuccessDialog.title")
-          }}
+          {{ props.title ?? t("dashboard.token.create.createSuccessDialog.title") }}
         </DialogTitle>
         <DialogDescription>
-          {{
-            props.description ??
-            t("dashboard.token.create.createSuccessDialog.description")
-          }}
+          {{ props.description ?? t("dashboard.token.create.createSuccessDialog.description") }}
         </DialogDescription>
       </DialogHeader>
 
       <div class="space-y-4">
         <div class="space-y-2">
-          <Label>{{
-            t("dashboard.token.create.createSuccessDialog.tokenKeyLabel")
-          }}</Label>
+          <Label>{{ t("dashboard.token.create.createSuccessDialog.tokenKeyLabel") }}</Label>
           <div class="flex items-center gap-2">
             <Input :model-value="props.tokenKey" readonly />
             <Button
@@ -69,26 +62,20 @@ const handleCopy = async (value: string, successMessage: string) => {
               @click="
                 handleCopy(
                   props.tokenKey,
-                  t(
-                    'dashboard.token.create.createSuccessDialog.copyTokenKeySuccess',
-                  ),
+                  t('dashboard.token.create.createSuccessDialog.copyTokenKeySuccess'),
                 )
               "
             >
               <Copy class="h-4 w-4" />
               <span class="sr-only">
-                {{
-                  t("dashboard.token.create.createSuccessDialog.copyTokenKey")
-                }}
+                {{ t("dashboard.token.create.createSuccessDialog.copyTokenKey") }}
               </span>
             </Button>
           </div>
         </div>
 
         <div class="space-y-2">
-          <Label>{{
-            t("dashboard.token.create.createSuccessDialog.tokenSecretLabel")
-          }}</Label>
+          <Label>{{ t("dashboard.token.create.createSuccessDialog.tokenSecretLabel") }}</Label>
           <div class="flex items-center gap-2">
             <Input :model-value="props.tokenSecret" readonly />
             <Button
@@ -98,19 +85,13 @@ const handleCopy = async (value: string, successMessage: string) => {
               @click="
                 handleCopy(
                   props.tokenSecret,
-                  t(
-                    'dashboard.token.create.createSuccessDialog.copyToeknSecretSuccess',
-                  ),
+                  t('dashboard.token.create.createSuccessDialog.copyToeknSecretSuccess'),
                 )
               "
             >
               <Copy class="h-4 w-4" />
               <span class="sr-only">
-                {{
-                  t(
-                    "dashboard.token.create.createSuccessDialog.copyTokenSecret",
-                  )
-                }}
+                {{ t("dashboard.token.create.createSuccessDialog.copyTokenSecret") }}
               </span>
             </Button>
           </div>
@@ -123,9 +104,7 @@ const handleCopy = async (value: string, successMessage: string) => {
           @click="
             handleCopy(
               `${props.tokenKey}:${props.tokenSecret}`,
-              t(
-                'dashboard.token.create.createSuccessDialog.copyFullTokenSuccess',
-              ),
+              t('dashboard.token.create.createSuccessDialog.copyFullTokenSuccess'),
             )
           "
         >

@@ -57,16 +57,12 @@ const updateOrderIfChanged = () => {
       // 拖到最前
       if (index === 0) {
         const second = tables.value[1];
-        newOrder =
-          second?.order !== undefined ? second.order - 1 : script.order - 1;
+        newOrder = second?.order !== undefined ? second.order - 1 : script.order - 1;
       }
       // 拖到最后
       else if (index === tables.value.length - 1) {
         const penultimate = tables.value[tables.value.length - 2];
-        newOrder =
-          penultimate?.order !== undefined
-            ? penultimate.order + 1
-            : script.order + 1;
+        newOrder = penultimate?.order !== undefined ? penultimate.order + 1 : script.order + 1;
       }
       // 拖到中间
       else {
@@ -123,44 +119,31 @@ watch(
   <div class="relative w-full">
     <div
       v-if="loading && scripts.length"
-      class="absolute inset-0 z-10 bg-background/40 backdrop-blur-[1px] flex flex-col items-center justify-center rounded-md"
+      class="bg-background/40 absolute inset-0 z-10 flex flex-col items-center justify-center rounded-md backdrop-blur-[1px]"
     >
-      <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
+      <Loader2 class="text-muted-foreground h-8 w-8 animate-spin" />
     </div>
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead class="text-center">{{
-            $t("dashboard.scripts.order")
-          }}</TableHead>
-          <TableHead class="text-center">{{
-            $t("dashboard.scripts.name")
-          }}</TableHead>
-          <TableHead class="text-center">{{
-            $t("dashboard.scripts.lang")
-          }}</TableHead>
-          <TableHead class="text-center">{{
-            $t("dashboard.scripts.updatedTime")
-          }}</TableHead>
+          <TableHead class="text-center">{{ $t("dashboard.scripts.order") }}</TableHead>
+          <TableHead class="text-center">{{ $t("dashboard.scripts.name") }}</TableHead>
+          <TableHead class="text-center">{{ $t("dashboard.scripts.lang") }}</TableHead>
+          <TableHead class="text-center">{{ $t("dashboard.scripts.updatedTime") }}</TableHead>
           <TableHead>{{ $t("dashboard.scripts.actions") }}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         <TableRow v-if="loading && !tables.length">
-          <TableCell colspan="7" class="h-32 text-center text-muted-foreground">
+          <TableCell colspan="7" class="text-muted-foreground h-32 text-center">
             <div class="flex flex-col items-center justify-center space-y-3">
-              <Loader2 class="w-6 h-6 animate-spin text-muted-foreground/50" />
-              <span class="text-sm font-medium">{{
-                $t("common.loading")
-              }}</span>
+              <Loader2 class="text-muted-foreground/50 h-6 w-6 animate-spin" />
+              <span class="text-sm font-medium">{{ $t("common.loading") }}</span>
             </div>
           </TableCell>
         </TableRow>
         <TableRow v-else-if="!tables.length">
-          <TableCell
-            colspan="7"
-            class="text-center text-muted-foreground py-12"
-          >
+          <TableCell colspan="7" class="text-muted-foreground py-12 text-center">
             {{ $t("dashboard.cron.empty") }}
           </TableCell>
         </TableRow>
@@ -175,19 +158,17 @@ watch(
         >
           <TableCell class="text-center">
             <div class="flex items-center justify-center">
-              <GripVertical class="h-4 w-4 mr-1" v-show="sortable" />
+              <GripVertical class="mr-1 h-4 w-4" v-show="sortable" />
               <span>{{ index + 1 }}</span>
             </div>
           </TableCell>
-          <TableCell class="font-medium text-center">
+          <TableCell class="text-center font-medium">
             {{ script.name }}
           </TableCell>
-          <TableCell class="font-medium text-center">
+          <TableCell class="text-center font-medium">
             <Badge variant="secondary">{{ script.lang }}</Badge>
           </TableCell>
-          <TableCell class="text-center">{{
-            formatTime(script.updated_at)
-          }}</TableCell>
+          <TableCell class="text-center">{{ formatTime(script.updated_at) }}</TableCell>
           <TableCell>
             <Button
               variant="ghost"
@@ -198,9 +179,7 @@ watch(
               <Pencil class="h-4 w-4" />
             </Button>
             <PopConfirm
-              :description="
-                $t('dashboard.scripts.deleteConfirm', { name: script.name })
-              "
+              :description="$t('dashboard.scripts.deleteConfirm', { name: script.name })"
               :loading="isDeleting(script.name)"
               @confirm="emit('delete', script.name)"
             >
@@ -208,7 +187,7 @@ watch(
                 size="icon"
                 variant="ghost"
                 :disabled="isDeleting(script.name)"
-                class="h-7 w-7 text-destructive hover:text-destructive"
+                class="text-destructive hover:text-destructive h-7 w-7"
               >
                 <Trash2 class="h-3.5 w-3.5" />
               </Button>

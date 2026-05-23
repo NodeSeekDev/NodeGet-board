@@ -106,11 +106,7 @@ type DevtoolsApi = {
       }) => void,
     ): void;
     getInspectorState(
-      handler: (payload: {
-        inspectorId: string;
-        nodeId: string;
-        state: InspectorState;
-      }) => void,
+      handler: (payload: { inspectorId: string; nodeId: string; state: InspectorState }) => void,
     ): void;
   };
   now?(): number;
@@ -219,30 +215,28 @@ function ensureDevtoolsInspector() {
           },
         ],
       },
-      ...(["high", "normal", "low", "skipped"] as PriorityBucket[]).map(
-        (bucket) => {
-          const entries = groupedEntries[bucket].filter((entry) =>
-            !filter ? true : entry.path.toLowerCase().includes(filter),
-          );
+      ...(["high", "normal", "low", "skipped"] as PriorityBucket[]).map((bucket) => {
+        const entries = groupedEntries[bucket].filter((entry) =>
+          !filter ? true : entry.path.toLowerCase().includes(filter),
+        );
 
-          return {
-            id: `bucket:${bucket}`,
-            label: PRIORITY_BUCKET_LABELS[bucket],
-            tags: [
-              {
-                label: String(entries.length),
-                textColor: 0xffffff,
-                backgroundColor: PRIORITY_BUCKET_COLORS[bucket],
-              },
-            ],
-            children: entries.map((entry) => ({
-              id: `route:${entry.path}`,
-              label: entry.path,
-              tags: buildRouteTags(entry),
-            })),
-          };
-        },
-      ),
+        return {
+          id: `bucket:${bucket}`,
+          label: PRIORITY_BUCKET_LABELS[bucket],
+          tags: [
+            {
+              label: String(entries.length),
+              textColor: 0xffffff,
+              backgroundColor: PRIORITY_BUCKET_COLORS[bucket],
+            },
+          ],
+          children: entries.map((entry) => ({
+            id: `route:${entry.path}`,
+            label: entry.path,
+            tags: buildRouteTags(entry),
+          })),
+        };
+      }),
     ];
   });
 
@@ -284,15 +278,11 @@ function ensureDevtoolsInspector() {
           { key: "routes", value: entries.length },
           {
             key: "loaded",
-            value: entries.filter(
-              (entry) => getRouteLoadStatus(entry) === "loaded",
-            ).length,
+            value: entries.filter((entry) => getRouteLoadStatus(entry) === "loaded").length,
           },
           {
             key: "pending",
-            value: entries.filter(
-              (entry) => getRouteLoadStatus(entry) === "pending",
-            ).length,
+            value: entries.filter((entry) => getRouteLoadStatus(entry) === "pending").length,
           },
         ],
         routes: entries.map((entry) => ({
@@ -392,12 +382,7 @@ function buildRouteTags(entry: RouteInspectorEntry) {
     {
       label: status,
       textColor: 0xffffff,
-      backgroundColor:
-        status === "loaded"
-          ? 0x10b981
-          : status === "pending"
-            ? 0x3b82f6
-            : 0x6b7280,
+      backgroundColor: status === "loaded" ? 0x10b981 : status === "pending" ? 0x3b82f6 : 0x6b7280,
     },
   ];
 
@@ -492,10 +477,7 @@ function scheduleIdle(fn: (deadline?: IdleDeadline) => void) {
   if (typeof window === "undefined") return;
 
   const idleWindow = window as Window & {
-    requestIdleCallback?: (
-      callback: IdleRequestCallback,
-      options?: IdleRequestOptions,
-    ) => number;
+    requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
   };
 
   if (typeof idleWindow.requestIdleCallback === "function") {
@@ -590,11 +572,7 @@ function registerLoader<T = unknown>(
   return loader;
 }
 
-function wrapLoader(
-  component: RouteComp,
-  priority: number | null,
-  path: string,
-): RouteComp {
+function wrapLoader(component: RouteComp, priority: number | null, path: string): RouteComp {
   if (typeof component === "function") {
     return registerLoader(component as AsyncComponent, priority, path);
   }
@@ -653,10 +631,7 @@ function getExplicitPriority(meta?: PrefetchMeta): PriorityResult | undefined {
   }
 }
 
-function getRoutePriority(
-  route: RouteRecordRaw,
-  fullPath: string,
-): PriorityResult {
+function getRoutePriority(route: RouteRecordRaw, fullPath: string): PriorityResult {
   const meta = route.meta as PrefetchMeta | undefined;
   const explicitPriority = getExplicitPriority(meta);
 
@@ -734,11 +709,7 @@ function processRoutes(routes: RouteRecordRaw[], parentPath = "") {
     if (route.components) {
       for (const key in route.components) {
         const comp = route.components[key];
-        route.components[key] = wrapLoader(
-          comp as RouteComp,
-          priority,
-          fullPath,
-        ) as RouteComponent;
+        route.components[key] = wrapLoader(comp as RouteComp, priority, fullPath) as RouteComponent;
       }
     }
 

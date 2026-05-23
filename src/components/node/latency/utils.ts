@@ -30,8 +30,8 @@ export function normalizeCronName(name?: string | null): string {
 }
 
 export function getStableCronNames(data: TaskQueryResult[]): string[] {
-  return [...new Set(data.map((r) => normalizeCronName(r.cron_source)))].sort(
-    (a, b) => a.localeCompare(b),
+  return [...new Set(data.map((r) => normalizeCronName(r.cron_source)))].sort((a, b) =>
+    a.localeCompare(b),
   );
 }
 
@@ -54,9 +54,7 @@ export function computeStats(
   const cronNames = getStableCronNames(data);
   return cronNames
     .map((name) => {
-      const rows = data.filter(
-        (r) => normalizeCronName(r.cron_source) === name,
-      );
+      const rows = data.filter((r) => normalizeCronName(r.cron_source) === name);
       const total = rows.length;
       const color = colorMap[name] ?? SERIES_COLORS[0]!;
       const qualityBars = rows
@@ -79,22 +77,17 @@ export function computeStats(
 
       const vals = rows
         .filter(
-          (r) =>
-            r.success &&
-            r.task_event_result &&
-            typeof r.task_event_result[type] === "number",
+          (r) => r.success && r.task_event_result && typeof r.task_event_result[type] === "number",
         )
         .map((r) => r.task_event_result![type] as number);
 
       const lossRate = ((total - vals.length) / total) * 100;
-      if (vals.length === 0)
-        return { name, color, avg: null, jitter: null, lossRate, qualityBars };
+      if (vals.length === 0) return { name, color, avg: null, jitter: null, lossRate, qualityBars };
 
       const avg = vals.reduce((s, v) => s + v, 0) / vals.length;
       const jitter =
         vals.length >= 2
-          ? vals.slice(1).reduce((s, v, i) => s + Math.abs(v - vals[i]!), 0) /
-            (vals.length - 1)
+          ? vals.slice(1).reduce((s, v, i) => s + Math.abs(v - vals[i]!), 0) / (vals.length - 1)
           : null;
 
       return { name, color, avg, jitter, lossRate, qualityBars };

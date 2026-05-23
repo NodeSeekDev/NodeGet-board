@@ -30,30 +30,24 @@ const codeProxy = computed({
 <template>
   <Card>
     <CardHeader>
-      <CardTitle class="flex justify-between items-center">
+      <CardTitle class="flex items-center justify-between">
         <div class="flex items-center gap-2">
           <Code class="h-5 w-5" />{{ $t("dashboard.batchExec.codeInputLabel") }}
         </div>
         <label class="flex items-center">
-          <span class="text-sm color-gray-500 mr-1 opacity-60">{{
+          <span class="color-gray-500 mr-1 text-sm opacity-60">{{
             $t("dashboard.batchExec.codeTips")
           }}</span>
-          <Switch
-            v-model="codeTips"
-            :title="$t('dashboard.batchExec.codeTips')"
-          />
+          <Switch v-model="codeTips" :title="$t('dashboard.batchExec.codeTips')" />
         </label>
       </CardTitle>
     </CardHeader>
     <CardContent>
       <CodeCard v-model="codeProxy" :codeTips="codeTips" />
-      <div class="flex gap-2 mt-1 items-center justify-end">
-        <Button
-          @click="emits('openScriptsSelect')"
-          variant="outline"
-          class="w-full md:w-auto"
-          >{{ $t("dashboard.batchExec.scriptsSelect") }}</Button
-        >
+      <div class="mt-1 flex items-center justify-end gap-2">
+        <Button @click="emits('openScriptsSelect')" variant="outline" class="w-full md:w-auto">{{
+          $t("dashboard.batchExec.scriptsSelect")
+        }}</Button>
       </div>
     </CardContent>
   </Card>

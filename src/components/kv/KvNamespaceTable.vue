@@ -50,24 +50,17 @@ const filteredNamespaces = computed(() => {
 <template>
   <div class="space-y-4">
     <div class="flex items-center gap-2">
-      <div class="relative max-w-xs w-full">
+      <div class="relative w-full max-w-xs">
         <Search
-          class="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none"
+          class="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2"
         />
-        <Input
-          v-model="searchQuery"
-          placeholder="搜索命名空间..."
-          class="pl-8"
-        />
+        <Input v-model="searchQuery" placeholder="搜索命名空间..." class="pl-8" />
       </div>
       <label
         v-if="agentUuids"
-        class="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer select-none"
+        class="text-muted-foreground flex cursor-pointer items-center gap-2 text-sm select-none"
       >
-        <Checkbox
-          :model-value="onlyAgents"
-          @update:model-value="(v: any) => (onlyAgents = !!v)"
-        />
+        <Checkbox :model-value="onlyAgents" @update:model-value="(v: any) => (onlyAgents = !!v)" />
         {{ t("dashboard.kv.onlyAgents") }}
       </label>
       <div class="flex-1" />
@@ -75,23 +68,21 @@ const filteredNamespaces = computed(() => {
         variant="outline"
         size="sm"
         :disabled="loading"
-        class="ml-auto mr-2"
+        class="mr-2 ml-auto"
         @click="emit('refresh')"
       >
         <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': loading }" />
       </Button>
       <Button size="sm" @click="emit('openCreate')">
-        <Plus class="h-4 w-4 mr-1" />
+        <Plus class="mr-1 h-4 w-4" />
         创建命名空间
       </Button>
     </div>
 
-    <div v-if="loading" class="text-center py-10 text-muted-foreground">
-      加载中...
-    </div>
+    <div v-if="loading" class="text-muted-foreground py-10 text-center">加载中...</div>
     <div
       v-else-if="filteredNamespaces.length === 0"
-      class="text-center py-10 text-muted-foreground"
+      class="text-muted-foreground py-10 text-center"
     >
       暂无命名空间
     </div>
@@ -105,11 +96,7 @@ const filteredNamespaces = computed(() => {
       <TableBody>
         <TableRow v-for="ns in filteredNamespaces" :key="ns">
           <TableCell>
-            <Button
-              variant="link"
-              class="p-0 h-auto font-mono"
-              @click="emit('select', ns)"
-            >
+            <Button variant="link" class="h-auto p-0 font-mono" @click="emit('select', ns)">
               {{ ns }}
             </Button>
           </TableCell>
@@ -125,7 +112,7 @@ const filteredNamespaces = computed(() => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  class="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                  class="text-destructive hover:text-destructive h-7 w-7 p-0"
                 >
                   <Trash2 class="h-3.5 w-3.5" />
                 </Button>
@@ -135,7 +122,7 @@ const filteredNamespaces = computed(() => {
                 variant="ghost"
                 size="sm"
                 disabled
-                class="h-7 w-7 p-0 text-destructive"
+                class="text-destructive h-7 w-7 p-0"
               >
                 <Loader2 class="h-3.5 w-3.5 animate-spin" />
               </Button>

@@ -24,8 +24,7 @@ watch(
       }
       const text = await resp.text();
       // 确认是 SVG 内容
-      svgContent.value =
-        text.trim().startsWith("<svg") || text.includes("<svg ") ? text : null;
+      svgContent.value = text.trim().startsWith("<svg") || text.includes("<svg ") ? text : null;
     } catch {
       svgContent.value = null;
     }
@@ -37,7 +36,7 @@ watch(
 <template>
   <span
     v-if="svgContent"
-    class="flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
+    class="flex items-center justify-center [&>svg]:h-full [&>svg]:w-full"
     :style="{ width: `${size ?? 24}px`, height: `${size ?? 24}px` }"
     v-html="svgContent"
   />

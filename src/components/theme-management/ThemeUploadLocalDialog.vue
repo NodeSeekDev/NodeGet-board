@@ -1,12 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, computed } from "vue";
-import {
-  Folder,
-  FileArchive,
-  Loader2,
-  X,
-  AlertTriangle,
-} from "lucide-vue-next";
+import { Folder, FileArchive, Loader2, X, AlertTriangle } from "lucide-vue-next";
 import { toast } from "vue-sonner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -18,11 +12,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { base64ToBuf } from "@/utils/base64";
-import {
-  parseZipFile,
-  parseFolderFiles,
-  type FileEntry,
-} from "@/composables/useFileUploadParsing";
+import { parseZipFile, parseFolderFiles, type FileEntry } from "@/composables/useFileUploadParsing";
 import { useStaticBucket } from "@/composables/useStaticBucket";
 import {
   useThemeBucketUpload,
@@ -89,8 +79,7 @@ watch(
 
 const parseThemeJson = (files: FileEntry[]) => {
   const themeFile = files.find(
-    (f) =>
-      f.path === "nodeget-theme.json" || f.path.endsWith("/nodeget-theme.json"),
+    (f) => f.path === "nodeget-theme.json" || f.path.endsWith("/nodeget-theme.json"),
   );
   missingShort.value = false;
   detectedShort.value = null;
@@ -106,8 +95,7 @@ const parseThemeJson = (files: FileEntry[]) => {
     const json = JSON.parse(text);
     if (typeof json?.short === "string" && json.short) {
       detectedShort.value = json.short;
-      detectedName.value =
-        typeof json.name === "string" && json.name ? json.name : json.short;
+      detectedName.value = typeof json.name === "string" && json.name ? json.name : json.short;
       if (!props.targetBucket) {
         bucketName.value = `theme_${json.short}`;
       }
@@ -176,13 +164,9 @@ const handleUpload = async () => {
 
     const displayName = detectedName.value ?? targetName;
     if (failedCount > 0) {
-      toast.warning(
-        `主题「${displayName}」上传完成，${failedCount} 个文件上传失败`,
-      );
+      toast.warning(`主题「${displayName}」上传完成，${failedCount} 个文件上传失败`);
     } else {
-      toast.success(
-        `主题「${displayName}」上传完成，共 ${fileList.value.length} 个文件`,
-      );
+      toast.success(`主题「${displayName}」上传完成，共 ${fileList.value.length} 个文件`);
     }
     emit("done");
     emit("update:open", false);
@@ -199,21 +183,19 @@ const handleUpload = async () => {
     <DialogContent class="sm:max-w-lg">
       <DialogHeader>
         <DialogTitle>
-          {{
-            targetBucket ? `重新上传到「${targetBucket}」` : "从本地上传主题"
-          }}
+          {{ targetBucket ? `重新上传到「${targetBucket}」` : "从本地上传主题" }}
         </DialogTitle>
       </DialogHeader>
 
       <div class="space-y-4 py-2">
         <div
           v-if="detectedShort && !targetBucket"
-          class="space-y-0.5 rounded-md bg-muted px-3 py-2 text-sm"
+          class="bg-muted space-y-0.5 rounded-md px-3 py-2 text-sm"
         >
           <div>
             检测到主题：<span class="font-medium">{{ detectedName }}</span>
           </div>
-          <div class="text-xs text-muted-foreground">
+          <div class="text-muted-foreground text-xs">
             Bucket 名称：<span class="font-mono">{{ bucketName }}</span>
           </div>
         </div>
@@ -223,9 +205,7 @@ const handleUpload = async () => {
           class="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300"
         >
           <AlertTriangle class="mt-0.5 h-4 w-4 shrink-0" />
-          <span
-            >未找到 nodeget-theme.json 或缺少 short 字段，无法确定主题标识</span
-          >
+          <span>未找到 nodeget-theme.json 或缺少 short 字段，无法确定主题标识</span>
         </div>
 
         <div class="space-y-2">
@@ -237,7 +217,7 @@ const handleUpload = async () => {
               :disabled="processing || uploading"
               @click="folderInputRef?.click()"
             >
-              <Folder class="h-6 w-6 text-muted-foreground" />
+              <Folder class="text-muted-foreground h-6 w-6" />
               <span class="text-xs">选择文件夹</span>
             </Button>
             <Button
@@ -246,7 +226,7 @@ const handleUpload = async () => {
               :disabled="processing || uploading"
               @click="zipInputRef?.click()"
             >
-              <FileArchive class="h-6 w-6 text-muted-foreground" />
+              <FileArchive class="text-muted-foreground h-6 w-6" />
               <span class="text-xs">选择 ZIP</span>
             </Button>
           </div>
@@ -257,19 +237,10 @@ const handleUpload = async () => {
             webkitdirectory
             @change="onFolderChange"
           />
-          <input
-            ref="zipInputRef"
-            type="file"
-            class="hidden"
-            accept=".zip"
-            @change="onZipChange"
-          />
+          <input ref="zipInputRef" type="file" class="hidden" accept=".zip" @change="onZipChange" />
         </div>
 
-        <div
-          v-if="processing"
-          class="flex items-center gap-2 py-2 text-sm text-muted-foreground"
-        >
+        <div v-if="processing" class="text-muted-foreground flex items-center gap-2 py-2 text-sm">
           <Loader2 class="h-4 w-4 animate-spin" />
           正在处理文件...
         </div>
@@ -292,23 +263,17 @@ const handleUpload = async () => {
             <div
               v-for="f in fileList.slice(0, 50)"
               :key="f.path"
-              class="border-b px-3 py-1 font-mono text-xs text-muted-foreground last:border-0"
+              class="text-muted-foreground border-b px-3 py-1 font-mono text-xs last:border-0"
             >
               {{ f.path }}
             </div>
-            <div
-              v-if="fileList.length > 50"
-              class="px-3 py-1 text-xs text-muted-foreground italic"
-            >
+            <div v-if="fileList.length > 50" class="text-muted-foreground px-3 py-1 text-xs italic">
               ...还有 {{ fileList.length - 50 }} 个文件
             </div>
           </div>
         </div>
 
-        <div
-          v-if="targetBucket"
-          class="overflow-hidden rounded-md border text-sm"
-        >
+        <div v-if="targetBucket" class="overflow-hidden rounded-md border text-sm">
           <div class="bg-muted px-3 py-1.5 text-xs font-medium">更新选项</div>
           <div class="divide-y">
             <div class="flex items-center justify-between px-3 py-2">
@@ -414,32 +379,21 @@ const handleUpload = async () => {
           </div>
         </div>
 
-        <div
-          v-if="uploading"
-          class="flex items-center gap-2 text-sm text-muted-foreground"
-        >
+        <div v-if="uploading" class="text-muted-foreground flex items-center gap-2 text-sm">
           <Loader2 class="h-4 w-4 animate-spin" />
-          正在上传第 {{ uploadProgress.current }} /
-          {{ uploadProgress.total }} 个文件
+          正在上传第 {{ uploadProgress.current }} / {{ uploadProgress.total }} 个文件
         </div>
 
-        <p v-if="processError" class="text-sm text-destructive">
+        <p v-if="processError" class="text-destructive text-sm">
           {{ processError }}
         </p>
       </div>
 
       <DialogFooter>
-        <Button
-          variant="outline"
-          :disabled="uploading"
-          @click="$emit('update:open', false)"
-        >
+        <Button variant="outline" :disabled="uploading" @click="$emit('update:open', false)">
           取消
         </Button>
-        <Button
-          :disabled="uploading || processing || !canSubmit"
-          @click="handleUpload"
-        >
+        <Button :disabled="uploading || processing || !canSubmit" @click="handleUpload">
           <Loader2 v-if="uploading" class="mr-1 h-4 w-4 animate-spin" />
           {{ targetBucket ? "上传" : "创建并上传" }}
         </Button>

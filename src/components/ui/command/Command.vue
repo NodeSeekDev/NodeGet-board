@@ -56,9 +56,7 @@ function filterItems() {
 
   // Check which items should be included
   for (const [id, value] of allItems.value) {
-    const score =
-      props.filter?.(value, filterState.search) ??
-      contains(value, filterState.search);
+    const score = props.filter?.(value, filterState.search) ?? contains(value, filterState.search);
     filterState.filtered.items.set(id, score ? 1 : 0);
     if (score) itemCount++;
   }
@@ -96,7 +94,7 @@ provideCommandContext({
     v-bind="forwarded"
     :class="
       cn(
-        'flex h-full w-full flex-col overflow-hidden rounded-md bg-popover text-popover-foreground',
+        'bg-popover text-popover-foreground flex h-full w-full flex-col overflow-hidden rounded-md',
         props.class,
       )
     "

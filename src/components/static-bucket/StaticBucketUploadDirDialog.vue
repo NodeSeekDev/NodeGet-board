@@ -11,10 +11,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  parseZipFile,
-  parseFolderFiles,
-} from "@/composables/useFileUploadParsing";
+import { parseZipFile, parseFolderFiles } from "@/composables/useFileUploadParsing";
 
 const props = defineProps<{
   open: boolean;
@@ -38,8 +35,7 @@ const processing = ref(false);
 const processError = ref<string | null>(null);
 
 const canSubmit = computed(
-  () =>
-    fileList.value.length > 0 && (!!props.targetBucket || !!bucketName.value),
+  () => fileList.value.length > 0 && (!!props.targetBucket || !!bucketName.value),
 );
 
 watch(
@@ -107,9 +103,7 @@ const handleSubmit = () => {
 
       <div class="space-y-4 py-2">
         <div v-if="!targetBucket" class="space-y-1.5">
-          <Label for="dir-bucket-name"
-            >Bucket 名称 <span class="text-destructive">*</span></Label
-          >
+          <Label for="dir-bucket-name">Bucket 名称 <span class="text-destructive">*</span></Label>
           <Input
             id="dir-bucket-name"
             v-model="bucketName"
@@ -121,20 +115,12 @@ const handleSubmit = () => {
         <div class="space-y-2">
           <Label>选择内容</Label>
           <div class="grid grid-cols-2 gap-2">
-            <Button
-              variant="outline"
-              class="h-20 flex-col gap-2"
-              @click="folderInputRef?.click()"
-            >
-              <Folder class="h-6 w-6 text-muted-foreground" />
+            <Button variant="outline" class="h-20 flex-col gap-2" @click="folderInputRef?.click()">
+              <Folder class="text-muted-foreground h-6 w-6" />
               <span class="text-xs">选择文件夹</span>
             </Button>
-            <Button
-              variant="outline"
-              class="h-20 flex-col gap-2"
-              @click="zipInputRef?.click()"
-            >
-              <FileArchive class="h-6 w-6 text-muted-foreground" />
+            <Button variant="outline" class="h-20 flex-col gap-2" @click="zipInputRef?.click()">
+              <FileArchive class="text-muted-foreground h-6 w-6" />
               <span class="text-xs">选择 ZIP</span>
             </Button>
           </div>
@@ -145,64 +131,42 @@ const handleSubmit = () => {
             webkitdirectory
             @change="onFolderChange"
           />
-          <input
-            ref="zipInputRef"
-            type="file"
-            class="hidden"
-            accept=".zip"
-            @change="onZipChange"
-          />
+          <input ref="zipInputRef" type="file" class="hidden" accept=".zip" @change="onZipChange" />
         </div>
 
-        <div
-          v-if="processing"
-          class="flex items-center gap-2 text-sm text-muted-foreground py-2"
-        >
+        <div v-if="processing" class="text-muted-foreground flex items-center gap-2 py-2 text-sm">
           <Loader2 class="h-4 w-4 animate-spin" />正在处理文件...
         </div>
         <div v-else-if="fileList.length" class="space-y-1.5">
           <div class="flex items-center justify-between">
             <Label>已选 {{ fileList.length }} 个文件</Label>
-            <Button
-              variant="ghost"
-              size="sm"
-              class="h-6 text-xs"
-              @click="fileList = []"
-            >
-              <X class="h-3 w-3 mr-1" />清除
+            <Button variant="ghost" size="sm" class="h-6 text-xs" @click="fileList = []">
+              <X class="mr-1 h-3 w-3" />清除
             </Button>
           </div>
-          <div class="border rounded-md max-h-32 overflow-y-auto">
+          <div class="max-h-32 overflow-y-auto rounded-md border">
             <div
               v-for="f in fileList.slice(0, 50)"
               :key="f.path"
-              class="px-3 py-1 text-xs font-mono border-b last:border-0 text-muted-foreground"
+              class="text-muted-foreground border-b px-3 py-1 font-mono text-xs last:border-0"
             >
               {{ f.path }}
             </div>
-            <div
-              v-if="fileList.length > 50"
-              class="px-3 py-1 text-xs text-muted-foreground italic"
-            >
+            <div v-if="fileList.length > 50" class="text-muted-foreground px-3 py-1 text-xs italic">
               ...还有 {{ fileList.length - 50 }} 个文件
             </div>
           </div>
         </div>
 
-        <p v-if="processError || error" class="text-sm text-destructive">
+        <p v-if="processError || error" class="text-destructive text-sm">
           {{ processError || error }}
         </p>
       </div>
 
       <DialogFooter>
-        <Button variant="outline" @click="emit('update:open', false)"
-          >取消</Button
-        >
-        <Button
-          :disabled="loading || processing || !canSubmit"
-          @click="handleSubmit"
-        >
-          <Loader2 v-if="loading" class="h-4 w-4 mr-1 animate-spin" />
+        <Button variant="outline" @click="emit('update:open', false)">取消</Button>
+        <Button :disabled="loading || processing || !canSubmit" @click="handleSubmit">
+          <Loader2 v-if="loading" class="mr-1 h-4 w-4 animate-spin" />
           {{ targetBucket ? "上传" : "创建并上传" }}
         </Button>
       </DialogFooter>

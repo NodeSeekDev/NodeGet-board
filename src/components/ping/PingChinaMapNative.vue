@@ -59,34 +59,27 @@ function buildProvinceData(results: PingResult[], ispFilter: ISP | "all") {
     {
       latencies: number[];
       hasCompleted: boolean;
-      ispData: Partial<
-        Record<string, { latencies: number[]; hasCompleted: boolean }>
-      >;
+      ispData: Partial<Record<string, { latencies: number[]; hasCompleted: boolean }>>;
     }
   >();
 
   for (const r of results) {
     if (r.node.isp === "international") continue; // 海外节点不上中国地图
     const prov = r.node.province;
-    if (!map.has(prov))
-      map.set(prov, { latencies: [], hasCompleted: false, ispData: {} });
+    if (!map.has(prov)) map.set(prov, { latencies: [], hasCompleted: false, ispData: {} });
     const entry = map.get(prov)!;
     const isp = r.node.isp;
 
     // ① 始终更新 ispData（不受 ispFilter 限制）
-    if (!entry.ispData[isp])
-      entry.ispData[isp] = { latencies: [], hasCompleted: false };
+    if (!entry.ispData[isp]) entry.ispData[isp] = { latencies: [], hasCompleted: false };
     const ispEntry = entry.ispData[isp]!;
-    if (r.status === "success" && r.avg !== null)
-      ispEntry.latencies.push(r.avg);
-    if (r.status === "success" || r.status === "failed")
-      ispEntry.hasCompleted = true;
+    if (r.status === "success" && r.avg !== null) ispEntry.latencies.push(r.avg);
+    if (r.status === "success" || r.status === "failed") ispEntry.hasCompleted = true;
 
     // ② 受 ispFilter 限制，更新整体 latencies（用于地图着色）
     if (ispFilter === "all" || r.node.isp === ispFilter) {
       if (r.status === "success" && r.avg !== null) entry.latencies.push(r.avg);
-      if (r.status === "success" || r.status === "failed")
-        entry.hasCompleted = true;
+      if (r.status === "success" || r.status === "failed") entry.hasCompleted = true;
     }
   }
 
@@ -95,44 +88,32 @@ function buildProvinceData(results: PingResult[], ispFilter: ISP | "all") {
   ): number | null => {
     if (!d) return null;
     const avg =
-      d.latencies.length > 0
-        ? d.latencies.reduce((a, b) => a + b, 0) / d.latencies.length
-        : null;
+      d.latencies.length > 0 ? d.latencies.reduce((a, b) => a + b, 0) / d.latencies.length : null;
     return avg !== null ? Math.round(avg) : d.hasCompleted ? 9999 : null;
   };
 
-  return Array.from(map.entries()).map(
-    ([name, { latencies, hasCompleted, ispData }]) => {
-      const avg =
-        latencies.length > 0
-          ? latencies.reduce((a, b) => a + b, 0) / latencies.length
-          : null;
-      const value =
-        avg !== null
-          ? Math.round(avg)
-          : hasCompleted && latencies.length === 0
-            ? 9999
-            : null;
+  return Array.from(map.entries()).map(([name, { latencies, hasCompleted, ispData }]) => {
+    const avg =
+      latencies.length > 0 ? latencies.reduce((a, b) => a + b, 0) / latencies.length : null;
+    const value =
+      avg !== null ? Math.round(avg) : hasCompleted && latencies.length === 0 ? 9999 : null;
 
-      const telecom = getIspValue(ispData["telecom"]);
-      const unicom = getIspValue(ispData["unicom"]);
-      const mobile = getIspValue(ispData["mobile"]);
+    const telecom = getIspValue(ispData["telecom"]);
+    const unicom = getIspValue(ispData["unicom"]);
+    const mobile = getIspValue(ispData["mobile"]);
 
-      const ispValues = [telecom, unicom, mobile].filter(
-        (v): v is number => v !== null,
-      );
-      const fastest = ispValues.length > 0 ? Math.min(...ispValues) : null;
+    const ispValues = [telecom, unicom, mobile].filter((v): v is number => v !== null);
+    const fastest = ispValues.length > 0 ? Math.min(...ispValues) : null;
 
-      return {
-        name: PROVINCE_FULL_NAME[name] ?? name,
-        value,
-        telecom,
-        unicom,
-        mobile,
-        fastest,
-      };
-    },
-  );
+    return {
+      name: PROVINCE_FULL_NAME[name] ?? name,
+      value,
+      telecom,
+      unicom,
+      mobile,
+      fastest,
+    };
+  });
 }
 
 function initOption(): echarts.EChartsOption {
@@ -226,9 +207,9 @@ function buildHighlightData(
 
 onMounted(async () => {
   try {
-    const geoJson = await fetch(
-      `${import.meta.env.BASE_URL}geo/100000_full.json`,
-    ).then((r) => r.json());
+    const geoJson = await fetch(`${import.meta.env.BASE_URL}geo/100000_full.json`).then((r) =>
+      r.json(),
+    );
     echarts.registerMap("china", geoJson);
 
     if (!chartEl.value) return;
@@ -238,9 +219,8 @@ onMounted(async () => {
     chart.on("click", (params: any) => {
       if (params.componentType !== "series") return;
       const shortName =
-        Object.keys(PROVINCE_FULL_NAME).find(
-          (k) => PROVINCE_FULL_NAME[k] === params.name,
-        ) ?? params.name;
+        Object.keys(PROVINCE_FULL_NAME).find((k) => PROVINCE_FULL_NAME[k] === params.name) ??
+        params.name;
       emit("province-click", shortName);
     });
 
@@ -248,11 +228,7 @@ onMounted(async () => {
       chart.setOption({
         series: [
           {
-            data: buildHighlightData(
-              props.results,
-              props.ispFilter,
-              props.selectedProvince,
-            ),
+            data: buildHighlightData(props.results, props.ispFilter, props.selectedProvince),
           },
         ],
       });
@@ -272,9 +248,7 @@ watch(
   ([results, ispFilter, selectedProvince]) => {
     if (!chart) return;
     chart.setOption({
-      series: [
-        { data: buildHighlightData(results, ispFilter, selectedProvince) },
-      ],
+      series: [{ data: buildHighlightData(results, ispFilter, selectedProvince) }],
     });
   },
   { deep: true },

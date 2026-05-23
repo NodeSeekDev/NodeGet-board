@@ -34,10 +34,7 @@ const themeStore = useThemeStore();
 const key = ref("");
 const editorValue = ref("");
 
-const extensions = computed(() => [
-  json(),
-  ...(themeStore.isDark ? [oneDark] : []),
-]);
+const extensions = computed(() => [json(), ...(themeStore.isDark ? [oneDark] : [])]);
 
 watch(
   () => props.open,
@@ -45,9 +42,7 @@ watch(
     if (open) {
       key.value = props.editKey ?? "";
       editorValue.value =
-        props.editValue !== undefined
-          ? JSON.stringify(props.editValue, null, 2)
-          : "{}";
+        props.editValue !== undefined ? JSON.stringify(props.editValue, null, 2) : "{}";
     }
   },
 );
@@ -71,9 +66,7 @@ const close = () => emit("update:open", false);
   <Dialog :open="open" @update:open="emit('update:open', $event)">
     <DialogContent class="max-w-2xl">
       <DialogHeader>
-        <DialogTitle>{{
-          isEditMode() ? "编辑 Key-Value" : "新增 Key-Value"
-        }}</DialogTitle>
+        <DialogTitle>{{ isEditMode() ? "编辑 Key-Value" : "新增 Key-Value" }}</DialogTitle>
         <DialogDescription>Value 必须为合法的 JSON 格式</DialogDescription>
       </DialogHeader>
 
@@ -85,7 +78,7 @@ const close = () => emit("update:open", false);
 
         <div class="space-y-2">
           <Label>Value</Label>
-          <div class="rounded-md border overflow-hidden">
+          <div class="overflow-hidden rounded-md border">
             <Codemirror
               v-model="editorValue"
               :extensions="extensions"

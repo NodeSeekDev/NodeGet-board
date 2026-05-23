@@ -63,11 +63,7 @@ const ensureNonEmptyString = (value: unknown, fieldName: string) => {
   return value.trim();
 };
 
-const ensureAllowedValue = (
-  value: string,
-  allowed: Set<string>,
-  fieldName: string,
-) => {
+const ensureAllowedValue = (value: string, allowed: Set<string>, fieldName: string) => {
   if (!allowed.has(value)) {
     throw new Error(`invalid_${fieldName}`);
   }
@@ -94,17 +90,11 @@ const validatePermissionEntry = (entry: PermissionEntry, index: number) => {
   if ("static_monitoring" in entry) {
     const value = entry.static_monitoring;
     if (value === "write" || value === "delete") return;
-    const [action, target] = ensureSingleKeyObject(
-      value,
-      `static_monitoring_${index}`,
-    );
+    const [action, target] = ensureSingleKeyObject(value, `static_monitoring_${index}`);
     if (action !== "read" && action !== "write") {
       throw new Error(`invalid_static_monitoring_${index}`);
     }
-    const normalizedTarget = ensureNonEmptyString(
-      target,
-      `static_monitoring_${index}`,
-    );
+    const normalizedTarget = ensureNonEmptyString(target, `static_monitoring_${index}`);
     if (action === "read") {
       ensureAllowedValue(
         normalizedTarget,
@@ -118,10 +108,7 @@ const validatePermissionEntry = (entry: PermissionEntry, index: number) => {
   if ("dynamic_monitoring" in entry) {
     const value = entry.dynamic_monitoring;
     if (value === "write" || value === "delete") return;
-    const [action, target] = ensureSingleKeyObject(
-      value,
-      `dynamic_monitoring_${index}`,
-    );
+    const [action, target] = ensureSingleKeyObject(value, `dynamic_monitoring_${index}`);
     if (action !== "read") {
       throw new Error(`invalid_dynamic_monitoring_${index}`);
     }
@@ -153,11 +140,7 @@ const validatePermissionEntry = (entry: PermissionEntry, index: number) => {
     if (action !== "create" && action !== "read" && action !== "write") {
       throw new Error(`invalid_task_${index}`);
     }
-    ensureAllowedValue(
-      ensureNonEmptyString(target, `task_${index}`),
-      TASK_TYPES,
-      `task_${index}`,
-    );
+    ensureAllowedValue(ensureNonEmptyString(target, `task_${index}`), TASK_TYPES, `task_${index}`);
     return;
   }
 
@@ -168,10 +151,7 @@ const validatePermissionEntry = (entry: PermissionEntry, index: number) => {
   }
 
   if ("crontab_result" in entry) {
-    const [action, target] = ensureSingleKeyObject(
-      entry.crontab_result,
-      `crontab_result_${index}`,
-    );
+    const [action, target] = ensureSingleKeyObject(entry.crontab_result, `crontab_result_${index}`);
     if (action !== "read" && action !== "delete") {
       throw new Error(`invalid_crontab_result_${index}`);
     }
@@ -212,10 +192,7 @@ const validatePermissionEntry = (entry: PermissionEntry, index: number) => {
   }
 
   if ("js_result" in entry) {
-    const [action, target] = ensureSingleKeyObject(
-      entry.js_result,
-      `js_result_${index}`,
-    );
+    const [action, target] = ensureSingleKeyObject(entry.js_result, `js_result_${index}`);
     if (action !== "read" && action !== "delete") {
       throw new Error(`invalid_js_result_${index}`);
     }
@@ -285,14 +262,8 @@ export const parseTokenPayloadObject = (payload: unknown): Token => {
     version: ensureFiniteNumber(source.version, "version"),
     username: ensureOptionalString(source.username, "username"),
     password: ensureOptionalString(source.password, "password"),
-    timestamp_from: ensureOptionalFiniteNumber(
-      source.timestamp_from,
-      "timestamp_from",
-    ),
-    timestamp_to: ensureOptionalFiniteNumber(
-      source.timestamp_to,
-      "timestamp_to",
-    ),
+    timestamp_from: ensureOptionalFiniteNumber(source.timestamp_from, "timestamp_from"),
+    timestamp_to: ensureOptionalFiniteNumber(source.timestamp_to, "timestamp_to"),
     token_limit: parseTokenLimit(source.token_limit),
   };
 };
@@ -332,9 +303,7 @@ export const applyPartialTokenPayload = (
   const source = payload as Record<string, unknown>;
   const nextToken: Token = {
     ...baseToken,
-    token_limit: cloneTokenLimitEntries(
-      baseToken.token_limit ?? createDefaultToken().token_limit,
-    ),
+    token_limit: cloneTokenLimitEntries(baseToken.token_limit ?? createDefaultToken().token_limit),
   };
   const dataIssues: string[] = [];
 
@@ -375,10 +344,7 @@ export const applyPartialTokenPayload = (
 
   if ("timestamp_to" in source) {
     try {
-      nextToken.timestamp_to = ensureOptionalFiniteNumber(
-        source.timestamp_to,
-        "timestamp_to",
-      );
+      nextToken.timestamp_to = ensureOptionalFiniteNumber(source.timestamp_to, "timestamp_to");
     } catch (error) {
       dataIssues.push((error as Error).message);
     }

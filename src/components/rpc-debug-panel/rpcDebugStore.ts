@@ -1,23 +1,9 @@
 import { computed, reactive, ref } from "vue";
-import {
-  addRpcDebugWebSocketListener,
-  type RpcDebugWebSocketEvent,
-} from "./websocketPatch";
+import { addRpcDebugWebSocketListener, type RpcDebugWebSocketEvent } from "./websocketPatch";
 
-export type RpcDebugRecordKind =
-  | "call"
-  | "subscription"
-  | "notification"
-  | "batch"
-  | "raw";
+export type RpcDebugRecordKind = "call" | "subscription" | "notification" | "batch" | "raw";
 
-export type RpcDebugRecordStatus =
-  | "pending"
-  | "success"
-  | "error"
-  | "streaming"
-  | "closed"
-  | "raw";
+export type RpcDebugRecordStatus = "pending" | "success" | "error" | "streaming" | "closed" | "raw";
 
 export interface RpcDebugRecord {
   recordId: string;
@@ -93,9 +79,7 @@ const sensitiveKeys = new Set([
 ]);
 
 function methodTokenInFirstArrayParam(method: string) {
-  return /^(agent_|task_|kv_|crontab_|js-|js_|token_|nodeget-server_)/.test(
-    method,
-  );
+  return /^(agent_|task_|kv_|crontab_|js-|js_|token_|nodeget-server_)/.test(method);
 }
 
 function now() {
@@ -131,9 +115,7 @@ export function maskDebugValue(value: unknown, method = ""): unknown {
   if (!settings.maskTokens) return value;
   if (Array.isArray(value)) {
     return value.map((item, index) =>
-      index === 0 &&
-      typeof item === "string" &&
-      methodTokenInFirstArrayParam(method)
+      index === 0 && typeof item === "string" && methodTokenInFirstArrayParam(method)
         ? maskToken(item)
         : maskDebugValue(item, method),
     );
@@ -183,13 +165,8 @@ function updateRecord(recordId: string, patch: Partial<RpcDebugRecord>) {
   Object.assign(record, patch);
 }
 
-function recordOutgoingRpc(
-  connectionId: number,
-  url: string,
-  msg: JsonRpcLike,
-) {
-  const method =
-    typeof msg.method === "string" ? msg.method : "JSON-RPC Request";
+function recordOutgoingRpc(connectionId: number, url: string, msg: JsonRpcLike) {
+  const method = typeof msg.method === "string" ? msg.method : "JSON-RPC Request";
   const id = msg.id == null ? undefined : String(msg.id);
   const recordId = makeRecordId();
   const isSubscription = method.includes("stream_");
@@ -210,14 +187,9 @@ function recordOutgoingRpc(
   if (id != null) pendingByRpcId.set(pendingKey(connectionId, id), recordId);
 }
 
-function recordIncomingRpc(
-  connectionId: number,
-  url: string,
-  msg: JsonRpcLike,
-) {
+function recordIncomingRpc(connectionId: number, url: string, msg: JsonRpcLike) {
   const id = msg.id == null ? undefined : String(msg.id);
-  const method =
-    typeof msg.method === "string" ? msg.method : "JSON-RPC Response";
+  const method = typeof msg.method === "string" ? msg.method : "JSON-RPC Response";
 
   if (id != null) {
     const key = pendingKey(connectionId, id);
@@ -241,18 +213,13 @@ function recordIncomingRpc(
   if (typeof msg.method === "string" && msg.id == null) {
     if (!settings.captureNotifications) return;
     const params =
-      msg.params && typeof msg.params === "object"
-        ? (msg.params as Record<string, unknown>)
-        : {};
+      msg.params && typeof msg.params === "object" ? (msg.params as Record<string, unknown>) : {};
     appendRecord({
       recordId: makeRecordId(),
       connectionId,
       url,
       method,
-      subscription:
-        typeof params.subscription === "string"
-          ? params.subscription
-          : undefined,
+      subscription: typeof params.subscription === "string" ? params.subscription : undefined,
       kind: "notification",
       status: "success",
       startedAt: now(),

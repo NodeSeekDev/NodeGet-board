@@ -13,10 +13,7 @@ const props = defineProps<{
     data-slot="table-container"
     :class="cn('relative w-full overflow-auto', props.tableContainerClass)"
   >
-    <table
-      data-slot="table"
-      :class="cn('w-full caption-bottom text-sm', props.class)"
-    >
+    <table data-slot="table" :class="cn('w-full caption-bottom text-sm', props.class)">
       <slot />
     </table>
   </div>

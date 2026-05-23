@@ -7,20 +7,15 @@ import type { FullDynamicSummaryResponseItem } from "@/types/monitoring";
 import { DYNAMIC_SUMMARY_FIELDS } from "@/types/monitoring";
 import { OFFLINE_AFTER_MS } from "@/utils/show";
 
-type FullDynamicSummaryResponseItemWithOnline =
-  FullDynamicSummaryResponseItem & {
-    online: boolean;
-  };
+type FullDynamicSummaryResponseItemWithOnline = FullDynamicSummaryResponseItem & {
+  online: boolean;
+};
 
 /*
   获取所有节点的最新动态摘要
 */
-export function useDynamicSummaryMultiLast(
-  backend = useBackendStore().currentBackend,
-) {
-  const status = ref<"disconnected" | "connecting" | "connected">(
-    "disconnected",
-  );
+export function useDynamicSummaryMultiLast(backend = useBackendStore().currentBackend) {
+  const status = ref<"disconnected" | "connecting" | "connected">("disconnected");
   const error = ref("");
   const servers = ref<FullDynamicSummaryResponseItemWithOnline[]>([]);
   const queryFields = DYNAMIC_SUMMARY_FIELDS;
@@ -75,8 +70,7 @@ export function useDynamicSummaryMultiLast(
   watch(
     backend,
     (newVal, oldVal) => {
-      if (newVal?.url === oldVal?.url && newVal?.token === oldVal?.token)
-        return;
+      if (newVal?.url === oldVal?.url && newVal?.token === oldVal?.token) return;
       servers.value = [];
       status.value = "disconnected";
       if (newVal) void refresh();

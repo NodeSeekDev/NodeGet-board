@@ -104,7 +104,7 @@ async function saveBody() {
 <template>
   <div class="space-y-4">
     <div>
-      <h1 class="text-xl font-bold mb-1">
+      <h1 class="mb-1 text-xl font-bold">
         {{ $t("dashboard.settings.site.custom") }}
       </h1>
       <p class="text-muted-foreground text-sm">
@@ -112,11 +112,9 @@ async function saveBody() {
       </p>
     </div>
 
-    <Card class="py-4 gap-3">
+    <Card class="gap-3 py-4">
       <CardHeader class="px-4">
-        <CardTitle class="text-base">{{
-          $t("dashboard.settings.site.customHeader")
-        }}</CardTitle>
+        <CardTitle class="text-base">{{ $t("dashboard.settings.site.customHeader") }}</CardTitle>
         <CardDescription>
           {{ $t("dashboard.settings.site.customHeaderDesc") }}
         </CardDescription>
@@ -125,26 +123,20 @@ async function saveBody() {
         <textarea
           v-model="localHeader"
           :disabled="status === 'loading'"
-          class="flex min-h-[96px] w-full rounded-md border bg-transparent px-3 py-2 text-sm font-mono shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:opacity-50"
+          class="placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 flex min-h-[96px] w-full rounded-md border bg-transparent px-3 py-2 font-mono text-sm shadow-xs outline-none focus-visible:ring-[3px] disabled:opacity-50"
           placeholder="<script>...</script>"
         />
       </CardContent>
       <CardFooter class="justify-end px-4">
-        <Button
-          size="sm"
-          :disabled="savingHeader || status === 'loading'"
-          @click="saveHeader"
-        >
+        <Button size="sm" :disabled="savingHeader || status === 'loading'" @click="saveHeader">
           {{ savingHeader ? $t("dashboard.saving") : $t("dashboard.save") }}
         </Button>
       </CardFooter>
     </Card>
 
-    <Card class="py-4 gap-3">
+    <Card class="gap-3 py-4">
       <CardHeader class="px-4">
-        <CardTitle class="text-base">{{
-          $t("dashboard.settings.site.customBody")
-        }}</CardTitle>
+        <CardTitle class="text-base">{{ $t("dashboard.settings.site.customBody") }}</CardTitle>
         <CardDescription>
           {{ $t("dashboard.settings.site.customBodyDesc") }}
         </CardDescription>
@@ -153,16 +145,12 @@ async function saveBody() {
         <textarea
           v-model="localBody"
           :disabled="status === 'loading'"
-          class="flex min-h-[96px] w-full rounded-md border bg-transparent px-3 py-2 text-sm font-mono shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:opacity-50"
+          class="placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 flex min-h-[96px] w-full rounded-md border bg-transparent px-3 py-2 font-mono text-sm shadow-xs outline-none focus-visible:ring-[3px] disabled:opacity-50"
           placeholder="<script>...</script>"
         />
       </CardContent>
       <CardFooter class="justify-end px-4">
-        <Button
-          size="sm"
-          :disabled="savingBody || status === 'loading'"
-          @click="saveBody"
-        >
+        <Button size="sm" :disabled="savingBody || status === 'loading'" @click="saveBody">
           {{ savingBody ? $t("dashboard.saving") : $t("dashboard.save") }}
         </Button>
       </CardFooter>

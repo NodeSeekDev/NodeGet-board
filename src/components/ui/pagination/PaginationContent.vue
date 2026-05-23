@@ -5,9 +5,7 @@ import { reactiveOmit } from "@vueuse/core";
 import { PaginationList } from "reka-ui";
 import { cn } from "@/lib/utils";
 
-const props = defineProps<
-  PaginationListProps & { class?: HTMLAttributes["class"] }
->();
+const props = defineProps<PaginationListProps & { class?: HTMLAttributes["class"] }>();
 
 const delegatedProps = reactiveOmit(props, "class");
 </script>

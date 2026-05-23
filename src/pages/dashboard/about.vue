@@ -17,8 +17,5 @@ const rendered = md.render(about);
 </script>
 
 <template>
-  <div
-    class="prose prose-sm dark:prose-invert max-w-none"
-    v-html="rendered"
-  ></div>
+  <div class="prose prose-sm dark:prose-invert max-w-none" v-html="rendered"></div>
 </template>

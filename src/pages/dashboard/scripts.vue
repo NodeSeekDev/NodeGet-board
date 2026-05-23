@@ -53,9 +53,7 @@ const onDel = async (scriptName: string) => {
   } catch (e: any) {
     toast.error(e.message);
   }
-  deletingNames.value = deletingNames.value.filter(
-    (name) => name !== scriptName,
-  );
+  deletingNames.value = deletingNames.value.filter((name) => name !== scriptName);
 };
 
 // 修改Order
@@ -118,21 +116,17 @@ const handleSave = async (script: Script) => {
     <div class="flex items-start justify-between">
       <div class="flex-1">
         <h1 class="text-2xl font-semibold">{{ $t("router.scripts") }}</h1>
-        <p class="text-sm text-muted-foreground mt-1 mb-2">
+        <p class="text-muted-foreground mt-1 mb-2 text-sm">
           {{ $t("dashboard.scripts.desc") }}
         </p>
       </div>
-      <div class="flex flex-col md:flex-row gap-1 md:gap-2">
+      <div class="flex flex-col gap-1 md:flex-row md:gap-2">
         <Button @click="sortable = !sortable" size="sm" variant="outline">
-          <Menu class="h-4 w-4 mr-1.5" />
-          {{
-            sortable
-              ? $t("dashboard.scripts.sortSave")
-              : $t("dashboard.scripts.sortEdit")
-          }}
+          <Menu class="mr-1.5 h-4 w-4" />
+          {{ sortable ? $t("dashboard.scripts.sortSave") : $t("dashboard.scripts.sortEdit") }}
         </Button>
         <Button @click="openCreate" size="sm">
-          <Plus class="h-4 w-4 mr-1.5" />
+          <Plus class="mr-1.5 h-4 w-4" />
           {{ $t("dashboard.scripts.create") }}
         </Button>
       </div>

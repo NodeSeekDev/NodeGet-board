@@ -74,22 +74,18 @@ watch(
   <div class="text-muted-foreground flex flex-col gap-1">
     <div
       v-if="props.result.length === 0"
-      class="flex items-center justify-center space-x-2 p-4 w-full h-20"
+      class="flex h-20 w-full items-center justify-center space-x-2 p-4"
     >
       <div class="text-center">{{ $t("dashboard.batchExec.waitToRun") }}</div>
     </div>
-    <div
-      v-for="node in props.result"
-      :key="node.uuid"
-      class="border rounded-md p-2"
-    >
+    <div v-for="node in props.result" :key="node.uuid" class="rounded-md border p-2">
       <div
-        class="flex flex-row gap-2 items-center cursor-pointer select-none"
-        :class="expandedMap[node.uuid] ? 'border-b pb-2 mb-2' : ''"
+        class="flex cursor-pointer flex-row items-center gap-2 select-none"
+        :class="expandedMap[node.uuid] ? 'mb-2 border-b pb-2' : ''"
         @click="toggleItem(node.uuid)"
       >
         <ChevronRight
-          class="w-4 h-4 transition-transform duration-200"
+          class="h-4 w-4 transition-transform duration-200"
           :class="{ 'rotate-90': expandedMap[node.uuid] }"
         />
         <div>
@@ -102,7 +98,7 @@ watch(
 
       <pre
         v-show="expandedMap[node.uuid]"
-        class="bg-black text-green-400 font-mono p-4 rounded overflow-auto shadow-lg max-h-[300px]"
+        class="max-h-[300px] overflow-auto rounded bg-black p-4 font-mono text-green-400 shadow-lg"
         :key="`${node.uuid}-${node.status}`"
       >
         {{

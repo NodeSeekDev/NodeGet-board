@@ -70,8 +70,7 @@ const autoEnable = ref(true);
 const tokenPresetChoice = ref<TokenPresetChoice>("monitor_ping");
 
 const isImporting = computed(
-  () =>
-    step.value !== "idle" && step.value !== "done" && step.value !== "error",
+  () => step.value !== "idle" && step.value !== "done" && step.value !== "error",
 );
 
 const stepLabel: Record<Step, string> = {
@@ -109,11 +108,7 @@ const normalizeFileList = (raw: unknown): string[] => {
   if (!Array.isArray(raw)) return [];
   return raw.map((item) => {
     if (typeof item === "string") return item;
-    if (
-      item &&
-      typeof item === "object" &&
-      typeof (item as { path?: unknown }).path === "string"
-    ) {
+    if (item && typeof item === "object" && typeof (item as { path?: unknown }).path === "string") {
       return (item as { path: string }).path;
     }
     return String(item);
@@ -134,15 +129,13 @@ const handleImport = async () => {
 
     step.value = "fetching-meta";
     const metaRes = await fetch(`${baseUrl}/nodeget-theme.json`);
-    if (!metaRes.ok)
-      throw new Error(`获取主题信息失败：HTTP ${metaRes.status}`);
+    if (!metaRes.ok) throw new Error(`获取主题信息失败：HTTP ${metaRes.status}`);
     const meta = (await metaRes.json()) as Record<string, unknown>;
     const short = meta.short;
     if (typeof short !== "string" || !short) {
       throw new Error("nodeget-theme.json 中缺少 short 字段");
     }
-    detectedThemeName.value =
-      typeof meta.name === "string" && meta.name ? meta.name : short;
+    detectedThemeName.value = typeof meta.name === "string" && meta.name ? meta.name : short;
     const bucketName = `theme_${short}`;
 
     step.value = "creating-bucket";
@@ -168,8 +161,7 @@ const handleImport = async () => {
 
     step.value = "fetching-files";
     const filesRes = await fetch(`${baseUrl}/nodeget-theme-files.json`);
-    if (!filesRes.ok)
-      throw new Error(`获取文件列表失败：HTTP ${filesRes.status}`);
+    if (!filesRes.ok) throw new Error(`获取文件列表失败：HTTP ${filesRes.status}`);
     const rawFileList = await filesRes.json();
     const fileList = normalizeFileList(rawFileList);
 
@@ -184,15 +176,11 @@ const handleImport = async () => {
     const entries: UploadEntry[] = [
       {
         path: "nodeget-theme.json",
-        base64: bufToBase64(
-          new TextEncoder().encode(JSON.stringify(meta, null, 2)),
-        ),
+        base64: bufToBase64(new TextEncoder().encode(JSON.stringify(meta, null, 2))),
       },
       {
         path: "nodeget-theme-files.json",
-        base64: bufToBase64(
-          new TextEncoder().encode(JSON.stringify(rawFileList, null, 2)),
-        ),
+        base64: bufToBase64(new TextEncoder().encode(JSON.stringify(rawFileList, null, 2))),
       },
     ];
     let downloadFailed = 0;
@@ -233,15 +221,10 @@ const handleImport = async () => {
         try {
           const presets = await loadOrInitPresets();
           const targetName =
-            tokenPresetChoice.value === "monitor_ping"
-              ? "本机 监控+ping"
-              : "本机 纯监控";
+            tokenPresetChoice.value === "monitor_ping" ? "本机 监控+ping" : "本机 纯监控";
           const preset = presets.find((p) => p.name === targetName);
           if (preset) {
-            const configText = await sbf.readTextFile(
-              bucketName,
-              "config.json",
-            );
+            const configText = await sbf.readTextFile(bucketName, "config.json");
             if (!configText) {
               toast.warning("Token 预设应用失败：未能读取主题配置文件");
             } else {
@@ -253,17 +236,11 @@ const handleImport = async () => {
                   token: preset.token,
                 },
               ];
-              await sbf.saveTextFile(
-                bucketName,
-                "config.json",
-                JSON.stringify(config, null, 2),
-              );
+              await sbf.saveTextFile(bucketName, "config.json", JSON.stringify(config, null, 2));
             }
           }
         } catch (e) {
-          toast.warning(
-            `Token 预设应用失败：${e instanceof Error ? e.message : String(e)}`,
-          );
+          toast.warning(`Token 预设应用失败：${e instanceof Error ? e.message : String(e)}`);
         }
       }
 
@@ -278,9 +255,7 @@ const handleImport = async () => {
             enable: true,
           });
         } catch (e) {
-          toast.warning(
-            `自动启用失败：${e instanceof Error ? e.message : String(e)}`,
-          );
+          toast.warning(`自动启用失败：${e instanceof Error ? e.message : String(e)}`);
         }
       }
     }
@@ -307,9 +282,7 @@ const handleImport = async () => {
   <Dialog :open="open" @update:open="$emit('update:open', $event)">
     <DialogContent class="sm:max-w-lg">
       <DialogHeader>
-        <DialogTitle>{{
-          targetBucket ? "从远程更新主题" : "从远程导入主题"
-        }}</DialogTitle>
+        <DialogTitle>{{ targetBucket ? "从远程更新主题" : "从远程导入主题" }}</DialogTitle>
       </DialogHeader>
 
       <div class="space-y-4 py-2">
@@ -321,15 +294,12 @@ const handleImport = async () => {
             placeholder="example.com 或 https://example.com"
             :disabled="isImporting"
           />
-          <p class="text-xs text-muted-foreground">
+          <p class="text-muted-foreground text-xs">
             将自动拉取该站点的 nodeget-theme.json 和 nodeget-theme-files.json
           </p>
         </div>
 
-        <div
-          v-if="!targetBucket"
-          class="overflow-hidden rounded-md border text-sm"
-        >
+        <div v-if="!targetBucket" class="overflow-hidden rounded-md border text-sm">
           <div class="bg-muted px-3 py-1.5 text-xs font-medium">安装选项</div>
           <div class="divide-y">
             <div class="flex items-center justify-between px-3 py-2">
@@ -344,42 +314,25 @@ const handleImport = async () => {
                 class="flex items-center gap-4"
               >
                 <div class="flex items-center gap-1.5">
-                  <RadioGroupItem
-                    id="preset-monitor-only"
-                    value="monitor_only"
-                  />
-                  <Label
-                    for="preset-monitor-only"
-                    class="cursor-pointer font-normal"
-                    >纯监控</Label
-                  >
+                  <RadioGroupItem id="preset-monitor-only" value="monitor_only" />
+                  <Label for="preset-monitor-only" class="cursor-pointer font-normal">纯监控</Label>
                 </div>
                 <div class="flex items-center gap-1.5">
-                  <RadioGroupItem
-                    id="preset-monitor-ping"
-                    value="monitor_ping"
-                  />
-                  <Label
-                    for="preset-monitor-ping"
-                    class="cursor-pointer font-normal"
+                  <RadioGroupItem id="preset-monitor-ping" value="monitor_ping" />
+                  <Label for="preset-monitor-ping" class="cursor-pointer font-normal"
                     >监控+ping</Label
                   >
                 </div>
                 <div class="flex items-center gap-1.5">
                   <RadioGroupItem id="preset-none" value="none" />
-                  <Label for="preset-none" class="cursor-pointer font-normal"
-                    >不使用预设</Label
-                  >
+                  <Label for="preset-none" class="cursor-pointer font-normal">不使用预设</Label>
                 </div>
               </RadioGroup>
             </div>
           </div>
         </div>
 
-        <div
-          v-if="targetBucket"
-          class="overflow-hidden rounded-md border text-sm"
-        >
+        <div v-if="targetBucket" class="overflow-hidden rounded-md border text-sm">
           <div class="bg-muted px-3 py-1.5 text-xs font-medium">更新选项</div>
           <div class="divide-y">
             <div class="flex items-center justify-between px-3 py-2">
@@ -485,15 +438,12 @@ const handleImport = async () => {
           </div>
         </div>
 
-        <div
-          v-if="detectedThemeName && isImporting"
-          class="rounded-md bg-muted px-3 py-2 text-sm"
-        >
+        <div v-if="detectedThemeName && isImporting" class="bg-muted rounded-md px-3 py-2 text-sm">
           主题：<span class="font-medium">{{ detectedThemeName }}</span>
         </div>
 
         <div v-if="isImporting" class="space-y-2">
-          <div class="flex items-center gap-2 text-sm text-muted-foreground">
+          <div class="text-muted-foreground flex items-center gap-2 text-sm">
             <Loader2 class="h-4 w-4 shrink-0 animate-spin" />
             <span>
               {{ stepLabel[step] }}
@@ -504,10 +454,10 @@ const handleImport = async () => {
           </div>
           <div
             v-if="step === 'uploading' && progress.total > 0"
-            class="h-1.5 w-full overflow-hidden rounded-full bg-muted"
+            class="bg-muted h-1.5 w-full overflow-hidden rounded-full"
           >
             <div
-              class="h-full bg-primary transition-all"
+              class="bg-primary h-full transition-all"
               :style="{
                 width: `${(progress.current / progress.total) * 100}%`,
               }"
@@ -517,7 +467,7 @@ const handleImport = async () => {
 
         <div
           v-if="step === 'error' && errorMsg"
-          class="flex items-start gap-2 rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          class="border-destructive/20 bg-destructive/10 text-destructive flex items-start gap-2 rounded-md border px-3 py-2 text-sm"
         >
           <AlertCircle class="mt-0.5 h-4 w-4 shrink-0" />
           <span>{{ errorMsg }}</span>
@@ -525,17 +475,10 @@ const handleImport = async () => {
       </div>
 
       <DialogFooter>
-        <Button
-          variant="outline"
-          :disabled="isImporting"
-          @click="$emit('update:open', false)"
-        >
+        <Button variant="outline" :disabled="isImporting" @click="$emit('update:open', false)">
           取消
         </Button>
-        <Button
-          :disabled="!urlInput.trim() || isImporting"
-          @click="handleImport"
-        >
+        <Button :disabled="!urlInput.trim() || isImporting" @click="handleImport">
           <Loader2 v-if="isImporting" class="mr-1 h-4 w-4 animate-spin" />
           导入
         </Button>

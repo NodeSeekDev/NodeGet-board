@@ -66,14 +66,14 @@ const formatTime = (ts: number) => {
 <template>
   <div class="space-y-4">
     <div
-      class="rounded-xl border bg-card text-card-foreground shadow-sm overflow-hidden flex flex-col transition-all relative"
+      class="bg-card text-card-foreground relative flex flex-col overflow-hidden rounded-xl border shadow-sm transition-all"
     >
       <!-- 有数据时的加载遮罩 -->
       <div
         v-if="loading && records.length"
-        class="absolute inset-0 z-10 bg-background/40 backdrop-blur-[1px] flex flex-col items-center justify-center"
+        class="bg-background/40 absolute inset-0 z-10 flex flex-col items-center justify-center backdrop-blur-[1px]"
       >
-        <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
+        <Loader2 class="text-muted-foreground h-8 w-8 animate-spin" />
       </div>
 
       <Table>
@@ -82,56 +82,40 @@ const formatTime = (ts: number) => {
             <TableHead class="font-medium whitespace-nowrap">{{
               t("dashboard.cron.history.recordId")
             }}</TableHead>
-            <TableHead
-              v-if="taskType === 'agent'"
-              class="font-medium whitespace-nowrap"
-              >{{ t("dashboard.cron.history.taskId") }}</TableHead
-            >
+            <TableHead v-if="taskType === 'agent'" class="font-medium whitespace-nowrap">{{
+              t("dashboard.cron.history.taskId")
+            }}</TableHead>
             <TableHead class="font-medium whitespace-nowrap">{{
               t("dashboard.cron.history.executionTime")
             }}</TableHead>
             <TableHead class="font-medium whitespace-nowrap">{{
               t("dashboard.cron.history.status")
             }}</TableHead>
-            <TableHead class="font-medium max-w-[300px]">{{
+            <TableHead class="max-w-[300px] font-medium">{{
               t("dashboard.cron.history.message")
             }}</TableHead>
-            <TableHead
-              v-if="taskType === 'agent'"
-              class="font-medium text-right pr-6"
-              >{{ t("dashboard.cron.actions") }}</TableHead
-            >
+            <TableHead v-if="taskType === 'agent'" class="pr-6 text-right font-medium">{{
+              t("dashboard.cron.actions")
+            }}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           <TableRow v-if="loading && !records.length">
-            <TableCell
-              :colspan="taskType === 'agent' ? 6 : 4"
-              class="h-[300px] text-center"
-            >
+            <TableCell :colspan="taskType === 'agent' ? 6 : 4" class="h-[300px] text-center">
               <div class="flex flex-col items-center justify-center space-y-3">
-                <Loader2
-                  class="w-6 h-6 animate-spin text-muted-foreground/50"
-                />
-                <span class="text-sm font-medium">{{
-                  t("common.loading")
-                }}</span>
+                <Loader2 class="text-muted-foreground/50 h-6 w-6 animate-spin" />
+                <span class="text-sm font-medium">{{ t("common.loading") }}</span>
               </div>
             </TableCell>
           </TableRow>
 
           <TableRow v-else-if="!records.length">
-            <TableCell
-              :colspan="taskType === 'agent' ? 6 : 4"
-              class="h-[300px] text-center"
-            >
+            <TableCell :colspan="taskType === 'agent' ? 6 : 4" class="h-[300px] text-center">
               <div
-                class="flex flex-col items-center justify-center text-muted-foreground space-y-3"
+                class="text-muted-foreground flex flex-col items-center justify-center space-y-3"
               >
-                <div
-                  class="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center"
-                >
-                  <Inbox class="w-6 h-6 text-muted-foreground/60" />
+                <div class="bg-muted/50 flex h-12 w-12 items-center justify-center rounded-full">
+                  <Inbox class="text-muted-foreground/60 h-6 w-6" />
                 </div>
                 <p class="text-sm">{{ t("dashboard.cron.history.noData") }}</p>
               </div>
@@ -141,37 +125,37 @@ const formatTime = (ts: number) => {
           <TableRow
             v-for="record in records"
             :key="record.id"
-            class="group transition-colors hover:bg-muted/40"
+            class="group hover:bg-muted/40 transition-colors"
           >
-            <TableCell class="font-mono text-sm text-foreground/80 py-3">
+            <TableCell class="text-foreground/80 py-3 font-mono text-sm">
               {{ record.id }}
             </TableCell>
 
             <TableCell
               v-if="taskType === 'agent'"
-              class="font-mono text-sm text-foreground/80 py-3"
+              class="text-foreground/80 py-3 font-mono text-sm"
             >
               <span v-if="record.relative_id">{{ record.relative_id }}</span>
               <span v-else class="text-muted-foreground/50">-</span>
             </TableCell>
 
             <TableCell class="py-3">
-              <div class="flex items-center gap-2 text-sm text-foreground/90">
+              <div class="text-foreground/90 flex items-center gap-2 text-sm">
                 <span class="font-mono">{{ formatTime(record.run_time) }}</span>
               </div>
             </TableCell>
 
             <TableCell class="py-3">
               <div
-                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border"
+                class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium"
                 :class="
                   record.success
-                    ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400'
+                    ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                     : 'bg-destructive/10 text-destructive border-destructive/20'
                 "
               >
-                <CheckCircle2 v-if="record.success" class="w-3.5 h-3.5" />
-                <XCircle v-else class="w-3.5 h-3.5" />
+                <CheckCircle2 v-if="record.success" class="h-3.5 w-3.5" />
+                <XCircle v-else class="h-3.5 w-3.5" />
                 {{
                   record.success
                     ? t("dashboard.cron.history.success")
@@ -180,22 +164,18 @@ const formatTime = (ts: number) => {
               </div>
             </TableCell>
 
-            <TableCell class="py-3 max-w-[300px]">
+            <TableCell class="max-w-[300px] py-3">
               <div
-                class="text-sm line-clamp-5 break-words whitespace-pre-wrap"
+                class="line-clamp-5 text-sm break-words whitespace-pre-wrap"
                 style="word-break: break-word"
-                :class="
-                  record.success
-                    ? 'text-muted-foreground'
-                    : 'text-destructive font-medium'
-                "
+                :class="record.success ? 'text-muted-foreground' : 'text-destructive font-medium'"
                 :title="record.message"
               >
                 {{ record.message }}
               </div>
             </TableCell>
 
-            <TableCell v-if="taskType === 'agent'" class="py-3 text-right pr-4">
+            <TableCell v-if="taskType === 'agent'" class="py-3 pr-4 text-right">
               <div class="flex items-center justify-end gap-1">
                 <Button
                   size="icon"
@@ -212,7 +192,7 @@ const formatTime = (ts: number) => {
                   <Button
                     size="icon"
                     variant="ghost"
-                    class="h-7 w-7 text-destructive hover:text-destructive"
+                    class="text-destructive hover:text-destructive h-7 w-7"
                   >
                     <Trash2 class="h-3.5 w-3.5" />
                   </Button>
@@ -225,24 +205,20 @@ const formatTime = (ts: number) => {
 
       <div
         v-if="totalPages > 1 || records.length > 0"
-        class="border-t bg-muted/10 px-4 py-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
+        class="bg-muted/10 flex flex-col gap-3 border-t px-4 py-3 md:flex-row md:items-center md:justify-between"
       >
-        <div class="flex items-center gap-3 text-sm text-muted-foreground">
+        <div class="text-muted-foreground flex items-center gap-3 text-sm">
           <div class="flex items-center gap-2">
             <span>{{ t("dashboard.cron.history.pageSize") }}</span>
             <Select
               :model-value="String(pageSize)"
               @update:model-value="emit('pageSizeChange', Number($event))"
             >
-              <SelectTrigger class="h-8 w-[88px] bg-background">
+              <SelectTrigger class="bg-background h-8 w-[88px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem
-                  v-for="option in pageSizeOptions"
-                  :key="option"
-                  :value="String(option)"
-                >
+                <SelectItem v-for="option in pageSizeOptions" :key="option" :value="String(option)">
                   {{ option }}
                 </SelectItem>
               </SelectContent>
@@ -254,22 +230,22 @@ const formatTime = (ts: number) => {
           <Button
             variant="outline"
             size="sm"
-            class="h-8 px-3 shadow-sm bg-background transition-colors hover:bg-muted"
+            class="bg-background hover:bg-muted h-8 px-3 shadow-sm transition-colors"
             :disabled="currentPage <= 1 || loading"
             @click="emit('pageChange', currentPage - 1)"
           >
-            <ChevronLeft class="w-4 h-4 mr-1" />
+            <ChevronLeft class="mr-1 h-4 w-4" />
             {{ t("common.previous") }}
           </Button>
           <Button
             variant="outline"
             size="sm"
-            class="h-8 px-3 shadow-sm bg-background transition-colors hover:bg-muted"
+            class="bg-background hover:bg-muted h-8 px-3 shadow-sm transition-colors"
             :disabled="currentPage >= totalPages || loading"
             @click="emit('pageChange', currentPage + 1)"
           >
             {{ t("common.next") }}
-            <ChevronRight class="w-4 h-4 ml-1" />
+            <ChevronRight class="ml-1 h-4 w-4" />
           </Button>
         </div>
       </div>

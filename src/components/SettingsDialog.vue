@@ -15,8 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { useThemeStore } from "@/stores/theme";
 
 const background = inject<Ref<"default" | "flickering">>("background");
-const setBackground =
-  inject<(val: "default" | "flickering") => void>("setBackground");
+const setBackground = inject<(val: "default" | "flickering") => void>("setBackground");
 const { locale, t } = useI18n();
 const themeStore = useThemeStore();
 
@@ -67,7 +66,7 @@ const handleBackgroundToggle = () => {
           <Label>{{ t("settings.background") }}</Label>
           <Button
             variant="outline"
-            class="w-full justify-start gap-3 h-12 transition-all duration-300"
+            class="h-12 w-full justify-start gap-3 transition-all duration-300"
             :class="[animatingBackground && 'scale-[1.02]']"
             @click="handleBackgroundToggle"
           >
@@ -90,7 +89,7 @@ const handleBackgroundToggle = () => {
           <Label>{{ t("settings.theme") }}</Label>
           <Button
             variant="outline"
-            class="w-full justify-start gap-3 h-12 transition-all duration-300"
+            class="h-12 w-full justify-start gap-3 transition-all duration-300"
             :class="[animatingTheme && 'scale-[1.02]']"
             @click="handleThemeToggle"
           >
@@ -104,9 +103,7 @@ const handleBackgroundToggle = () => {
               class="h-5 w-5 text-orange-600"
               :class="{ 'animate-spin-once': animatingTheme }"
             />
-            <span class="font-medium">{{
-              themeStore.isDark ? "Dark" : "Light"
-            }}</span>
+            <span class="font-medium">{{ themeStore.isDark ? "Dark" : "Light" }}</span>
           </Button>
         </div>
 

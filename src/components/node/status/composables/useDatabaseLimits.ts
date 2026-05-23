@@ -19,21 +19,15 @@ export function useDatabaseLimits() {
         kv.getValue("database_limit_dynamic_monitoring"),
         kv.getValue("database_limit_dynamic_monitoring_summary"),
       ]);
-      dynamicLimit.value =
-        typeof dyn === "number" && dyn > 0 ? dyn : DEFAULT_DYNAMIC_LIMIT;
-      summaryLimit.value =
-        typeof sum === "number" && sum > 0 ? sum : DEFAULT_SUMMARY_LIMIT;
+      dynamicLimit.value = typeof dyn === "number" && dyn > 0 ? dyn : DEFAULT_DYNAMIC_LIMIT;
+      summaryLimit.value = typeof sum === "number" && sum > 0 ? sum : DEFAULT_SUMMARY_LIMIT;
     } catch (e) {
       console.error("[Status] Failed to fetch database limits:", e);
     }
   }
 
-  const summaryWindows = computed(() =>
-    WINDOWS.filter((w) => w.value <= summaryLimit.value),
-  );
-  const detailWindows = computed(() =>
-    WINDOWS.filter((w) => w.value <= dynamicLimit.value),
-  );
+  const summaryWindows = computed(() => WINDOWS.filter((w) => w.value <= summaryLimit.value));
+  const detailWindows = computed(() => WINDOWS.filter((w) => w.value <= dynamicLimit.value));
 
   // Find largest WINDOWS entry not exceeding `max`; fallback to smallest
   const clampWindow = (current: number, max: number) => {

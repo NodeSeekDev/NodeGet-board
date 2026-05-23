@@ -1,10 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 
 const props = defineProps<{
@@ -42,7 +38,7 @@ const handleCancel = () => {
       <div class="space-y-2">
         <div class="space-y-0.5">
           <p v-if="title" class="text-sm font-medium">{{ title }}</p>
-          <p v-if="description" class="text-sm text-muted-foreground">
+          <p v-if="description" class="text-muted-foreground text-sm">
             {{ description }}
           </p>
         </div>

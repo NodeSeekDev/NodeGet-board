@@ -2,8 +2,7 @@ type StrictRequired<T> = {
   [K in keyof T]-?: NonNullable<T[K]>;
 };
 
-export type FullDynamicSummaryResponseItem =
-  StrictRequired<DynamicSummaryResponseItem>;
+export type FullDynamicSummaryResponseItem = StrictRequired<DynamicSummaryResponseItem>;
 
 export interface DynamicSummaryResponseItem {
   uuid: string;
@@ -66,10 +65,7 @@ export interface StaticResponseItem {
   gpu?: StaticMonitoringData["gpu"];
 }
 
-export type SummaryField = keyof Omit<
-  DynamicSummaryResponseItem,
-  "uuid" | "timestamp"
->;
+export type SummaryField = keyof Omit<DynamicSummaryResponseItem, "uuid" | "timestamp">;
 
 export interface DynamicCpuCore {
   id: number;

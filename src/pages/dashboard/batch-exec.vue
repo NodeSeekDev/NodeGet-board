@@ -42,16 +42,13 @@ const handlePickScripts = (s: string) => {
 
 <template>
   <div>
-    <h1 class="text-2xl font-bold mb-2">{{ $t("router.batchExec") }}</h1>
+    <h1 class="mb-2 text-2xl font-bold">{{ $t("router.batchExec") }}</h1>
     <p class="text-muted-foreground text-sm">
       {{ $t("dashboard.batchExec.desc") }}
     </p>
 
-    <div class="grid gap-2 grid-cols-1 mt-2">
-      <CodeCard
-        v-model="code"
-        @openScriptsSelect="openSelectScriptsDialog = true"
-      />
+    <div class="mt-2 grid grid-cols-1 gap-2">
+      <CodeCard v-model="code" @openScriptsSelect="openSelectScriptsDialog = true" />
       <SelectNodesCard
         v-model:selected="selected"
         v-model:cmd="cmd"

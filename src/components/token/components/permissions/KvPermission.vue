@@ -31,9 +31,7 @@ const readTargets = ref<string[]>([]);
 const writeTargets = ref<string[]>([]);
 const deleteTargets = ref<string[]>([]);
 const hydrating = ref(false);
-const { isOpen, handleToggle } = usePermissionModuleOpen(
-  () => props.modelValue,
-);
+const { isOpen, handleToggle } = usePermissionModuleOpen(() => props.modelValue);
 
 const build = (): PermissionEntry[] => {
   return buildKvPermissions({
@@ -63,9 +61,7 @@ const getTargetsRef = (kind: KvTargetKind) => {
 };
 
 const normalizeTargets = (targets: AcceptableInputValue[]) => {
-  return targets.filter(
-    (target): target is string => typeof target === "string",
-  );
+  return targets.filter((target): target is string => typeof target === "string");
 };
 
 const sanitizeTargets = (targets: string[]) => {
@@ -123,10 +119,8 @@ watch(
 
 <template>
   <details class="rounded-md border p-3" :open="isOpen" @toggle="handleToggle">
-    <summary class="cursor-pointer select-none text-sm font-medium">
-      {{
-        t("dashboard.token.permissionsConfig.limitItem.permissionCard.kv.title")
-      }}
+    <summary class="cursor-pointer text-sm font-medium select-none">
+      {{ t("dashboard.token.permissionsConfig.limitItem.permissionCard.kv.title") }}
     </summary>
     <div class="mt-3 space-y-3 space-x-2">
       <Button
@@ -134,32 +128,20 @@ watch(
         :variant="listAllKeys ? 'default' : 'outline'"
         @click="listAllKeys = !listAllKeys"
       >
-        {{
-          t(
-            "dashboard.token.permissionsConfig.limitItem.permissionCard.kv.listAllKeys",
-          )
-        }}
+        {{ t("dashboard.token.permissionsConfig.limitItem.permissionCard.kv.listAllKeys") }}
       </Button>
       <Button
         size="sm"
         :variant="listAllNamespace ? 'default' : 'outline'"
         @click="listAllNamespace = !listAllNamespace"
       >
-        {{
-          t(
-            "dashboard.token.permissionsConfig.limitItem.permissionCard.kv.listAllNamespaces",
-          )
-        }}
+        {{ t("dashboard.token.permissionsConfig.limitItem.permissionCard.kv.listAllNamespaces") }}
       </Button>
 
       <div class="space-y-3">
         <div class="space-y-1">
-          <div class="text-xs text-muted-foreground">
-            {{
-              t(
-                "dashboard.token.permissionsConfig.limitItem.permissionCard.kv.readTarget",
-              )
-            }}
+          <div class="text-muted-foreground text-xs">
+            {{ t("dashboard.token.permissionsConfig.limitItem.permissionCard.kv.readTarget") }}
           </div>
           <TagsInput
             :model-value="readTargets"
@@ -168,11 +150,7 @@ watch(
             @update:model-value="updateTargets('read', $event)"
           >
             <div class="flex flex-wrap gap-2">
-              <TagsInputItem
-                v-for="target in readTargets"
-                :key="`read-${target}`"
-                :value="target"
-              >
+              <TagsInputItem v-for="target in readTargets" :key="`read-${target}`" :value="target">
                 <TagsInputItemText />
                 <TagsInputItemDelete />
               </TagsInputItem>
@@ -182,12 +160,8 @@ watch(
         </div>
 
         <div class="space-y-1">
-          <div class="text-xs text-muted-foreground">
-            {{
-              t(
-                "dashboard.token.permissionsConfig.limitItem.permissionCard.kv.writeTarget",
-              )
-            }}
+          <div class="text-muted-foreground text-xs">
+            {{ t("dashboard.token.permissionsConfig.limitItem.permissionCard.kv.writeTarget") }}
           </div>
           <TagsInput
             :model-value="writeTargets"
@@ -205,20 +179,13 @@ watch(
                 <TagsInputItemDelete />
               </TagsInputItem>
             </div>
-            <TagsInputInput
-              placeholder="runtime_config"
-              class="w-full px-0 pt-2"
-            />
+            <TagsInputInput placeholder="runtime_config" class="w-full px-0 pt-2" />
           </TagsInput>
         </div>
 
         <div class="space-y-1">
-          <div class="text-xs text-muted-foreground">
-            {{
-              t(
-                "dashboard.token.permissionsConfig.limitItem.permissionCard.kv.deleteTarget",
-              )
-            }}
+          <div class="text-muted-foreground text-xs">
+            {{ t("dashboard.token.permissionsConfig.limitItem.permissionCard.kv.deleteTarget") }}
           </div>
           <TagsInput
             :model-value="deleteTargets"

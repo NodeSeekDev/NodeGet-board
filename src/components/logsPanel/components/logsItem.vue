@@ -3,11 +3,7 @@ import { computed, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { ChevronDown, ChevronRight } from "lucide-vue-next";
 import { Badge } from "@/components/ui/badge";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import type { LogEntry } from "@/composables/useLogs";
 
@@ -53,7 +49,7 @@ const formattedFields = computed(() => {
 <template>
   <Collapsible v-model:open="isOpen">
     <div
-      class="overflow-hidden rounded-md border border-border/70 bg-background/80 transition-colors hover:bg-muted/10"
+      class="border-border/70 bg-background/80 hover:bg-muted/10 overflow-hidden rounded-md border transition-colors"
     >
       <CollapsibleTrigger as-child>
         <button
@@ -67,15 +63,12 @@ const formattedFields = computed(() => {
           <div class="flex min-w-0 flex-1 items-center gap-1.5">
             <component
               :is="isOpen ? ChevronDown : ChevronRight"
-              class="size-3.5 shrink-0 text-muted-foreground"
+              class="text-muted-foreground size-3.5 shrink-0"
             />
             <Badge
               variant="outline"
               :class="
-                cn(
-                  'h-5 shrink-0 rounded-sm px-1.5 font-mono text-[10px] leading-none',
-                  levelClass,
-                )
+                cn('h-5 shrink-0 rounded-sm px-1.5 font-mono text-[10px] leading-none', levelClass)
               "
             >
               {{ item.level }}
@@ -86,66 +79,58 @@ const formattedFields = computed(() => {
             >
               {{ item.target }}
             </Badge>
-            <div
-              class="min-w-0 flex-1 truncate text-xs font-medium leading-[1.2rem]"
-            >
+            <div class="min-w-0 flex-1 truncate text-xs leading-[1.2rem] font-medium">
               {{ item.message || "-" }}
             </div>
           </div>
 
           <div
-            class="pl-5 font-mono text-[10px] leading-4 text-muted-foreground sm:w-auto sm:shrink-0 sm:pl-0"
+            class="text-muted-foreground pl-5 font-mono text-[10px] leading-4 sm:w-auto sm:shrink-0 sm:pl-0"
           >
             {{ formattedTimestamp }}
           </div>
         </button>
       </CollapsibleTrigger>
 
-      <CollapsibleContent
-        v-if="isOpen"
-        class="space-y-1.5 border-t bg-muted/10 px-2.5 pt-1.5 pb-2"
-      >
+      <CollapsibleContent v-if="isOpen" class="bg-muted/10 space-y-1.5 border-t px-2.5 pt-1.5 pb-2">
         <div>
-          <div class="mb-1 text-[11px] font-medium text-muted-foreground">
+          <div class="text-muted-foreground mb-1 text-[11px] font-medium">
             {{ t("dashboard.logsPanel.details.fields") }}
           </div>
           <pre
             v-if="formattedFields"
-            class="overflow-x-auto rounded-md bg-muted/70 p-1.5 text-[11px] leading-4"
+            class="bg-muted/70 overflow-x-auto rounded-md p-1.5 text-[11px] leading-4"
             >{{ formattedFields }}</pre
           >
           <div
             v-else
-            class="rounded-md border border-dashed px-2 py-1 text-[11px] text-muted-foreground"
+            class="text-muted-foreground rounded-md border border-dashed px-2 py-1 text-[11px]"
           >
             {{ t("common.noData") }}
           </div>
         </div>
 
         <div class="space-y-1">
-          <div class="text-[11px] font-medium text-muted-foreground">
+          <div class="text-muted-foreground text-[11px] font-medium">
             {{ t("dashboard.logsPanel.details.spans") }}
           </div>
           <template v-if="item.spans.length > 0">
             <div
               v-for="(span, index) in item.spans"
               :key="`${item.id}-span-${index}`"
-              class="rounded-md border bg-background/70 px-2 py-1"
+              class="bg-background/70 rounded-md border px-2 py-1"
             >
-              <div class="font-mono text-[11px] font-medium leading-4">
+              <div class="font-mono text-[11px] leading-4 font-medium">
                 {{ span.name || "-" }}
               </div>
-              <div
-                v-if="span.fields"
-                class="mt-0.5 text-[11px] leading-4 text-muted-foreground"
-              >
+              <div v-if="span.fields" class="text-muted-foreground mt-0.5 text-[11px] leading-4">
                 {{ span.fields }}
               </div>
             </div>
           </template>
           <div
             v-else
-            class="rounded-md border border-dashed px-2.5 py-1.5 text-[11px] text-muted-foreground"
+            class="text-muted-foreground rounded-md border border-dashed px-2.5 py-1.5 text-[11px]"
           >
             {{ t("common.noData") }}
           </div>

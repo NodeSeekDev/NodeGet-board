@@ -3,12 +3,7 @@ import { shallowRef, onMounted, onUnmounted, watch } from "vue";
 import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 import type { TaskQueryResult } from "@/composables/useCronHistory";
-import {
-  getStableCronNames,
-  normalizeCronName,
-  normalizeTs,
-  SERIES_COLORS,
-} from "./utils";
+import { getStableCronNames, normalizeCronName, normalizeTs, SERIES_COLORS } from "./utils";
 
 const emit = defineEmits<{
   xRangeChange: [{ min: number; max: number } | null];
@@ -39,12 +34,10 @@ function buildData(): {
 
   // 对齐到 30s bucket，消除不同 cron 任务执行时间偏差导致的折线断裂
   const BUCKET_S = 30;
-  const snapBucket = (tsSeconds: number) =>
-    Math.floor(tsSeconds / BUCKET_S) * BUCKET_S;
+  const snapBucket = (tsSeconds: number) => Math.floor(tsSeconds / BUCKET_S) * BUCKET_S;
 
   const tsSet = new Set<number>();
-  for (const r of props.data)
-    tsSet.add(snapBucket(Math.floor(normalizeTs(r.timestamp) / 1000)));
+  for (const r of props.data) tsSet.add(snapBucket(Math.floor(normalizeTs(r.timestamp) / 1000)));
   const xs = [...tsSet].sort((a, b) => a - b);
 
   const PEAK_CAP = 500;
@@ -56,9 +49,7 @@ function buildData(): {
       if (normalizeCronName(r.cron_source) !== name) continue;
       const t = snapBucket(Math.floor(normalizeTs(r.timestamp) / 1000));
       const isTimeout =
-        !r.success ||
-        !r.task_event_result ||
-        typeof r.task_event_result[props.type] !== "number";
+        !r.success || !r.task_event_result || typeof r.task_event_result[props.type] !== "number";
       flagMap.set(t, isTimeout);
       let v: number | null;
       if (isTimeout) {
@@ -159,11 +150,7 @@ function tooltipPlugin(): uPlot.Plugin {
   };
 }
 
-function makeOpts(
-  width: number,
-  height: number,
-  cronNames: string[],
-): uPlot.Options {
+function makeOpts(width: number, height: number, cronNames: string[]): uPlot.Options {
   return {
     width,
     height,
@@ -278,11 +265,7 @@ function build(width: number, height: number) {
   const { cronNames, aligned, timeoutFlags } = buildData();
   currentCronNames.value = cronNames;
   currentTimeoutFlags = timeoutFlags;
-  chart = new uPlot(
-    makeOpts(width, height, cronNames),
-    aligned,
-    containerRef.value,
-  );
+  chart = new uPlot(makeOpts(width, height, cronNames), aligned, containerRef.value);
   applyVisibility();
   applySeriesEmphasis();
   if (userZoomRange != null) {
@@ -359,5 +342,5 @@ watch(
 </script>
 
 <template>
-  <div ref="containerRef" class="w-full h-full overflow-hidden" />
+  <div ref="containerRef" class="h-full w-full overflow-hidden" />
 </template>

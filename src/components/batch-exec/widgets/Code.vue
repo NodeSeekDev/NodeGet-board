@@ -112,21 +112,17 @@ onMounted(async () => {
   <div class="text-muted-foreground relative flex flex-col md:flex-row">
     <Textarea
       v-model="code"
-      class="font-mono text-sm flex-1 resize-none"
+      class="flex-1 resize-none font-mono text-sm"
       :placeholder="$t('dashboard.batchExec.enterCode')"
       ref="textareaRef"
       :rows="6"
     />
     <div
-      class="space-y-1 md:w-50 w-full ml-0 md:ml-4 mt-2 md:mt-0 text-xs overflow-auto border border-gray-200 p-2 rounded-md flex flex-col"
+      class="mt-2 ml-0 flex w-full flex-col space-y-1 overflow-auto rounded-md border border-gray-200 p-2 text-xs md:mt-0 md:ml-4 md:w-50"
       :style="{ height: warningHeight }"
       v-if="codeTips"
     >
-      <div
-        v-for="(w, idx) in allWarnings"
-        :key="idx"
-        :class="levelStyles[w.text.type]"
-      >
+      <div v-for="(w, idx) in allWarnings" :key="idx" :class="levelStyles[w.text.type]">
         Line {{ w.line }} : {{ w.text.text }}
       </div>
     </div>

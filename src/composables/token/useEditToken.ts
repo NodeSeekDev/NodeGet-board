@@ -45,10 +45,7 @@ export const useEditTokenHook = () => {
   const backendUrl = computed(() => currentBackend.value?.url ?? "");
   const { t } = useI18n();
 
-  const updateToken = async (
-    tokenData: Token,
-    targetToken: string,
-  ): Promise<boolean> => {
+  const updateToken = async (tokenData: Token, targetToken: string): Promise<boolean> => {
     const url = backendUrl.value.trim();
     const token = currentBackend.value?.token?.trim() || "";
     const target_token = targetToken.trim();

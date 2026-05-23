@@ -6,15 +6,7 @@ import { Button } from "@/components/ui/button";
 import { arePermissionEntriesEqual } from "./permissionsState";
 import { usePermissionModuleOpen } from "./usePermissionModuleOpen";
 
-const FIELDS = [
-  "cpu",
-  "ram",
-  "load",
-  "system",
-  "disk",
-  "network",
-  "gpu",
-] as const;
+const FIELDS = ["cpu", "ram", "load", "system", "disk", "network", "gpu"] as const;
 
 const props = defineProps<{ modelValue: PermissionEntry[] }>();
 const emits = defineEmits<{
@@ -26,9 +18,7 @@ const readTargets = ref<string[]>([]);
 const writeEnabled = ref(false);
 const deleteEnabled = ref(false);
 const hydrating = ref(false);
-const { isOpen, handleToggle } = usePermissionModuleOpen(
-  () => props.modelValue,
-);
+const { isOpen, handleToggle } = usePermissionModuleOpen(() => props.modelValue);
 
 const toggleReadTarget = (target: string) => {
   const index = readTargets.value.indexOf(target);
@@ -48,8 +38,7 @@ const toggleDelete = () => {
 
 const build = (): PermissionEntry[] => {
   const result: PermissionEntry[] = [];
-  for (const field of readTargets.value)
-    result.push({ dynamic_monitoring: { read: field } });
+  for (const field of readTargets.value) result.push({ dynamic_monitoring: { read: field } });
   if (writeEnabled.value) result.push({ dynamic_monitoring: "write" });
   if (deleteEnabled.value) result.push({ dynamic_monitoring: "delete" });
   return result;
@@ -103,20 +92,12 @@ watch(
 
 <template>
   <details class="rounded-md border p-3" :open="isOpen" @toggle="handleToggle">
-    <summary class="cursor-pointer select-none text-sm font-medium">
-      {{
-        t(
-          "dashboard.token.permissionsConfig.limitItem.permissionCard.dynamicMonitoring.title",
-        )
-      }}
+    <summary class="cursor-pointer text-sm font-medium select-none">
+      {{ t("dashboard.token.permissionsConfig.limitItem.permissionCard.dynamicMonitoring.title") }}
     </summary>
     <div class="mt-3 space-y-2">
-      <div class="text-xs text-muted-foreground">
-        {{
-          t(
-            "dashboard.token.permissionsConfig.limitItem.permissionCard.dynamicMonitoring.read",
-          )
-        }}
+      <div class="text-muted-foreground text-xs">
+        {{ t("dashboard.token.permissionsConfig.limitItem.permissionCard.dynamicMonitoring.read") }}
       </div>
       <div class="flex flex-wrap gap-2">
         <Button
@@ -129,11 +110,9 @@ watch(
           >{{ field }}</Button
         >
       </div>
-      <div class="text-xs text-muted-foreground">
+      <div class="text-muted-foreground text-xs">
         {{
-          t(
-            "dashboard.token.permissionsConfig.limitItem.permissionCard.dynamicMonitoring.write",
-          )
+          t("dashboard.token.permissionsConfig.limitItem.permissionCard.dynamicMonitoring.write")
         }}
       </div>
       <div class="flex flex-wrap gap-2">
@@ -144,17 +123,13 @@ watch(
           @click="toggleWrite"
         >
           {{
-            t(
-              "dashboard.token.permissionsConfig.limitItem.permissionCard.dynamicMonitoring.write",
-            )
+            t("dashboard.token.permissionsConfig.limitItem.permissionCard.dynamicMonitoring.write")
           }}
         </Button>
       </div>
-      <div class="text-xs text-muted-foreground">
+      <div class="text-muted-foreground text-xs">
         {{
-          t(
-            "dashboard.token.permissionsConfig.limitItem.permissionCard.dynamicMonitoring.delete",
-          )
+          t("dashboard.token.permissionsConfig.limitItem.permissionCard.dynamicMonitoring.delete")
         }}
       </div>
       <div class="flex flex-wrap gap-2">
@@ -165,9 +140,7 @@ watch(
           @click="toggleDelete"
         >
           {{
-            t(
-              "dashboard.token.permissionsConfig.limitItem.permissionCard.dynamicMonitoring.delete",
-            )
+            t("dashboard.token.permissionsConfig.limitItem.permissionCard.dynamicMonitoring.delete")
           }}
         </Button>
       </div>

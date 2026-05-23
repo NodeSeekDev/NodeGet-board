@@ -12,9 +12,7 @@ export type BucketFile = {
   mtime: number;
 };
 
-export function useStaticBucketFile(
-  backend = useBackendStore().currentBackend,
-) {
+export function useStaticBucketFile(backend = useBackendStore().currentBackend) {
   const backendUrl = computed(() => backend.value?.url ?? "");
   const backendToken = computed(() => backend.value?.token ?? "");
 
@@ -45,11 +43,7 @@ export function useStaticBucketFile(
     }
   };
 
-  const uploadFile = async (
-    bucketName: string,
-    path: string,
-    base64: string,
-  ): Promise<void> => {
+  const uploadFile = async (bucketName: string, path: string, base64: string): Promise<void> => {
     await rpc("static-bucket-file_upload", {
       token: backendToken.value,
       name: bucketName,
@@ -58,10 +52,7 @@ export function useStaticBucketFile(
     });
   };
 
-  const readFile = async (
-    bucketName: string,
-    path: string,
-  ): Promise<string> => {
+  const readFile = async (bucketName: string, path: string): Promise<string> => {
     return rpc<string>("static-bucket-file_read", {
       token: backendToken.value,
       name: bucketName,
@@ -69,10 +60,7 @@ export function useStaticBucketFile(
     });
   };
 
-  const deleteFile = async (
-    bucketName: string,
-    path: string,
-  ): Promise<void> => {
+  const deleteFile = async (bucketName: string, path: string): Promise<void> => {
     await rpc("static-bucket-file_delete", {
       token: backendToken.value,
       name: bucketName,
@@ -81,26 +69,17 @@ export function useStaticBucketFile(
     files.value = files.value.filter((f) => f.path !== path);
   };
 
-  const renameFile = async (
-    bucketName: string,
-    from: string,
-    to: string,
-  ): Promise<void> => {
+  const renameFile = async (bucketName: string, from: string, to: string): Promise<void> => {
     await rpc("static-bucket-file_rename", {
       token: backendToken.value,
       name: bucketName,
       from,
       to,
     });
-    files.value = files.value.map((f) =>
-      f.path === from ? { ...f, path: to } : f,
-    );
+    files.value = files.value.map((f) => (f.path === from ? { ...f, path: to } : f));
   };
 
-  const readTextFile = async (
-    bucketName: string,
-    path: string,
-  ): Promise<string> => {
+  const readTextFile = async (bucketName: string, path: string): Promise<string> => {
     try {
       const base64 = await readFile(bucketName, path);
       return base64 ? new TextDecoder().decode(base64ToBuf(base64)) : "";
@@ -109,11 +88,7 @@ export function useStaticBucketFile(
     }
   };
 
-  const saveTextFile = async (
-    bucketName: string,
-    path: string,
-    content: string,
-  ): Promise<void> => {
+  const saveTextFile = async (bucketName: string, path: string, content: string): Promise<void> => {
     const base64 = bufToBase64(new TextEncoder().encode(content));
     await uploadFile(bucketName, path, base64);
   };
@@ -156,9 +131,7 @@ export function useStaticBucketFile(
   ): Promise<{ uploaded: number; deleted: number }> => {
     const remoteFiles = await fetchList(bucketName);
     const localPaths = new Set(files.map((f) => f.path));
-    const extraRemotePaths = remoteFiles
-      .map((f) => f.path)
-      .filter((p) => !localPaths.has(p));
+    const extraRemotePaths = remoteFiles.map((f) => f.path).filter((p) => !localPaths.has(p));
     for (const file of files) {
       await uploadFile(bucketName, file.path, file.base64);
     }

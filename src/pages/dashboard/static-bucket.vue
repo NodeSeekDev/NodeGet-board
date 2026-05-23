@@ -5,10 +5,7 @@ import { FolderOpen } from "lucide-vue-next";
 import { toast } from "vue-sonner";
 import { useStaticBucket } from "@/composables/useStaticBucket";
 import { useStaticBucketFile } from "@/composables/useStaticBucketFile";
-import type {
-  StaticBucketInput,
-  StaticBucket,
-} from "@/composables/useStaticBucket";
+import type { StaticBucketInput, StaticBucket } from "@/composables/useStaticBucket";
 import StaticBucketTable from "@/components/static-bucket/StaticBucketTable.vue";
 import StaticBucketDialog from "@/components/static-bucket/StaticBucketDialog.vue";
 import StaticBucketUploadDirDialog from "@/components/static-bucket/StaticBucketUploadDirDialog.vue";
@@ -114,9 +111,7 @@ const openUploadDir = (targetBucket?: string) => {
   uploadDirOpen.value = true;
 };
 
-const handleUploadDir = async (
-  files: Array<{ path: string; base64: string }>,
-) => {
+const handleUploadDir = async (files: Array<{ path: string; base64: string }>) => {
   const target = uploadDirTarget.value;
   if (!target) return;
   uploadDirLoading.value = true;
@@ -124,9 +119,7 @@ const handleUploadDir = async (
   try {
     const remoteFiles = await bucketFile.fetchList(target);
     const localPaths = new Set(files.map((f) => f.path));
-    const extraRemotePaths = remoteFiles
-      .map((f) => f.path)
-      .filter((p) => !localPaths.has(p));
+    const extraRemotePaths = remoteFiles.map((f) => f.path).filter((p) => !localPaths.has(p));
     for (const file of files) {
       await bucketFile.uploadFile(target, file.path, file.base64);
     }

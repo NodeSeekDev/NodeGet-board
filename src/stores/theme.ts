@@ -39,11 +39,7 @@ const resolvePalette = (name: ColorThemeName, customColor: string) => {
   return PALETTES[name] ?? PALETTES.zinc;
 };
 
-const applyPalette = (
-  name: ColorThemeName,
-  dark: boolean,
-  customColor: string,
-) => {
+const applyPalette = (name: ColorThemeName, dark: boolean, customColor: string) => {
   const palette = resolvePalette(name, customColor);
   if (!palette) return;
   const variant = (dark ? palette.dark : palette.light) ?? {};
@@ -98,9 +94,7 @@ export const useThemeStore = defineStore("theme", () => {
     }
   };
 
-  watch(isDark, (dark) =>
-    applyPalette(colorTheme.value, dark, customColor.value),
-  );
+  watch(isDark, (dark) => applyPalette(colorTheme.value, dark, customColor.value));
 
   return {
     isDark,

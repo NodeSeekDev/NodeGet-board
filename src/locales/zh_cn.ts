@@ -147,12 +147,10 @@ export default {
         nodeCount: "节点数：{count}",
       },
       regionsTitle: "覆盖区域",
-      regionsDescription:
-        "地图上已经标出主要区域，方便后续叠加节点、链路或告警信息。",
+      regionsDescription: "地图上已经标出主要区域，方便后续叠加节点、链路或告警信息。",
       legendTitle: "图例说明",
       legendDescription: "用统一视觉语言区分陆地、海洋和区域锚点。",
-      futureHint:
-        "后续如果需要接入真实节点坐标，可以直接在这张底图上叠加点位、气泡或链路线。",
+      futureHint: "后续如果需要接入真实节点坐标，可以直接在这张底图上叠加点位、气泡或链路线。",
       tabs: {
         flat: "2D Map",
         globe: "3D Map",
@@ -224,17 +222,14 @@ export default {
         },
         resetDialog: {
           title: "重置 Token",
-          description:
-            "重新生成该 Token 的 Token Secret，旧 Secret 会立即失效。",
-          confirm:
-            "是否确认重新生成？请在成功后立即复制并妥善保存新的 Secret。",
+          description: "重新生成该 Token 的 Token Secret，旧 Secret 会立即失效。",
+          confirm: "是否确认重新生成？请在成功后立即复制并妥善保存新的 Secret。",
           confirmButton: "重置",
           confirmingButton: "重置中...",
         },
         resetSuccessDialog: {
           title: "Token Secret 重新生成成功",
-          description:
-            "新的 Token Secret 只会显示这一次，请立即复制并妥善保存。旧 Secret 已失效。",
+          description: "新的 Token Secret 只会显示这一次，请立即复制并妥善保存。旧 Secret 已失效。",
         },
         changePasswordDialog: {
           title: "修改密码",
@@ -736,8 +731,7 @@ export default {
       deselectAll: "取消全选",
       expression: "Cron 表达式",
       expressionHint: "会自动整理空格，紧凑写法如 2***** 会转换为 2 * * * * *",
-      expressionFormatHint:
-        "最终格式固定为 6 段；如果后面的段没填，失焦后会自动补成 *。",
+      expressionFormatHint: "最终格式固定为 6 段；如果后面的段没填，失焦后会自动补成 *。",
       expressionRequired: "请填写 Cron 表达式。",
       nameRequired: "请填写任务名称。",
       nodesRequired: "请选择执行节点。",

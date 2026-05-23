@@ -35,16 +35,8 @@ const make = (primary: string, foreground: string, ring: string): Variant => ({
 export const PALETTES: Record<Exclude<ColorThemeName, "custom">, Palette> = {
   zinc: {
     swatch: "oklch(0.21 0.006 285.885)",
-    light: make(
-      "oklch(0.21 0.006 285.885)",
-      "oklch(0.985 0 0)",
-      "oklch(0.705 0.015 286.067)",
-    ),
-    dark: make(
-      "oklch(0.985 0 0)",
-      "oklch(0.21 0.006 285.885)",
-      "oklch(0.552 0.016 285.938)",
-    ),
+    light: make("oklch(0.21 0.006 285.885)", "oklch(0.985 0 0)", "oklch(0.705 0.015 286.067)"),
+    dark: make("oklch(0.985 0 0)", "oklch(0.21 0.006 285.885)", "oklch(0.552 0.016 285.938)"),
   },
   rose: {
     swatch: "oklch(0.645 0.246 16.439)",
@@ -79,11 +71,7 @@ export const PALETTES: Record<Exclude<ColorThemeName, "custom">, Palette> = {
       "oklch(0.98 0.016 73.684)",
       "oklch(0.705 0.213 47.604)",
     ),
-    dark: make(
-      "oklch(0.769 0.188 70.08)",
-      "oklch(0.98 0.016 73.684)",
-      "oklch(0.769 0.188 70.08)",
-    ),
+    dark: make("oklch(0.769 0.188 70.08)", "oklch(0.98 0.016 73.684)", "oklch(0.769 0.188 70.08)"),
   },
   yellow: {
     swatch: "oklch(0.795 0.184 86.047)",
@@ -100,16 +88,8 @@ export const PALETTES: Record<Exclude<ColorThemeName, "custom">, Palette> = {
   },
   stone: {
     swatch: "oklch(0.45 0.045 60)",
-    light: make(
-      "oklch(0.45 0.045 60)",
-      "oklch(0.985 0.008 90)",
-      "oklch(0.7 0.04 55)",
-    ),
-    dark: make(
-      "oklch(0.82 0.06 75)",
-      "oklch(0.28 0.035 55)",
-      "oklch(0.66 0.045 65)",
-    ),
+    light: make("oklch(0.45 0.045 60)", "oklch(0.985 0.008 90)", "oklch(0.7 0.04 55)"),
+    dark: make("oklch(0.82 0.06 75)", "oklch(0.28 0.035 55)", "oklch(0.66 0.045 65)"),
   },
   red: {
     swatch: "oklch(0.637 0.237 25.331)",

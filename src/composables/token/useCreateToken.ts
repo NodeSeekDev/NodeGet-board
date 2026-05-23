@@ -40,9 +40,7 @@ export const useCreatTokenHook = () => {
   const { t } = useI18n();
 
   //   获取agent-uuid列表
-  const createToken = async (
-    token_creation: token,
-  ): Promise<{ key?: string; secret?: string }> => {
+  const createToken = async (token_creation: token): Promise<{ key?: string; secret?: string }> => {
     const url = backendUrl.value.trim();
     const token = currentBackend.value?.token?.trim() || "";
     if (!url || !token) return {};

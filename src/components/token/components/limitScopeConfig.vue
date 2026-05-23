@@ -40,9 +40,7 @@ const useKv = useKvHook();
 const { t } = useI18n();
 
 const localScope = ref<TokenLimitScope>(props.scope);
-const activeTab = ref<ScopeTabValue>(
-  props.scopeTab ?? detectScopeTab(props.scope),
-);
+const activeTab = ref<ScopeTabValue>(props.scopeTab ?? detectScopeTab(props.scope));
 const agentList = ref<AgentOption[]>([]);
 const agentUuidLoading = ref(false);
 const agentUuidLoaded = ref(false);
@@ -155,20 +153,15 @@ const handleTabChange = (value: string) => {
   }
 };
 
-const selectedAgentUuids = computed(() =>
-  getSelectedAgentUuids(localScope.value),
-);
+const selectedAgentUuids = computed(() => getSelectedAgentUuids(localScope.value));
 
-const selectedKvNamespaces = computed(() =>
-  getSelectedKvNamespaces(localScope.value),
-);
+const selectedKvNamespaces = computed(() => getSelectedKvNamespaces(localScope.value));
 
 const dedupeTargets = (targets: string[]) => {
   return [...new Set(targets.map((item) => item.trim()).filter(Boolean))];
 };
 
-const isAgentUuidChecked = (value: string) =>
-  selectedAgentUuids.value.includes(value);
+const isAgentUuidChecked = (value: string) => selectedAgentUuids.value.includes(value);
 
 const toggleAgentUuid = (value: string, isChecked: boolean) => {
   if (activeTab.value !== "AgentUuid") {
@@ -187,8 +180,7 @@ const toggleAgentUuid = (value: string, isChecked: boolean) => {
   );
 };
 
-const isKvNamespaceChecked = (value: string) =>
-  selectedKvNamespaces.value.includes(value);
+const isKvNamespaceChecked = (value: string) => selectedKvNamespaces.value.includes(value);
 
 const toggleKvNamespace = (value: string, isChecked: boolean) => {
   if (activeTab.value !== "KvNamespace") {
@@ -219,9 +211,7 @@ const formatAgentLabel = (agent: AgentOption) => {
 };
 
 const normalizeTargets = (targets: AcceptableInputValue[]) => {
-  return targets.filter(
-    (target): target is string => typeof target === "string",
-  );
+  return targets.filter((target): target is string => typeof target === "string");
 };
 
 const updateJsWorkerScopes = (value: AcceptableInputValue[]) => {
@@ -246,11 +236,7 @@ const getCheckboxId = (value: string) => `${checkboxIdPrefix}-${value}`;
     </CardHeader>
 
     <CardContent class="grid gap-6 space-y-6">
-      <Tabs
-        v-model="activeTab"
-        class="w-full"
-        @update:modelValue="handleTabChange"
-      >
+      <Tabs v-model="activeTab" class="w-full" @update:modelValue="handleTabChange">
         <TabsList>
           <TabsTrigger value="Global">
             {{ t("dashboard.token.permissionsConfig.limitItem.scope.global") }}
@@ -262,17 +248,11 @@ const getCheckboxId = (value: string) => `${checkboxIdPrefix}-${value}`;
             {{ t("dashboard.token.permissionsConfig.limitItem.scope.kv") }}
           </TabsTrigger>
           <TabsTrigger value="JsWorker">
-            {{
-              t("dashboard.token.permissionsConfig.limitItem.scope.jsWorker")
-            }}
+            {{ t("dashboard.token.permissionsConfig.limitItem.scope.jsWorker") }}
           </TabsTrigger>
         </TabsList>
         <TabsContent value="Global">
-          {{
-            t(
-              "dashboard.token.permissionsConfig.limitItem.scope.globalDescription",
-            )
-          }}
+          {{ t("dashboard.token.permissionsConfig.limitItem.scope.globalDescription") }}
         </TabsContent>
         <TabsContent value="AgentUuid" class="space-y-1">
           <div class="flex w-full justify-end">
@@ -285,22 +265,15 @@ const getCheckboxId = (value: string) => `${checkboxIdPrefix}-${value}`;
             </Button>
           </div>
           <div class="space-y-2">
-            <div
-              v-for="item in agentList"
-              :key="item.uuid"
-              class="flex items-center space-x-2"
-            >
+            <div v-for="item in agentList" :key="item.uuid" class="flex items-center space-x-2">
               <Checkbox
                 :id="getCheckboxId(item.uuid)"
                 :modelValue="isAgentUuidChecked(item.uuid)"
                 @update:modelValue="
-                  (checked: CheckboxCheckedState) =>
-                    toggleAgentUuid(item.uuid, checked === true)
+                  (checked: CheckboxCheckedState) => toggleAgentUuid(item.uuid, checked === true)
                 "
               />
-              <Label :for="getCheckboxId(item.uuid)">{{
-                formatAgentLabel(item)
-              }}</Label>
+              <Label :for="getCheckboxId(item.uuid)">{{ formatAgentLabel(item) }}</Label>
             </div>
           </div>
         </TabsContent>
@@ -324,8 +297,7 @@ const getCheckboxId = (value: string) => `${checkboxIdPrefix}-${value}`;
                 :id="getCheckboxId(item)"
                 :modelValue="isKvNamespaceChecked(item)"
                 @update:modelValue="
-                  (checked: CheckboxCheckedState) =>
-                    toggleKvNamespace(item, checked === true)
+                  (checked: CheckboxCheckedState) => toggleKvNamespace(item, checked === true)
                 "
               />
               <Label :for="getCheckboxId(item)">{{ item }}</Label>
@@ -333,12 +305,8 @@ const getCheckboxId = (value: string) => `${checkboxIdPrefix}-${value}`;
           </div>
         </TabsContent>
         <TabsContent value="JsWorker" class="space-y-3">
-          <div class="text-sm text-muted-foreground">
-            {{
-              t(
-                "dashboard.token.permissionsConfig.limitItem.scope.jsWorkerDescription",
-              )
-            }}
+          <div class="text-muted-foreground text-sm">
+            {{ t("dashboard.token.permissionsConfig.limitItem.scope.jsWorkerDescription") }}
           </div>
           <TagsInput
             :model-value="jsWorkerScopes"
@@ -358,9 +326,7 @@ const getCheckboxId = (value: string) => `${checkboxIdPrefix}-${value}`;
             </div>
             <TagsInputInput
               :placeholder="
-                t(
-                  'dashboard.token.permissionsConfig.limitItem.scope.jsWorkerPlaceholder',
-                )
+                t('dashboard.token.permissionsConfig.limitItem.scope.jsWorkerPlaceholder')
               "
               class="w-full px-0 pt-2"
             />

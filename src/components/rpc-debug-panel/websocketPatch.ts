@@ -36,10 +36,7 @@ interface RpcDebugTrackedWebSocketConnection {
 }
 
 const listeners = new Set<RpcDebugWebSocketListener>();
-const trackedConnections = new Map<
-  number,
-  RpcDebugTrackedWebSocketConnection
->();
+const trackedConnections = new Map<number, RpcDebugTrackedWebSocketConnection>();
 
 let nativeWebSocket: NativeWebSocketCtor | null = null;
 let installed = false;
@@ -52,9 +49,7 @@ function emit(event: RpcDebugWebSocketEvent) {
   listeners.forEach((listener) => listener(event));
 }
 
-export function addRpcDebugWebSocketListener(
-  listener: RpcDebugWebSocketListener,
-) {
+export function addRpcDebugWebSocketListener(listener: RpcDebugWebSocketListener) {
   listeners.add(listener);
   if (captureEnabled) replayTrackedConnections(listener);
   return () => {
@@ -88,9 +83,7 @@ function replayTrackedConnections(listener: RpcDebugWebSocketListener) {
   }
 }
 
-function createTrackedConnectionReplayEvents(
-  connection: RpcDebugTrackedWebSocketConnection,
-) {
+function createTrackedConnectionReplayEvents(connection: RpcDebugTrackedWebSocketConnection) {
   const events: RpcDebugWebSocketEvent[] = [
     {
       type: "connection",

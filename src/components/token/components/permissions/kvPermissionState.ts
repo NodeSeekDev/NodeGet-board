@@ -30,9 +30,7 @@ export const removeKvTarget = (targets: string[], target: string) => {
   return targets.filter((item) => item !== target);
 };
 
-export const buildKvPermissions = (
-  state: KvPermissionState,
-): PermissionEntry[] => {
+export const buildKvPermissions = (state: KvPermissionState): PermissionEntry[] => {
   const result: PermissionEntry[] = [];
   if (state.listAllKeys) result.push({ kv: "list_all_keys" });
   if (state.listAllNamespace) result.push({ kv: "list_all_namespace" });
@@ -48,9 +46,7 @@ export const buildKvPermissions = (
   return result;
 };
 
-export const hydrateKvPermissions = (
-  entries: PermissionEntry[],
-): KvPermissionState => {
+export const hydrateKvPermissions = (entries: PermissionEntry[]): KvPermissionState => {
   const state = createEmptyKvPermissionState();
 
   for (const entry of entries || []) {
@@ -78,10 +74,7 @@ export const hydrateKvPermissions = (
   return state;
 };
 
-export const isSameKvPermissionState = (
-  entries: PermissionEntry[],
-  state: KvPermissionState,
-) => {
+export const isSameKvPermissionState = (entries: PermissionEntry[], state: KvPermissionState) => {
   const normalizedEntries = buildKvPermissions(hydrateKvPermissions(entries));
   const normalizedState = buildKvPermissions(state);
   return JSON.stringify(normalizedEntries) === JSON.stringify(normalizedState);

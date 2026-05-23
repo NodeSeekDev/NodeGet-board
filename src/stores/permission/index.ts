@@ -43,18 +43,14 @@ export const usePermissionStore = defineStore("permission", () => {
   const currentBackendKey = ref("");
   const rules = ref<PermissionRule[]>([]);
 
-  const isSuperToken = computed(
-    () => normalizeText(tokenInfo.value?.username) === "root",
-  );
+  const isSuperToken = computed(() => normalizeText(tokenInfo.value?.username) === "root");
 
   const tokenLimits = computed(() => ({
     general: rules.value.filter((rule) => rule.resource !== "kv"),
     kv: rules.value.filter((rule) => rule.resource === "kv"),
   }));
 
-  const availableScopes = computed(() => [
-    ...new Set(rules.value.map(scopeKey)),
-  ]);
+  const availableScopes = computed(() => [...new Set(rules.value.map(scopeKey))]);
 
   /**
    * 清空权限上下文（常用于登出、切换后端、token 失效）。
@@ -93,18 +89,16 @@ export const usePermissionStore = defineStore("permission", () => {
     }
 
     const backendKey = `${backend.url}::${backend.token}`;
-    if (backendKey === currentBackendKey.value && status.value === "ready")
-      return;
+    if (backendKey === currentBackendKey.value && status.value === "ready") return;
 
     status.value = "loading";
     error.value = "";
     currentBackendKey.value = backendKey;
 
     try {
-      const result = await getWsConnection(backend.url).call<TokenInfo>(
-        "token_get",
-        { token: backend.token },
-      );
+      const result = await getWsConnection(backend.url).call<TokenInfo>("token_get", {
+        token: backend.token,
+      });
       if (!result || typeof result !== "object") {
         throw new Error("token_get empty result");
       }
@@ -116,8 +110,7 @@ export const usePermissionStore = defineStore("permission", () => {
       tokenInfo.value = null;
       rules.value = [];
       status.value = "error";
-      error.value =
-        e instanceof Error ? e.message : "Failed to fetch token permissions";
+      error.value = e instanceof Error ? e.message : "Failed to fetch token permissions";
     }
   };
 

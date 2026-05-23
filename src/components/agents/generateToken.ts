@@ -28,10 +28,7 @@ function makeTokenObject(nodeUuid: string) {
 }
 
 // 预生成 token
-export async function preGenerateToken(
-  nodeUuid: string,
-  backend = currentBackend,
-) {
+export async function preGenerateToken(nodeUuid: string, backend = currentBackend) {
   if (!backend.value) return;
   try {
     const result = await getWsConnection(backend.value.url).call<{
@@ -49,10 +46,7 @@ export async function preGenerateToken(
   }
 }
 
-export async function reGenerateToken(
-  nodeUuid: string,
-  backend = currentBackend,
-) {
+export async function reGenerateToken(nodeUuid: string, backend = currentBackend) {
   if (!backend.value) return;
   try {
     try {
@@ -71,10 +65,7 @@ export async function reGenerateToken(
   }
 }
 
-export async function upgradeTokenLimit(
-  nodeUuid: string,
-  backend = currentBackend,
-) {
+export async function upgradeTokenLimit(nodeUuid: string, backend = currentBackend) {
   if (!backend.value) return;
   const rpc = makeRpcFunction();
   try {

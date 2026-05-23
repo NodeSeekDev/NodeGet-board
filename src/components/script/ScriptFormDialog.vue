@@ -102,9 +102,7 @@ watch(
     <DialogContent class="flex max-h-[85vh] flex-col sm:max-w-md">
       <DialogHeader>
         <DialogTitle>
-          {{
-            script ? t("dashboard.scripts.edit") : t("dashboard.scripts.create")
-          }}
+          {{ script ? t("dashboard.scripts.edit") : t("dashboard.scripts.create") }}
         </DialogTitle>
         <DialogDescription>
           {{ t("dashboard.scripts.desc") }}
@@ -118,7 +116,7 @@ watch(
             :placeholder="t('dashboard.scripts.name')"
             :disabled="!!script || saving"
           />
-          <p v-if="errors.name" class="text-xs text-destructive">
+          <p v-if="errors.name" class="text-destructive text-xs">
             {{ errors.name }}
           </p>
         </div>
@@ -141,18 +139,15 @@ watch(
             :placeholder="t('dashboard.scripts.content')"
             :disabled="saving"
           />
-          <p v-if="errors.content" class="text-xs text-destructive">
+          <p v-if="errors.content" class="text-destructive text-xs">
             {{ errors.content }}
           </p>
         </div>
       </div>
       <DialogFooter>
-        <Button
-          variant="outline"
-          :disabled="saving"
-          @click="emit('update:open', false)"
-          >{{ t("dashboard.scripts.cancel") }}</Button
-        >
+        <Button variant="outline" :disabled="saving" @click="emit('update:open', false)">{{
+          t("dashboard.scripts.cancel")
+        }}</Button>
         <Button :disabled="saving" @click="handleSave">
           <Loader2 v-if="saving" class="mr-2 h-4 w-4 animate-spin" />
           {{ saving ? t("dashboard.saving") : t("dashboard.save") }}

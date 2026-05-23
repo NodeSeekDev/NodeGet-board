@@ -9,14 +9,12 @@ export function mergeThemeConfigJson(
   let newConfig: Record<string, unknown> = {};
   let oldConfig: Record<string, unknown> = {};
   try {
-    if (newConfigText)
-      newConfig = JSON.parse(newConfigText) as Record<string, unknown>;
+    if (newConfigText) newConfig = JSON.parse(newConfigText) as Record<string, unknown>;
   } catch (e) {
     console.warn("mergeThemeConfigJson: failed to parse newConfigText", e);
   }
   try {
-    if (oldConfigText)
-      oldConfig = JSON.parse(oldConfigText) as Record<string, unknown>;
+    if (oldConfigText) oldConfig = JSON.parse(oldConfigText) as Record<string, unknown>;
   } catch (e) {
     console.warn("mergeThemeConfigJson: failed to parse oldConfigText", e);
   }

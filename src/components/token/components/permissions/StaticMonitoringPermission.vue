@@ -18,9 +18,7 @@ const writeEnabled = ref(false);
 const deleteEnable = ref(false);
 const readTargets = ref<string[]>([]);
 const hydrating = ref(false);
-const { isOpen, handleToggle } = usePermissionModuleOpen(
-  () => props.modelValue,
-);
+const { isOpen, handleToggle } = usePermissionModuleOpen(() => props.modelValue);
 
 const toggleReadTarget = (target: string) => {
   const index = readTargets.value.indexOf(target);
@@ -98,20 +96,12 @@ watch(
 
 <template>
   <details class="rounded-md border p-3" :open="isOpen" @toggle="handleToggle">
-    <summary class="cursor-pointer select-none text-sm font-medium">
-      {{
-        t(
-          "dashboard.token.permissionsConfig.limitItem.permissionCard.staticMonitoring.title",
-        )
-      }}
+    <summary class="cursor-pointer text-sm font-medium select-none">
+      {{ t("dashboard.token.permissionsConfig.limitItem.permissionCard.staticMonitoring.title") }}
     </summary>
     <div class="mt-3 space-y-2">
-      <div class="text-xs text-muted-foreground">
-        {{
-          t(
-            "dashboard.token.permissionsConfig.limitItem.permissionCard.staticMonitoring.read",
-          )
-        }}
+      <div class="text-muted-foreground text-xs">
+        {{ t("dashboard.token.permissionsConfig.limitItem.permissionCard.staticMonitoring.read") }}
       </div>
       <div class="flex flex-wrap gap-2">
         <Button
@@ -125,12 +115,8 @@ watch(
           {{ field }}
         </Button>
       </div>
-      <div class="text-xs text-muted-foreground">
-        {{
-          t(
-            "dashboard.token.permissionsConfig.limitItem.permissionCard.staticMonitoring.write",
-          )
-        }}
+      <div class="text-muted-foreground text-xs">
+        {{ t("dashboard.token.permissionsConfig.limitItem.permissionCard.staticMonitoring.write") }}
       </div>
       <div class="flex flex-wrap gap-2">
         <Button
@@ -140,17 +126,13 @@ watch(
           @click="writeEnabled = !writeEnabled"
         >
           {{
-            t(
-              "dashboard.token.permissionsConfig.limitItem.permissionCard.staticMonitoring.write",
-            )
+            t("dashboard.token.permissionsConfig.limitItem.permissionCard.staticMonitoring.write")
           }}
         </Button>
       </div>
-      <div class="text-xs text-muted-foreground">
+      <div class="text-muted-foreground text-xs">
         {{
-          t(
-            "dashboard.token.permissionsConfig.limitItem.permissionCard.staticMonitoring.delete",
-          )
+          t("dashboard.token.permissionsConfig.limitItem.permissionCard.staticMonitoring.delete")
         }}
       </div>
       <div class="flex flex-wrap gap-2">
@@ -161,9 +143,7 @@ watch(
           @click="deleteEnable = !deleteEnable"
         >
           {{
-            t(
-              "dashboard.token.permissionsConfig.limitItem.permissionCard.staticMonitoring.delete",
-            )
+            t("dashboard.token.permissionsConfig.limitItem.permissionCard.staticMonitoring.delete")
           }}
         </Button>
       </div>

@@ -1,8 +1,4 @@
-import {
-  cloneTokenLimitEntries,
-  createDefaultToken,
-  DEFAULT_SCOPE,
-} from "./scopeCodec.ts";
+import { cloneTokenLimitEntries, createDefaultToken, DEFAULT_SCOPE } from "./scopeCodec.ts";
 import type { PermissionEntry, Token, TokenLimitEntry } from "./type.ts";
 import { generatePassword } from "../../lib/password.ts";
 import { TASK_NAME_LIST } from "@/types/task.ts";
@@ -78,19 +74,14 @@ export const createTokenFromTemplate = (
   createRandomString: (length?: number) => string = generatePassword,
 ): Token => {
   const template =
-    typeof templateOrId === "string"
-      ? getTokenTemplateById(templateOrId)
-      : templateOrId;
+    typeof templateOrId === "string" ? getTokenTemplateById(templateOrId) : templateOrId;
 
   if (!template) {
     throw new Error("token_template_not_found");
   }
 
   const baseToken = createDefaultToken();
-  const credentials = createTemplateTokenCredentials(
-    template.id,
-    createRandomString,
-  );
+  const credentials = createTemplateTokenCredentials(template.id, createRandomString);
 
   return {
     ...baseToken,

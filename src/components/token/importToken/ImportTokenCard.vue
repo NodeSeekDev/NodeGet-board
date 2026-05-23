@@ -96,7 +96,7 @@ const handleParsedTokenChange = (value: Token) => {
 
       <CardContent class="space-y-4">
         <div class="space-y-2">
-          <div class="text-sm text-muted-foreground">
+          <div class="text-muted-foreground text-sm">
             {{ t("dashboard.token.import.parseCard.description") }}
           </div>
           <textarea
@@ -135,9 +135,7 @@ const handleParsedTokenChange = (value: Token) => {
           :token="parsedToken"
           :loading="importLoading"
           :submit-label="t('dashboard.token.import.importCard.importButton')"
-          :submitting-label="
-            t('dashboard.token.import.importCard.importingButton')
-          "
+          :submitting-label="t('dashboard.token.import.importCard.importingButton')"
           @update:token="handleParsedTokenChange"
           @submit="handleImportToken"
         />
@@ -160,10 +158,7 @@ const handleParsedTokenChange = (value: Token) => {
         <AlertDialogCancel>
           {{ t("dashboard.token.cancel") }}
         </AlertDialogCancel>
-        <AlertDialogAction
-          :disabled="parseLoading"
-          @click="handleParseImportedToken"
-        >
+        <AlertDialogAction :disabled="parseLoading" @click="handleParseImportedToken">
           <div v-if="parseLoading">
             {{ t("dashboard.token.import.parseConfirm.confirmingButton") }}
           </div>

@@ -40,7 +40,7 @@ const {
 
 <template>
   <div
-    class="flex flex-col h-full overflow-hidden status-page"
+    class="status-page flex h-full flex-col overflow-hidden"
     :style="{
       '--status-main-color': MAIN_COLOR,
       '--status-sub-color': SUB_COLOR,
@@ -53,15 +53,9 @@ const {
       :show-live="!!server"
     />
 
-    <div
-      v-if="!server"
-      class="flex-1 flex items-center justify-center text-muted-foreground"
-    >
+    <div v-if="!server" class="text-muted-foreground flex flex-1 items-center justify-center">
       <div class="flex flex-col items-center gap-2">
-        <div
-          v-if="dynamicError"
-          class="text-destructive flex items-center gap-2"
-        >
+        <div v-if="dynamicError" class="text-destructive flex items-center gap-2">
           <AlertCircle class="h-5 w-5" /> {{ dynamicError }}
         </div>
         <span v-else-if="notFound">节点未找到或已离线</span>
@@ -69,8 +63,8 @@ const {
       </div>
     </div>
 
-    <div v-else class="flex-1 p-6 overflow-y-auto">
-      <div class="max-w-5xl mx-auto space-y-6">
+    <div v-else class="flex-1 overflow-y-auto p-6">
+      <div class="mx-auto max-w-5xl space-y-6">
         <Transition name="fade" mode="out-in">
           <StatusCpuTab
             v-if="activeTab === 'cpu'"

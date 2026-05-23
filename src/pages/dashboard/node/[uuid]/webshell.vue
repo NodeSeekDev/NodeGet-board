@@ -17,15 +17,13 @@ const uuid = (route.params as { uuid: string }).uuid;
 const { currentBackend } = useBackendStore();
 
 const webshellReady = computed(() => {
-  return Boolean(
-    currentBackend.value?.url && currentBackend.value?.token && uuid,
-  );
+  return Boolean(currentBackend.value?.url && currentBackend.value?.token && uuid);
 });
 </script>
 
 <template>
-  <div class="h-full flex flex-col">
-    <div class="flex-1 rounded-md overflow-hidden">
+  <div class="flex h-full flex-col">
+    <div class="flex-1 overflow-hidden rounded-md">
       <WebTerminal
         v-if="webshellReady"
         :rpc-url="currentBackend?.url || ''"
@@ -34,9 +32,8 @@ const webshellReady = computed(() => {
         class="h-full"
       />
       <Card v-else>
-        <CardContent class="py-6 text-sm text-muted-foreground">
-          Current backend config is incomplete, unable to create a WebShell
-          task.
+        <CardContent class="text-muted-foreground py-6 text-sm">
+          Current backend config is incomplete, unable to create a WebShell task.
         </CardContent>
       </Card>
     </div>

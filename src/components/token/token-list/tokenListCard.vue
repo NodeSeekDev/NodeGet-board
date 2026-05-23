@@ -32,14 +32,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import {
-  Eye,
-  Pencil,
-  Trash2,
-  RotateCcw,
-  Search,
-  LockKeyhole,
-} from "lucide-vue-next";
+import { Eye, Pencil, Trash2, RotateCcw, Search, LockKeyhole } from "lucide-vue-next";
 import { useTokenListHook, type Token } from "@/composables/token/useTokenList";
 import { getPasswordChangeValidationError } from "@/composables/token/tokenSecret";
 import TokenSuccessDialog from "../components/TokenSuccessDialog.vue";
@@ -84,10 +77,8 @@ const filteredTokens = computed(() => {
   const keyword = normalizeSearchText(debouncedSearchKeyword.value);
 
   return tokensList.value.filter((token) => {
-    const matchesUsername =
-      !keyword || normalizeSearchText(token.username).includes(keyword);
-    const matchesTokenKey =
-      !keyword || normalizeSearchText(token.token_key).includes(keyword);
+    const matchesUsername = !keyword || normalizeSearchText(token.username).includes(keyword);
+    const matchesTokenKey = !keyword || normalizeSearchText(token.token_key).includes(keyword);
 
     return matchesUsername || matchesTokenKey;
   });
@@ -228,9 +219,7 @@ const changePasswordError = computed(() =>
 const changePasswordErrorMessage = computed(() => {
   if (!changePasswordError.value) return "";
 
-  return t(
-    `dashboard.token.list.changePasswordDialog.errors.${changePasswordError.value}`,
-  );
+  return t(`dashboard.token.list.changePasswordDialog.errors.${changePasswordError.value}`);
 });
 
 const handleOpenChangePassword = (token: Token) => {
@@ -253,10 +242,7 @@ const handleConfirmChangePassword = () => {
 
   changePasswordLoading.value = true;
   useTokenList
-    .changeTokenPassword(
-      selectedPasswordToken.value.token_key,
-      newPassword.value,
-    )
+    .changeTokenPassword(selectedPasswordToken.value.token_key, newPassword.value)
     .then((success) => {
       if (success) {
         changePasswordOpen.value = false;
@@ -280,13 +266,9 @@ watch(changePasswordOpen, (open) => {
 
 <template>
   <div class="space-y-4">
-    <div
-      class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
-    >
+    <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
       <div class="relative max-w-sm flex-1">
-        <Search
-          class="absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-        />
+        <Search class="text-muted-foreground absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2" />
         <Input
           v-model="searchKeyword"
           :placeholder="t('dashboard.token.list.searchPlaceholder')"
@@ -302,11 +284,7 @@ watch(changePasswordOpen, (open) => {
         <Button type="button" class="min-w-24" @click="handleGetTokenList">
           <span class="inline-flex w-full items-center justify-center gap-2">
             <Spinner v-if="fetchLoading" />
-            {{
-              fetchLoading
-                ? t("dashboard.token.refreshing")
-                : t("dashboard.token.refresh")
-            }}
+            {{ fetchLoading ? t("dashboard.token.refreshing") : t("dashboard.token.refresh") }}
           </span>
         </Button>
         <Button type="button" @click="toCreateToken">
@@ -324,7 +302,7 @@ watch(changePasswordOpen, (open) => {
 
     <div v-if="fetchLoading" class="mt-20 flex w-full flex-col items-center">
       <Spinner />
-      <div class="text-sm text-muted-foreground">
+      <div class="text-muted-foreground text-sm">
         {{ t("dashboard.token.list.table.loading") }}
       </div>
     </div>
@@ -356,11 +334,7 @@ watch(changePasswordOpen, (open) => {
             <TableCell>{{ token.token_limit?.length ?? 0 }}</TableCell>
             <TableCell class="flex w-32 gap-2">
               <!-- 查看按钮 -->
-              <Button
-                variant="ghost"
-                size="sm"
-                @click="handleViewTokenDetail(token)"
-              >
+              <Button variant="ghost" size="sm" @click="handleViewTokenDetail(token)">
                 <Eye />
               </Button>
               <!-- 编辑按钮 -->
@@ -368,11 +342,7 @@ watch(changePasswordOpen, (open) => {
                 <Pencil />
               </Button>
               <!-- 重置token按钮 -->
-              <Button
-                variant="ghost"
-                size="sm"
-                @click="handleOpenResetToken(token)"
-              >
+              <Button variant="ghost" size="sm" @click="handleOpenResetToken(token)">
                 <RotateCcw />
               </Button>
               <!-- 修改密码按钮 -->
@@ -414,10 +384,7 @@ watch(changePasswordOpen, (open) => {
                         {{ t("dashboard.token.cancel") }}
                       </Button>
                     </DialogClose>
-                    <Button
-                      @click="handleDeleteToken(token)"
-                      :disabled="deleteLoading"
-                    >
+                    <Button @click="handleDeleteToken(token)" :disabled="deleteLoading">
                       <div v-if="deleteLoading" class="flex items-center">
                         <Spinner />{{ t("dashboard.token.deleting") }}
                       </div>
@@ -429,10 +396,7 @@ watch(changePasswordOpen, (open) => {
             </TableCell>
           </TableRow>
           <TableRow v-if="pagedTokens.length === 0">
-            <TableCell
-              colspan="5"
-              class="py-8 text-center text-muted-foreground"
-            >
+            <TableCell colspan="5" class="text-muted-foreground py-8 text-center">
               {{ t("dashboard.token.list.table.noToken") }}
             </TableCell>
           </TableRow>
@@ -450,7 +414,7 @@ watch(changePasswordOpen, (open) => {
           class="flex justify-between gap-4"
         >
           <div class="flex items-center justify-center gap-2">
-            <div class="text-sm text-muted-foreground">
+            <div class="text-muted-foreground text-sm">
               <!-- Showing {{ pageLabel }} of {{ total }} tokens -->
               {{
                 t("dashboard.token.list.table.pageShow", {
@@ -494,7 +458,7 @@ watch(changePasswordOpen, (open) => {
         <div class="text-muted-foreground">
           {{ t("dashboard.token.list.resetDialog.confirm") }}
         </div>
-        <div class="space-y-1 rounded-md border bg-muted/40 p-3">
+        <div class="bg-muted/40 space-y-1 rounded-md border p-3">
           <div>
             <span class="text-muted-foreground">
               {{ t("dashboard.token.list.table.username") }}:
@@ -521,9 +485,7 @@ watch(changePasswordOpen, (open) => {
         </DialogClose>
         <Button @click="handleConfirmResetToken">
           <div v-if="resetTokenLoading" class="flex items-center">
-            <Spinner />{{
-              t("dashboard.token.list.resetDialog.confirmingButton")
-            }}
+            <Spinner />{{ t("dashboard.token.list.resetDialog.confirmingButton") }}
           </div>
           <div v-else>
             {{ t("dashboard.token.list.resetDialog.confirmButton") }}
@@ -545,7 +507,7 @@ watch(changePasswordOpen, (open) => {
         </DialogDescription>
       </DialogHeader>
       <div class="space-y-4 py-2 text-sm">
-        <div class="space-y-1 rounded-md border bg-muted/40 p-3">
+        <div class="bg-muted/40 space-y-1 rounded-md border p-3">
           <div>
             <span class="text-muted-foreground">
               {{ t("dashboard.token.list.table.username") }}:
@@ -569,22 +531,16 @@ watch(changePasswordOpen, (open) => {
             v-model="newPassword"
             type="password"
             autocomplete="new-password"
-            :placeholder="
-              t('dashboard.token.list.changePasswordDialog.newPassword')
-            "
+            :placeholder="t('dashboard.token.list.changePasswordDialog.newPassword')"
           />
           <Input
             v-model="confirmPassword"
             type="password"
             autocomplete="new-password"
-            :placeholder="
-              t('dashboard.token.list.changePasswordDialog.confirmPassword')
-            "
+            :placeholder="t('dashboard.token.list.changePasswordDialog.confirmPassword')"
           />
           <div
-            v-if="
-              (newPassword || confirmPassword) && changePasswordErrorMessage
-            "
+            v-if="(newPassword || confirmPassword) && changePasswordErrorMessage"
             class="text-sm text-red-500"
           >
             {{ changePasswordErrorMessage }}
@@ -602,9 +558,7 @@ watch(changePasswordOpen, (open) => {
           @click="handleConfirmChangePassword"
         >
           <div v-if="changePasswordLoading" class="flex items-center">
-            <Spinner />{{
-              t("dashboard.token.list.changePasswordDialog.confirmingButton")
-            }}
+            <Spinner />{{ t("dashboard.token.list.changePasswordDialog.confirmingButton") }}
           </div>
           <div v-else>
             {{ t("dashboard.token.list.changePasswordDialog.confirmButton") }}

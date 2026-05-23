@@ -12,9 +12,7 @@ export function useLiveLabel(source: Ref<unknown>) {
 
   onMounted(() => {
     timer = setInterval(() => {
-      elapsed.value = lastUpdate.value
-        ? Date.now() - lastUpdate.value
-        : Infinity;
+      elapsed.value = lastUpdate.value ? Date.now() - lastUpdate.value : Infinity;
     }, 1000);
   });
 

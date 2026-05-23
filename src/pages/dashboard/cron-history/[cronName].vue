@@ -8,10 +8,7 @@ import { Button } from "@/components/ui/button";
 import CronHistoryFilter from "@/components/cron/CronHistoryFilter.vue";
 import CronHistoryTable from "@/components/cron/CronHistoryTable.vue";
 import CronHistoryDetailDialog from "@/components/cron/CronHistoryDetailDialog.vue";
-import {
-  useCronHistory,
-  type CrontabResult,
-} from "@/composables/useCronHistory";
+import { useCronHistory, type CrontabResult } from "@/composables/useCronHistory";
 import type { FilterState } from "@/components/cron/CronHistoryFilter.vue";
 
 definePage({
@@ -26,9 +23,7 @@ const router = useRouter();
 const { t } = useI18n();
 const { query } = useCronHistory();
 
-const cronName = computed(
-  () => (route.params as { cronName: string }).cronName,
-);
+const cronName = computed(() => (route.params as { cronName: string }).cronName);
 const taskType = computed(() => {
   const value = route.query.taskType;
   return value === "server" ? "server" : "agent";
@@ -64,9 +59,7 @@ const records = computed(() => {
   return allRecords.value.slice(start, start + pageSize.value);
 });
 
-const totalPages = computed(() =>
-  Math.ceil(allRecords.value.length / pageSize.value),
-);
+const totalPages = computed(() => Math.ceil(allRecords.value.length / pageSize.value));
 
 const buildCondition = () => {
   const condition: any[] = [
@@ -79,11 +72,7 @@ const buildCondition = () => {
     if (!Number.isNaN(id) && id > 0) condition.push({ id });
   }
 
-  if (
-    !filter.value.latestOnly &&
-    filter.value.startTime &&
-    filter.value.endTime
-  ) {
+  if (!filter.value.latestOnly && filter.value.startTime && filter.value.endTime) {
     const startTs = new Date(filter.value.startTime).getTime();
     const endTs = new Date(filter.value.endTime).getTime();
     condition.push({ run_time_from_to: [startTs, endTs] });
@@ -176,7 +165,7 @@ onMounted(() => {
           <h1 class="text-2xl font-bold">
             {{ t("dashboard.cron.history.title") }}
           </h1>
-          <p class="text-sm text-muted-foreground">
+          <p class="text-muted-foreground text-sm">
             {{ t("dashboard.cron.history.taskName") }}: {{ cronName }}
           </p>
         </div>

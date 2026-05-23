@@ -13,9 +13,9 @@ defineProps<{
 <template>
   <div class="flex items-center justify-between">
     <div class="flex items-center gap-3">
-      <h1 class="text-3xl font-bold tracking-tight animate-pulse">NodeGet</h1>
+      <h1 class="animate-pulse text-3xl font-bold tracking-tight">NodeGet</h1>
     </div>
-    <div class="flex items-center gap-2 text-sm text-muted-foreground">
+    <div class="text-muted-foreground flex items-center gap-2 text-sm">
       <RouterLink :to="{ name: '/dashboard/overview' }">
         <Button variant="ghost" size="icon" title="管理后台">
           <LayoutDashboard class="h-4 w-4" />
@@ -27,19 +27,11 @@ defineProps<{
 
       <Badge
         :variant="
-          status === 'connected'
-            ? 'default'
-            : status === 'connecting'
-              ? 'secondary'
-              : 'destructive'
+          status === 'connected' ? 'default' : status === 'connecting' ? 'secondary' : 'destructive'
         "
       >
         {{
-          status === "connected"
-            ? "Online"
-            : status === "connecting"
-              ? "Connecting..."
-              : "Offline"
+          status === "connected" ? "Online" : status === "connecting" ? "Connecting..." : "Offline"
         }}
       </Badge>
     </div>

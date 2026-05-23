@@ -15,10 +15,7 @@ const pinia = createPinia();
 const savedLocale = localStorage.getItem("locale");
 const browserLanguage = (navigator.language || "en").split("-")[0] || "en";
 const defaultLocale: string =
-  savedLocale ||
-  ((["en", "zh_cn"].includes(browserLanguage)
-    ? browserLanguage
-    : "en") as string);
+  savedLocale || ((["en", "zh_cn"].includes(browserLanguage) ? browserLanguage : "en") as string);
 
 const i18n = createI18n({
   legacy: false,

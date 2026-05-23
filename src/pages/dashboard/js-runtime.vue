@@ -87,7 +87,7 @@ const deleteWorkerFun = async (name: string) => {
         <h1 class="text-2xl font-semibold">
           {{ t("dashboard.jsRuntime.title") }}
         </h1>
-        <p class="text-sm text-muted-foreground mt-1">
+        <p class="text-muted-foreground mt-1 text-sm">
           {{ t("dashboard.jsRuntime.desc") }}
         </p>
       </div>
@@ -98,10 +98,7 @@ const deleteWorkerFun = async (name: string) => {
           :disabled="runtime.loading.value"
           @click="listAllWorkersFun"
         >
-          <RotateCcw
-            class="h-4 w-4"
-            :class="{ 'animate-spin': runtime.loading.value }"
-          />
+          <RotateCcw class="h-4 w-4" :class="{ 'animate-spin': runtime.loading.value }" />
         </Button>
         <Button @click="dialogOpen = true">
           <Plus class="mr-2 h-4 w-4" />
@@ -117,11 +114,7 @@ const deleteWorkerFun = async (name: string) => {
       @delete="deleteWorkerFun"
     />
 
-    <WorkerFormDialog
-      v-model:open="dialogOpen"
-      :loading="saveLoading"
-      @save="addWorkerFun"
-    />
+    <WorkerFormDialog v-model:open="dialogOpen" :loading="saveLoading" @save="addWorkerFun" />
   </div>
   <router-view v-else />
 </template>

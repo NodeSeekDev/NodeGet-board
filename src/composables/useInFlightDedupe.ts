@@ -1,8 +1,6 @@
 import { ref } from "vue";
 
-export function useInFlightDedupe<T, A extends any[]>(
-  fn: (...args: A) => Promise<T>,
-) {
+export function useInFlightDedupe<T, A extends any[]>(fn: (...args: A) => Promise<T>) {
   const data = ref<T | null>(null);
   const error = ref<any>(null);
   const isLoading = ref(false);

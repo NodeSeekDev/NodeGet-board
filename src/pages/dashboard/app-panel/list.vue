@@ -1,14 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import {
-  Plus,
-  RefreshCw,
-  Trash2,
-  Settings,
-  RotateCcw,
-  Zap,
-} from "lucide-vue-next";
+import { Plus, RefreshCw, Trash2, Settings, RotateCcw, Zap } from "lucide-vue-next";
 import { toast } from "vue-sonner";
 import { Button } from "@/components/ui/button";
 import { PopConfirm } from "@/components/ui/pop-confirm";
@@ -45,9 +38,7 @@ const {
 } = useExtensions();
 
 const installDialogOpen = ref(false);
-const installDialogRef = ref<InstanceType<
-  typeof ExtensionInstallDialog
-> | null>(null);
+const installDialogRef = ref<InstanceType<typeof ExtensionInstallDialog> | null>(null);
 const reinstallTarget = ref<Extension | null>(null);
 const deletingId = ref<string | null>(null);
 const quickDialogOpen = ref(false);
@@ -121,7 +112,7 @@ onMounted(() => fetchExtensions());
 </script>
 
 <template>
-  <div class="h-full flex flex-col space-y-6 overflow-y-auto">
+  <div class="flex h-full flex-col space-y-6 overflow-y-auto">
     <div class="flex items-center justify-between">
       <div>
         <h2 class="text-2xl font-bold tracking-tight">
@@ -130,20 +121,15 @@ onMounted(() => fetchExtensions());
         <p class="text-muted-foreground text-sm">管理已安装的扩展应用</p>
       </div>
       <div class="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          :disabled="loading"
-          @click="fetchExtensions"
-        >
+        <Button variant="outline" size="sm" :disabled="loading" @click="fetchExtensions">
           <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': loading }" />
         </Button>
         <Button variant="outline" size="sm" @click="quickDialogOpen = true">
-          <Zap class="h-4 w-4 mr-1" />
+          <Zap class="mr-1 h-4 w-4" />
           快捷 Extension
         </Button>
         <Button size="sm" @click="installDialogOpen = true">
-          <Plus class="h-4 w-4 mr-1" />
+          <Plus class="mr-1 h-4 w-4" />
           添加 Extension
         </Button>
       </div>
@@ -151,7 +137,7 @@ onMounted(() => fetchExtensions());
 
     <div
       v-if="error"
-      class="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive"
+      class="border-destructive/50 bg-destructive/10 text-destructive rounded-md border p-3 text-sm"
     >
       {{ error }}
     </div>
@@ -172,20 +158,14 @@ onMounted(() => fetchExtensions());
         <TableBody>
           <template v-if="loading && extensions.length === 0">
             <TableRow>
-              <TableCell
-                colspan="7"
-                class="text-center text-muted-foreground py-8"
-              >
+              <TableCell colspan="7" class="text-muted-foreground py-8 text-center">
                 加载中...
               </TableCell>
             </TableRow>
           </template>
           <template v-else-if="extensions.length === 0">
             <TableRow>
-              <TableCell
-                colspan="7"
-                class="text-center text-muted-foreground py-8"
-              >
+              <TableCell colspan="7" class="text-muted-foreground py-8 text-center">
                 暂无已安装的扩展，点击「添加 Extension」开始使用
               </TableCell>
             </TableRow>
@@ -194,29 +174,25 @@ onMounted(() => fetchExtensions());
             <TableRow v-for="ext in extensions" :key="ext.id">
               <TableCell>
                 <div
-                  class="w-8 h-8 rounded border bg-muted/40 flex items-center justify-center overflow-hidden"
+                  class="bg-muted/40 flex h-8 w-8 items-center justify-center overflow-hidden rounded border"
                 >
                   <ExtensionIcon :url="getIconUrl(ext)" :size="20" />
                 </div>
               </TableCell>
 
               <TableCell
-                class="font-medium cursor-pointer hover:underline"
+                class="cursor-pointer font-medium hover:underline"
                 @click="router.push(`/dashboard/app-panel/${ext.id}`)"
                 >{{ ext.app.name }}</TableCell
               >
 
-              <TableCell
-                class="font-mono text-xs text-muted-foreground max-w-32 truncate"
-              >
+              <TableCell class="text-muted-foreground max-w-32 truncate font-mono text-xs">
                 {{ ext.id }}
               </TableCell>
 
-              <TableCell class="text-sm">{{
-                ext.app.version || "—"
-              }}</TableCell>
+              <TableCell class="text-sm">{{ ext.app.version || "—" }}</TableCell>
 
-              <TableCell class="text-sm text-muted-foreground">
+              <TableCell class="text-muted-foreground text-sm">
                 {{ formatDate(ext.created_at) }}
               </TableCell>
 
@@ -246,7 +222,7 @@ onMounted(() => fetchExtensions());
                       class="h-7 w-7"
                       :disabled="deletingId === ext.id"
                     >
-                      <Trash2 class="h-3.5 w-3.5 text-destructive" />
+                      <Trash2 class="text-destructive h-3.5 w-3.5" />
                     </Button>
                   </PopConfirm>
 

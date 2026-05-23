@@ -5,10 +5,7 @@ import { useI18n } from "vue-i18n";
 import TokenList from "@/components/token/token-list/tokenListCard.vue";
 import { useCreatTokenHook } from "@/composables/token/useCreateToken";
 import { useBackendStore } from "@/composables/useBackendStore";
-import {
-  createDefaultToken,
-  DEFAULT_SCOPE,
-} from "@/components/token/scopeCodec";
+import { createDefaultToken, DEFAULT_SCOPE } from "@/components/token/scopeCodec";
 import {
   VISITOR_PERMISSIONS,
   VISITOR_WITH_PING_PERMISSIONS,
@@ -26,10 +23,7 @@ const autoCreateDefaultTokens = async () => {
   autoCreatePending = true;
 
   const backendUrl = currentBackend.value?.url ?? "";
-  const buildToken = (
-    username: string,
-    permissions: typeof VISITOR_PERMISSIONS,
-  ) => ({
+  const buildToken = (username: string, permissions: typeof VISITOR_PERMISSIONS) => ({
     ...createDefaultToken(),
     username,
     password: generatePassword(16),
@@ -42,18 +36,14 @@ const autoCreateDefaultTokens = async () => {
   });
 
   const [r1, r2] = await Promise.all([
-    createTokenHook.createToken(
-      buildToken("visitor_monitor_only", VISITOR_PERMISSIONS),
-    ),
+    createTokenHook.createToken(buildToken("visitor_monitor_only", VISITOR_PERMISSIONS)),
     createTokenHook.createToken(
       buildToken("visitor_monitor_with_ping", VISITOR_WITH_PING_PERMISSIONS),
     ),
   ]);
 
-  if (r1.key && backendUrl)
-    addBackend({ name: "本机 纯监控", url: backendUrl, token: r1.key });
-  if (r2.key && backendUrl)
-    addBackend({ name: "本机 监控+ping", url: backendUrl, token: r2.key });
+  if (r1.key && backendUrl) addBackend({ name: "本机 纯监控", url: backendUrl, token: r1.key });
+  if (r2.key && backendUrl) addBackend({ name: "本机 监控+ping", url: backendUrl, token: r2.key });
 
   autoCreatePending = false;
   tokenListRef.value?.refresh();
@@ -70,7 +60,7 @@ definePage({
 </script>
 
 <template>
-  <div class="h-full flex flex-col space-y-6">
+  <div class="flex h-full flex-col space-y-6">
     <div class="flex items-center justify-between">
       <div>
         <h2 class="text-2xl font-bold tracking-tight">
@@ -83,10 +73,7 @@ definePage({
     </div>
 
     <div>
-      <TokenList
-        ref="tokenListRef"
-        @first-load-empty="autoCreateDefaultTokens"
-      />
+      <TokenList ref="tokenListRef" @first-load-empty="autoCreateDefaultTokens" />
     </div>
   </div>
 </template>

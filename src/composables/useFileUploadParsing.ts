@@ -12,9 +12,7 @@ export function parseZipFile(arrayBuffer: ArrayBuffer): Promise<FileEntry[]> {
       const firstDir = topDirs.size === 1 ? ([...topDirs][0] ?? "") : "";
       const hasTopDir =
         firstDir !== "" &&
-        entries.every(
-          ([p]) => p === firstDir + "/" || p.startsWith(firstDir + "/"),
-        );
+        entries.every(([p]) => p === firstDir + "/" || p.startsWith(firstDir + "/"));
       const files: FileEntry[] = [];
       for (const [path, content] of entries) {
         if (path.endsWith("/")) continue;

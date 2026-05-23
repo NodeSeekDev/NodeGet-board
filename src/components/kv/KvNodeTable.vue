@@ -26,8 +26,7 @@ import { useKv } from "@/composables/useKv";
 import { useNodeMetadata } from "@/composables/useNodeMetadata";
 
 const kv = useKv();
-const { parseMetadataFields, buildMetadataBatch, initDefaultMetadata } =
-  useNodeMetadata(kv);
+const { parseMetadataFields, buildMetadataBatch, initDefaultMetadata } = useNodeMetadata(kv);
 
 function getRegionLabel(code: string) {
   const r = REGIONS.find((r) => r.code === code);
@@ -37,10 +36,7 @@ function getRegionLabel(code: string) {
 const nodes = ref<NodeItem[]>([]);
 const loading = ref(false);
 
-function parseNode(
-  ns: string,
-  entries: { key: string; value: unknown }[],
-): NodeItem | null {
+function parseNode(ns: string, entries: { key: string; value: unknown }[]): NodeItem | null {
   return { id: ns, ...parseMetadataFields(entries, ns) };
 }
 
@@ -170,18 +166,12 @@ async function handleSaveEdit() {
 </script>
 
 <template>
-  <div
-    v-if="loading"
-    class="flex items-center justify-center py-12 text-muted-foreground"
-  >
-    <Loader2 class="h-5 w-5 animate-spin mr-2" />
+  <div v-if="loading" class="text-muted-foreground flex items-center justify-center py-12">
+    <Loader2 class="mr-2 h-5 w-5 animate-spin" />
     加载中...
   </div>
 
-  <div
-    v-else-if="nodes.length === 0"
-    class="py-12 text-center text-muted-foreground text-sm"
-  >
+  <div v-else-if="nodes.length === 0" class="text-muted-foreground py-12 text-center text-sm">
     暂无节点数据
   </div>
 
@@ -202,41 +192,29 @@ async function handleSaveEdit() {
       <TableRow v-for="node in nodes" :key="node.id">
         <TableCell class="font-medium">
           {{ node.customName }}
-          <span
-            class="ml-1.5 text-xs text-muted-foreground font-normal font-mono"
-            >{{ node.id }}</span
-          >
+          <span class="text-muted-foreground ml-1.5 font-mono text-xs font-normal">{{
+            node.id
+          }}</span>
         </TableCell>
         <TableCell>
           <div class="flex flex-wrap gap-1">
-            <Badge v-for="tag in node.tags" :key="tag" variant="secondary">{{
-              tag
-            }}</Badge>
+            <Badge v-for="tag in node.tags" :key="tag" variant="secondary">{{ tag }}</Badge>
           </div>
         </TableCell>
-        <TableCell class="text-right font-mono"
-          >{{ node.priceUnit }}{{ node.price }}</TableCell
-        >
+        <TableCell class="text-right font-mono">{{ node.priceUnit }}{{ node.price }}</TableCell>
         <TableCell>{{ node.priceCycle }}</TableCell>
-        <TableCell class="font-mono text-sm">{{
-          node.expireTime || "—"
-        }}</TableCell>
+        <TableCell class="font-mono text-sm">{{ node.expireTime || "—" }}</TableCell>
         <TableCell>{{ getRegionLabel(node.region) }}</TableCell>
         <TableCell>
           <Badge
             v-if="!node.hidden"
-            class="bg-green-500/15 text-green-600 hover:bg-green-500/25 border-0"
+            class="border-0 bg-green-500/15 text-green-600 hover:bg-green-500/25"
             >显示</Badge
           >
           <Badge v-else variant="secondary">隐藏</Badge>
         </TableCell>
         <TableCell class="text-right">
-          <Button
-            variant="ghost"
-            size="icon"
-            class="h-8 w-8"
-            @click="handleEdit(node)"
-          >
+          <Button variant="ghost" size="icon" class="h-8 w-8" @click="handleEdit(node)">
             <Pencil class="h-4 w-4" />
           </Button>
         </TableCell>
@@ -251,10 +229,7 @@ async function handleSaveEdit() {
       </DialogHeader>
       <NodeMetadataForm v-model="editForm" />
       <DialogFooter>
-        <Button
-          variant="outline"
-          :disabled="saveLoading"
-          @click="editDialogOpen = false"
+        <Button variant="outline" :disabled="saveLoading" @click="editDialogOpen = false"
           >取消</Button
         >
         <Button :disabled="saveLoading" @click="handleSaveEdit">

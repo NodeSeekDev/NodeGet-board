@@ -2,13 +2,7 @@
 import { ref, computed, watch, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import {
-  Loader2,
-  CircleCheckBig,
-  RefreshCw,
-  Copy,
-  Check,
-} from "lucide-vue-next";
+import { Loader2, CircleCheckBig, RefreshCw, Copy, Check } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -133,9 +127,7 @@ getDbLimit();
 const loadCrons = async () => {
   if (!currentBackendInfo.value) return;
   try {
-    const cv = await listCrons().then((r) =>
-      r.filter((c) => "agent" in c.cron_type),
-    );
+    const cv = await listCrons().then((r) => r.filter((c) => "agent" in c.cron_type));
     cv.sort((a, b) => (a.name > b.name ? -1 : 1));
     cronList.value = cv;
     // 加载上次保存的选择
@@ -146,10 +138,7 @@ const loadCrons = async () => {
 };
 
 const isAllCronsSelected = () => {
-  return (
-    cronList.value.length > 0 &&
-    selectedCronIds.value.size === cronList.value.length
-  );
+  return cronList.value.length > 0 && selectedCronIds.value.size === cronList.value.length;
 };
 
 const toggleSelectAllCrons = () => {
@@ -171,10 +160,9 @@ const checkOnline = async () => {
   if (!currentBackendInfo.value) return;
   try {
     const conn = getWsConnection(currentBackendInfo.value.url);
-    const result = await conn.call<{ uuids: string[] }>(
-      "nodeget-server_list_all_agent_uuid",
-      { token: currentBackendInfo.value.token },
-    );
+    const result = await conn.call<{ uuids: string[] }>("nodeget-server_list_all_agent_uuid", {
+      token: currentBackendInfo.value.token,
+    });
     if (result?.uuids?.includes(nodeUuid.value)) {
       stopPolling();
       const formatMinute = (t: typeof dynamicRetention) => {
@@ -187,9 +175,7 @@ const checkOnline = async () => {
       await afterAgentCreate(nodeUuid.value, {
         cronList: cronList.value.filter((v) => selectedCronIds.value.has(v.id)),
         databaseLimit: {
-          database_limit_dynamic_monitoring_summary: formatMinute(
-            dynamicSummaryRetention,
-          ),
+          database_limit_dynamic_monitoring_summary: formatMinute(dynamicSummaryRetention),
           database_limit_dynamic_monitoring: formatMinute(dynamicRetention),
           database_limit_static_monitoring: formatMinute(staticRetention),
           database_limit_task: formatMinute(agentTaskRetention),
@@ -239,9 +225,7 @@ const installScript = computed(() => {
   const uuid = nodeUuid.value || "{AGENT_UUID}";
   const token = generatedToken.value || "{TOKEN}";
   const serverWs =
-    currentBackendInfo.value?.agentConfigWsUrl ||
-    currentBackendInfo.value?.url ||
-    "{Server_WS}";
+    currentBackendInfo.value?.agentConfigWsUrl || currentBackendInfo.value?.url || "{Server_WS}";
   const serverName = currentBackendInfo.value?.name || "{Server_NAME}";
   return `bash <(curl -sL ${import.meta.env.VITE_INSTALL_URL}) install-agent  \\
   --agent-id "${uuid}" \\
@@ -333,9 +317,7 @@ const steps = [
 
 <template>
   <Dialog v-model:open="open">
-    <DialogContent
-      class="max-h-[80vh] grid-rows-[auto_1fr_auto] p-0 sm:max-w-xl"
-    >
+    <DialogContent class="max-h-[80vh] grid-rows-[auto_1fr_auto] p-0 sm:max-w-xl">
       <DialogHeader class="px-6 pt-6 pb-2">
         <DialogTitle>{{ t("dashboard.agents.addTitle") }}</DialogTitle>
         <DialogDescription>
@@ -345,17 +327,11 @@ const steps = [
               <div class="flex items-center gap-1.5">
                 <div
                   class="size-2 rounded-full transition-colors"
-                  :class="
-                    step >= s.key ? 'bg-primary' : 'bg-muted-foreground/30'
-                  "
+                  :class="step >= s.key ? 'bg-primary' : 'bg-muted-foreground/30'"
                 />
                 <span
                   class="text-xs"
-                  :class="
-                    step >= s.key
-                      ? 'font-medium text-foreground'
-                      : 'text-muted-foreground'
-                  "
+                  :class="step >= s.key ? 'text-foreground font-medium' : 'text-muted-foreground'"
                 >
                   {{ t(`dashboard.agents.${s.label}`) }}
                 </span>
@@ -409,9 +385,7 @@ const steps = [
         <div v-if="step === 2" class="space-y-4 py-2">
           <div class="space-y-2">
             <div class="flex items-center justify-between">
-              <Label class="text-base">{{
-                t("dashboard.agents.cronSection")
-              }}</Label>
+              <Label class="text-base">{{ t("dashboard.agents.cronSection") }}</Label>
               <Button
                 v-if="cronList.length > 0"
                 variant="ghost"
@@ -425,18 +399,11 @@ const steps = [
                 }}
               </Button>
             </div>
-            <div
-              v-if="cronList.length === 0"
-              class="py-2 text-sm text-muted-foreground"
-            >
+            <div v-if="cronList.length === 0" class="text-muted-foreground py-2 text-sm">
               -- 暂无Agent定时任务 --
             </div>
             <div v-else class="max-h-40 space-y-2 overflow-y-auto">
-              <div
-                v-for="cron in cronList"
-                :key="cron.id"
-                class="flex items-center gap-2"
-              >
+              <div v-for="cron in cronList" :key="cron.id" class="flex items-center gap-2">
                 <Checkbox
                   :id="`cron-${cron.id}`"
                   :model-value="selectedCronIds.has(cron.id)"
@@ -452,7 +419,7 @@ const steps = [
                   class="flex cursor-pointer items-center gap-2 select-none"
                 >
                   <span class="text-sm">{{ cron.name }}</span>
-                  <span class="font-mono text-xs text-muted-foreground">
+                  <span class="text-muted-foreground font-mono text-xs">
                     {{ cron.cron_expression }}
                   </span>
                 </label>
@@ -461,9 +428,7 @@ const steps = [
           </div>
 
           <div class="space-y-3">
-            <Label class="text-base">{{
-              t("dashboard.agents.storageSection")
-            }}</Label>
+            <Label class="text-base">{{ t("dashboard.agents.storageSection") }}</Label>
 
             <div class="flex items-center justify-between gap-4">
               <span class="text-sm">
@@ -476,7 +441,7 @@ const steps = [
                   class="w-38"
                   @update:model-value="dynamicSummaryRetention = $event"
                 />
-                <span class="text-sm whitespace-nowrap text-muted-foreground">
+                <span class="text-muted-foreground text-sm whitespace-nowrap">
                   {{ t("dashboard.agents.minuteUnit") }}
                 </span>
               </div>
@@ -492,7 +457,7 @@ const steps = [
                   class="w-38"
                   @update:model-value="dynamicRetention = $event"
                 />
-                <span class="text-sm whitespace-nowrap text-muted-foreground">
+                <span class="text-muted-foreground text-sm whitespace-nowrap">
                   {{ t("dashboard.agents.minuteUnit") }}
                 </span>
               </div>
@@ -509,7 +474,7 @@ const steps = [
                   class="w-38"
                   @update:model-value="staticRetention = $event"
                 />
-                <span class="text-sm whitespace-nowrap text-muted-foreground">
+                <span class="text-muted-foreground text-sm whitespace-nowrap">
                   {{ t("dashboard.agents.minuteUnit") }}
                 </span>
               </div>
@@ -525,14 +490,14 @@ const steps = [
                   class="w-38"
                   @update:model-value="agentTaskRetention = $event"
                 />
-                <span class="text-sm whitespace-nowrap text-muted-foreground">
+                <span class="text-muted-foreground text-sm whitespace-nowrap">
                   {{ t("dashboard.agents.minuteUnit") }}
                 </span>
               </div>
             </div>
           </div>
 
-          <p class="text-xs text-muted-foreground">
+          <p class="text-muted-foreground text-xs">
             {{ t("dashboard.agents.storageHint") }}
           </p>
         </div>
@@ -543,7 +508,7 @@ const steps = [
             <h3 class="text-base font-medium">
               {{ t("dashboard.agents.installTitle") }}
             </h3>
-            <p class="text-sm text-muted-foreground">
+            <p class="text-muted-foreground text-sm">
               {{ t("dashboard.agents.installSubtitle") }}
             </p>
           </div>
@@ -551,11 +516,11 @@ const steps = [
             <button
               type="button"
               @click="copyInstallScript"
-              class="absolute top-2 right-2 z-10 rounded-md border border-border/50 bg-background/80 p-1.5 transition-colors hover:border-border hover:bg-background"
+              class="border-border/50 bg-background/80 hover:border-border hover:bg-background absolute top-2 right-2 z-10 rounded-md border p-1.5 transition-colors"
               :title="isCopied ? 'Copied!' : 'Copy to clipboard'"
             >
               <Check v-if="isCopied" class="h-4 w-4 text-green-500" />
-              <Copy v-else class="h-4 w-4 text-muted-foreground" />
+              <Copy v-else class="text-muted-foreground h-4 w-4" />
             </button>
             <Codemirror
               :model-value="installScript"
@@ -564,16 +529,13 @@ const steps = [
               :style="{ minHeight: '120px' }"
             />
           </div>
-          <p class="text-xs text-muted-foreground">
+          <p class="text-muted-foreground text-xs">
             {{ t("dashboard.agents.onlineHint") }}
           </p>
         </div>
 
         <!-- Step 4: 完成 -->
-        <div
-          v-if="step === 4"
-          class="flex flex-col items-center justify-center gap-4 py-8"
-        >
+        <div v-if="step === 4" class="flex flex-col items-center justify-center gap-4 py-8">
           <CircleCheckBig class="h-16 w-16 text-green-500" />
           <h3 class="text-xl font-semibold">
             {{ t("dashboard.agents.completed") }}

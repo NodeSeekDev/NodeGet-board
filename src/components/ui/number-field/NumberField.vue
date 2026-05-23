@@ -10,9 +10,7 @@ import type { NumberFieldRootProps } from "reka-ui";
 import type { HTMLAttributes } from "vue";
 import { cn } from "@/lib/utils";
 
-const props = defineProps<
-  NumberFieldRootProps & { class?: HTMLAttributes["class"] }
->();
+const props = defineProps<NumberFieldRootProps & { class?: HTMLAttributes["class"] }>();
 
 const emit = defineEmits<{ "update:modelValue": [val: number] }>();
 </script>
@@ -24,22 +22,22 @@ const emit = defineEmits<{ "update:modelValue": [val: number] }>();
     @update:model-value="emit('update:modelValue', $event)"
   >
     <NumberFieldDecrement
-      class="h-9 px-2 border border-input rounded-l-md bg-transparent hover:bg-accent disabled:opacity-50 disabled:pointer-events-none transition-colors"
+      class="border-input hover:bg-accent h-9 rounded-l-md border bg-transparent px-2 transition-colors disabled:pointer-events-none disabled:opacity-50"
     >
       <ChevronDown class="h-4 w-4" />
     </NumberFieldDecrement>
     <NumberFieldInput
       :class="
         cn(
-          'border-y border-input h-9 min-w-0 flex-1 bg-transparent px-3 py-1 text-base md:text-sm text-center',
+          'border-input h-9 min-w-0 flex-1 border-y bg-transparent px-3 py-1 text-center text-base md:text-sm',
           'placeholder:text-muted-foreground outline-none',
           'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[1px]',
-          'disabled:opacity-50 disabled:cursor-not-allowed',
+          'disabled:cursor-not-allowed disabled:opacity-50',
         )
       "
     />
     <NumberFieldIncrement
-      class="h-9 px-2 border border-input rounded-r-md bg-transparent hover:bg-accent disabled:opacity-50 disabled:pointer-events-none transition-colors"
+      class="border-input hover:bg-accent h-9 rounded-r-md border bg-transparent px-2 transition-colors disabled:pointer-events-none disabled:opacity-50"
     >
       <ChevronUp class="h-4 w-4" />
     </NumberFieldIncrement>

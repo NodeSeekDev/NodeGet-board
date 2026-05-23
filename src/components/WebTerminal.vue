@@ -38,9 +38,7 @@ const emit = defineEmits<{
 
 const wrapperRef = ref<HTMLElement | null>(null);
 const containerRef = ref<HTMLDivElement | null>(null);
-const status = ref<
-  "idle" | "connecting" | "connected" | "disconnected" | "error"
->("idle");
+const status = ref<"idle" | "connecting" | "connected" | "disconnected" | "error">("idle");
 const statusText = ref("Waiting");
 
 const { isFullscreen, toggle: toggleFullscreen } = useFullscreen(wrapperRef);
@@ -62,10 +60,7 @@ let heartbeatTimer: number | null = null;
 let connectId = 0;
 
 const generateId = (): string => {
-  if (
-    typeof crypto !== "undefined" &&
-    typeof crypto.randomUUID === "function"
-  ) {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();
   }
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
@@ -82,8 +77,7 @@ const initTerminal = () => {
 
   terminal = new Terminal({
     cursorBlink: true,
-    fontFamily:
-      '"Cascadia Code", Menlo, Monaco, Consolas, "Courier New", monospace',
+    fontFamily: '"Cascadia Code", Menlo, Monaco, Consolas, "Courier New", monospace',
     fontSize: 14,
     theme: {
       background: "#000000",
@@ -219,8 +213,7 @@ const connect = async () => {
   const connectWs = (retryCount = 0) => {
     if (currentId !== connectId) return;
 
-    statusText.value =
-      retryCount > 0 ? `Connecting (Retry ${retryCount})...` : "Connecting";
+    statusText.value = retryCount > 0 ? `Connecting (Retry ${retryCount})...` : "Connecting";
 
     if (retryCount > 0) {
       destroySocket();
@@ -307,18 +300,14 @@ const connect = async () => {
       }
 
       if (!connectionEstablished && retryCount < 4) {
-        terminal?.writeln(
-          `\r\n\x1b[1;33mConnection dropped, retrying in 1s...\x1b[0m`,
-        );
+        terminal?.writeln(`\r\n\x1b[1;33mConnection dropped, retrying in 1s...\x1b[0m`);
         setTimeout(() => connectWs(retryCount + 1), 1000);
         return;
       }
 
       status.value = "disconnected";
       statusText.value = `Disconnected (${event.code})`;
-      terminal?.writeln(
-        `\r\n\x1b[1;31mDisconnected [code: ${event.code}]\x1b[0m`,
-      );
+      terminal?.writeln(`\r\n\x1b[1;31mDisconnected [code: ${event.code}]\x1b[0m`);
       emit("disconnected", event.code);
     };
 
@@ -451,16 +440,13 @@ watch(
 <template>
   <div
     ref="wrapperRef"
-    class="rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden flex flex-col box-border relative"
+    class="bg-card text-card-foreground relative box-border flex flex-col overflow-hidden rounded-lg border shadow-sm"
     :class="{
-      'fixed inset-0 z-50 w-screen h-screen rounded-none border-0':
-        isWindowFull,
+      'fixed inset-0 z-50 h-screen w-screen rounded-none border-0': isWindowFull,
     }"
   >
-    <div
-      class="h-11 px-3 border-b bg-muted/30 flex items-center justify-between shrink-0"
-    >
-      <div class="text-sm text-muted-foreground">
+    <div class="bg-muted/30 flex h-11 shrink-0 items-center justify-between border-b px-3">
+      <div class="text-muted-foreground text-sm">
         Status: <span class="font-mono">{{ statusText }}</span>
       </div>
       <div class="flex items-center gap-2">
@@ -470,71 +456,53 @@ watch(
           @click="scriptShow = !scriptShow"
           :title="$t('dashboard.webterminal.scripts.name')"
         >
-          <FileTerminal class="w-4 h-4" />
+          <FileTerminal class="h-4 w-4" />
         </Button>
-        <Button
-          size="icon"
-          variant="ghost"
-          @click="toggleWindowFull"
-          title="Toggle Full Window"
-        >
-          <Minimize2 v-if="isWindowFull" class="w-4 h-4" />
-          <Maximize2 v-else class="w-4 h-4" />
+        <Button size="icon" variant="ghost" @click="toggleWindowFull" title="Toggle Full Window">
+          <Minimize2 v-if="isWindowFull" class="h-4 w-4" />
+          <Maximize2 v-else class="h-4 w-4" />
         </Button>
-        <Button
-          size="icon"
-          variant="ghost"
-          @click="toggleFullscreen"
-          title="Toggle Full Screen"
-        >
-          <Minimize v-if="isFullscreen" class="w-4 h-4" />
-          <Maximize v-else class="w-4 h-4" />
+        <Button size="icon" variant="ghost" @click="toggleFullscreen" title="Toggle Full Screen">
+          <Minimize v-if="isFullscreen" class="h-4 w-4" />
+          <Maximize v-else class="h-4 w-4" />
         </Button>
-        <Button size="sm" variant="secondary" @click="connect"
-          >Reconnect</Button
-        >
+        <Button size="sm" variant="secondary" @click="connect">Reconnect</Button>
       </div>
     </div>
     <div
       ref="containerRef"
       class="w-full bg-black"
-      :class="isFullscreen || isWindowFull ? 'flex-1 h-0' : 'h-full'"
+      :class="isFullscreen || isWindowFull ? 'h-0 flex-1' : 'h-full'"
     />
 
     <div
-      class="flex flex-col p-4 rounded-tl-lg rounded-bl-lg shadow-sm absolute top-11 bottom-0 right-0 bg-white dark:bg-[#1d1d20] w-[300px] transition-all duration-300 overflow-hidden z-1"
+      class="absolute top-11 right-0 bottom-0 z-1 flex w-[300px] flex-col overflow-hidden rounded-tl-lg rounded-bl-lg bg-white p-4 shadow-sm transition-all duration-300 dark:bg-[#1d1d20]"
       :class="scriptShow ? 'translate-x-0' : 'translate-x-full'"
     >
       <div
-        class="text-lg font-semibold text-gray-800 mb-3 dark:text-white items-end gap-2 justify-between flex"
+        class="mb-3 flex items-end justify-between gap-2 text-lg font-semibold text-gray-800 dark:text-white"
       >
         <div class="flex items-center">
-          <PanelRightClose
-            @click="scriptShow = false"
-            class="mr-2 cursor-pointer w-5 h-5"
-          />
+          <PanelRightClose @click="scriptShow = false" class="mr-2 h-5 w-5 cursor-pointer" />
           {{ $t("dashboard.webterminal.scripts.name") }}
         </div>
         <label class="flex items-center">
-          <span class="text-sm color-gray-500 mr-1 opacity-60">自动回车</span>
-          <Switch
-            v-model="autoRun"
-            :title="$t('dashboard.webterminal.scripts.autoRun')"
-          />
+          <span class="color-gray-500 mr-1 text-sm opacity-60">自动回车</span>
+          <Switch v-model="autoRun" :title="$t('dashboard.webterminal.scripts.autoRun')" />
         </label>
       </div>
       <div v-if="loading" class="text-gray-500">
         {{ $t("dashboard.webterminal.scripts.loading") }}
       </div>
-      <div v-else class="flex flex-wrap gap-2 flex-1 overflow-auto min-h-0">
+      <div v-else class="flex min-h-0 flex-1 flex-wrap gap-2 overflow-auto">
         <Button
           variant="outline"
-          class="w-full flex flex-col gap-1 items-start h-auto border"
+          class="flex h-auto w-full flex-col items-start gap-1 border"
           v-for="(script, index) in scriptsList"
           @click="codeIn(script.content)"
         >
-          <div class="flex flex-row gap-1 items-start w-full">
-            <div class="text-base font-blod flex-1 truncate text-left">
+          <div class="flex w-full flex-row items-start gap-1">
+            <div class="font-blod flex-1 truncate text-left text-base">
               {{ script.name }}
             </div>
             <div
@@ -542,15 +510,12 @@ watch(
               :title="$t('dashboard.webterminal.scripts.copy')"
               class="cursor-pointer"
             >
-              <Copy
-                class="opacity-50 dark:opacity-65"
-                v-if="script.copyStatus == false"
-              ></Copy>
+              <Copy class="opacity-50 dark:opacity-65" v-if="script.copyStatus == false"></Copy>
               <CopyCheck class="opacity-80" v-else></CopyCheck>
             </div>
           </div>
-          <div class="flex flex-col gap-1 items-start w-full text-left">
-            <div class="truncate text-xs opacity-80 break-words w-full">
+          <div class="flex w-full flex-col items-start gap-1 text-left">
+            <div class="w-full truncate text-xs break-words opacity-80">
               {{ script.content }}
             </div>
           </div>

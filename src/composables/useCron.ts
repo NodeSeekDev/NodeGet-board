@@ -50,13 +50,10 @@ export function backendToTask(b: BackendCron): CronTask {
     const task = agentCron.task;
     const taskType = (Object.keys(task)[0] ?? "ping") as AgentTaskKind;
     const executePayload =
-      taskType === "execute" &&
-      task[taskType] &&
-      typeof task[taskType] === "object"
+      taskType === "execute" && task[taskType] && typeof task[taskType] === "object"
         ? (task[taskType] as Partial<ExecuteTaskPayload>)
         : null;
-    const taskTarget =
-      taskType === "execute" ? "" : String(task[taskType] ?? "");
+    const taskTarget = taskType === "execute" ? "" : String(task[taskType] ?? "");
     return {
       id: b.id,
       name: b.name,
@@ -143,8 +140,7 @@ export function useCron(backend = useBackendStore().currentBackend) {
     cron_type: BackendCron["cron_type"];
   }) => rpc("crontab_edit", { token: backendToken.value, ...params });
 
-  const remove = (name: string) =>
-    rpc("crontab_delete", { token: backendToken.value, name });
+  const remove = (name: string) => rpc("crontab_delete", { token: backendToken.value, name });
 
   const setEnable = (name: string, enable: boolean) =>
     rpc("crontab_set_enable", { token: backendToken.value, name, enable });

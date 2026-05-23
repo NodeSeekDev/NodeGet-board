@@ -41,9 +41,7 @@ const emit = defineEmits<{
 const debugStore = useRpcDebugStore();
 const networkFilter = ref("");
 const networkFilterDraft = ref("");
-const networkFilterSuggestionSnapshot = shallowRef<NetworkFilterSuggestion[]>(
-  [],
-);
+const networkFilterSuggestionSnapshot = shallowRef<NetworkFilterSuggestion[]>([]);
 const networkFilterSuggestionsOpen = ref(false);
 const statusFilter = ref("all");
 const kindFilter = ref("all");
@@ -62,21 +60,14 @@ interface NetworkFilterSuggestion {
   label: string;
 }
 
-const NETWORK_FILTER_SUGGESTION_LABELS: Record<
-  NetworkFilterSuggestionType,
-  string
-> = {
+const NETWORK_FILTER_SUGGESTION_LABELS: Record<NetworkFilterSuggestionType, string> = {
   method: "方法",
   id: "ID",
   keyword: "关键词",
 };
 
 const networkFilterSuggestionGroups = computed(() =>
-  (
-    Object.keys(
-      NETWORK_FILTER_SUGGESTION_LABELS,
-    ) as NetworkFilterSuggestionType[]
-  )
+  (Object.keys(NETWORK_FILTER_SUGGESTION_LABELS) as NetworkFilterSuggestionType[])
     .map((type) => ({
       type,
       heading: NETWORK_FILTER_SUGGESTION_LABELS[type],
@@ -112,14 +103,9 @@ const filteredRecords = computed(() => {
       record.url,
     ];
     const matchesText =
-      !q ||
-      searchableValues.some((value) =>
-        rpcDebugCommandFilter(String(value ?? ""), q),
-      );
-    const matchesStatus =
-      statusFilter.value === "all" || record.status === statusFilter.value;
-    const matchesKind =
-      kindFilter.value === "all" || record.kind === kindFilter.value;
+      !q || searchableValues.some((value) => rpcDebugCommandFilter(String(value ?? ""), q));
+    const matchesStatus = statusFilter.value === "all" || record.status === statusFilter.value;
+    const matchesKind = kindFilter.value === "all" || record.kind === kindFilter.value;
     return matchesText && matchesStatus && matchesKind;
   });
 });
@@ -209,8 +195,7 @@ const networkColumns = computed<ColumnDef<RpcDebugRecord>[]>(() => [
     id: "id",
     header: "ID / 订阅",
     size: 132,
-    cell: ({ row }) =>
-      String(row.original.id ?? row.original.subscription ?? "-"),
+    cell: ({ row }) => String(row.original.id ?? row.original.subscription ?? "-"),
     meta: { cellClass: "max-w-[132px] truncate text-muted-foreground" },
   },
   {
@@ -237,8 +222,7 @@ const networkColumns = computed<ColumnDef<RpcDebugRecord>[]>(() => [
     id: "duration",
     header: "耗时",
     size: 84,
-    cell: ({ row }) =>
-      row.original.durationMs != null ? `${row.original.durationMs}ms` : "-",
+    cell: ({ row }) => (row.original.durationMs != null ? `${row.original.durationMs}ms` : "-"),
     meta: { cellClass: "text-muted-foreground" },
   },
 ]);
@@ -252,10 +236,7 @@ function closeDrawer() {
 }
 
 function exportRecords() {
-  downloadText(
-    `nodeget-rpc-debug-${Date.now()}.json`,
-    debugStore.exportRecords(),
-  );
+  downloadText(`nodeget-rpc-debug-${Date.now()}.json`, debugStore.exportRecords());
 }
 
 function relayCopy(text: string, message?: string) {
@@ -266,15 +247,13 @@ function relayCopy(text: string, message?: string) {
 <template>
   <div class="relative flex h-full flex-col overflow-hidden p-4">
     <!-- 控制区 -->
-    <div
-      class="mb-3 flex flex-none flex-wrap items-center justify-between gap-2"
-    >
+    <div class="mb-3 flex flex-none flex-wrap items-center justify-between gap-2">
       <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
         <div class="relative min-w-55 flex-1 sm:max-w-[320px]">
           <Command
             :filter="rpcDebugCommandFilter"
             :highlight-on-hover="true"
-            class="relative h-9 w-full overflow-visible rounded-md border bg-background shadow-none **:data-[slot=command-input]:h-8 **:data-[slot=command-input]:py-1 **:data-[slot=command-input]:text-xs **:data-[slot=command-input-wrapper]:h-9 **:data-[slot=command-input-wrapper]:border-b-0 **:data-[slot=command-input-wrapper]:px-2.5"
+            class="bg-background relative h-9 w-full overflow-visible rounded-md border shadow-none **:data-[slot=command-input]:h-8 **:data-[slot=command-input]:py-1 **:data-[slot=command-input]:text-xs **:data-[slot=command-input-wrapper]:h-9 **:data-[slot=command-input-wrapper]:border-b-0 **:data-[slot=command-input-wrapper]:px-2.5"
             @focusout="handleNetworkFilterFocusOut"
           >
             <CommandInput
@@ -288,7 +267,7 @@ function relayCopy(text: string, message?: string) {
             />
             <CommandList
               v-if="networkFilterSuggestionsOpen"
-              class="absolute top-full left-0 z-50 mt-1 max-h-64 w-full rounded-md border bg-popover shadow-md"
+              class="bg-popover absolute top-full left-0 z-50 mt-1 max-h-64 w-full rounded-md border shadow-md"
               @mousedown.prevent
             >
               <CommandEmpty class="py-3 text-xs"> 暂无匹配候选 </CommandEmpty>
@@ -305,10 +284,7 @@ function relayCopy(text: string, message?: string) {
                   class="gap-2 text-xs"
                   @select="applyNetworkFilterSuggestion(suggestion.value)"
                 >
-                  <Badge
-                    variant="outline"
-                    class="h-5 shrink-0 rounded px-1.5 text-[10px]"
-                  >
+                  <Badge variant="outline" class="h-5 shrink-0 rounded px-1.5 text-[10px]">
                     {{ suggestion.label }}
                   </Badge>
                   <span class="min-w-0 truncate font-mono">
@@ -320,10 +296,7 @@ function relayCopy(text: string, message?: string) {
           </Command>
         </div>
         <Select v-model="statusFilter">
-          <SelectTrigger
-            size="sm"
-            class="h-8 w-28 bg-background px-2.5 text-xs"
-          >
+          <SelectTrigger size="sm" class="bg-background h-8 w-28 px-2.5 text-xs">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -335,10 +308,7 @@ function relayCopy(text: string, message?: string) {
           </SelectContent>
         </Select>
         <Select v-model="kindFilter">
-          <SelectTrigger
-            size="sm"
-            class="h-8 w-28 bg-background px-2.5 text-xs"
-          >
+          <SelectTrigger size="sm" class="bg-background h-8 w-28 px-2.5 text-xs">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -394,10 +364,7 @@ function relayCopy(text: string, message?: string) {
         :data="filteredRecords"
         empty-text="暂无捕获记录。打开本页后新建的 WebSocket 请求会自动进入列表。"
         :row-key="(record) => record.recordId"
-        :row-class="
-          (record) =>
-            selectedRecord?.recordId === record.recordId ? 'bg-muted/60' : ''
-        "
+        :row-class="(record) => (selectedRecord?.recordId === record.recordId ? 'bg-muted/60' : '')"
         :on-row-click="selectRecord"
       />
       <RpcNetworkDrawer

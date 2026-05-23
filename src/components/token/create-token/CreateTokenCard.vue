@@ -78,9 +78,7 @@ const handleCreateToken = () => {
         :token="tokenFromData"
         :loading="createLoading"
         :submit-label="t('dashboard.token.create.createTokenCard.createButton')"
-        :submitting-label="
-          t('dashboard.token.create.createTokenCard.creatingButton')
-        "
+        :submitting-label="t('dashboard.token.create.createTokenCard.creatingButton')"
         :show-back-button="props.showBackButton"
         :back-label="props.backLabel"
         @update:token="handleTokenChange"

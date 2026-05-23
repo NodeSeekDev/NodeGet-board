@@ -15,9 +15,7 @@ const { t } = useI18n();
 const listAllAgentUuid = ref(false);
 const getRtPool = ref(false);
 const hydrating = ref(false);
-const { isOpen, handleToggle } = usePermissionModuleOpen(
-  () => props.modelValue,
-);
+const { isOpen, handleToggle } = usePermissionModuleOpen(() => props.modelValue);
 
 const build = (): PermissionEntry[] => {
   const entries: PermissionEntry[] = [];
@@ -36,12 +34,10 @@ const build = (): PermissionEntry[] => {
 const hydrate = (entries: PermissionEntry[]) => {
   listAllAgentUuid.value = entries.some(
     (entry) =>
-      entry?.node_get === "list_all_agent_uuid" ||
-      entry?.nodeget === "list_all_agent_uuid",
+      entry?.node_get === "list_all_agent_uuid" || entry?.nodeget === "list_all_agent_uuid",
   );
   getRtPool.value = entries.some(
-    (entry) =>
-      entry?.node_get === "get_rt_pool" || entry?.nodeget === "get_rt_pool",
+    (entry) => entry?.node_get === "get_rt_pool" || entry?.nodeget === "get_rt_pool",
   );
 };
 
@@ -68,13 +64,9 @@ watch([listAllAgentUuid, getRtPool], () => {
 
 <template>
   <details class="rounded-md border p-3" :open="isOpen" @toggle="handleToggle">
-    <summary class="cursor-pointer select-none text-sm font-medium">
+    <summary class="cursor-pointer text-sm font-medium select-none">
       NodeGet
-      {{
-        t(
-          "dashboard.token.permissionsConfig.limitItem.permissionCard.nodeGet.title",
-        )
-      }}
+      {{ t("dashboard.token.permissionsConfig.limitItem.permissionCard.nodeGet.title") }}
     </summary>
     <div class="mt-3 flex flex-wrap gap-2">
       <Button
@@ -84,9 +76,7 @@ watch([listAllAgentUuid, getRtPool], () => {
         @click="listAllAgentUuid = !listAllAgentUuid"
       >
         {{
-          t(
-            "dashboard.token.permissionsConfig.limitItem.permissionCard.nodeGet.listAllAgentUuid",
-          )
+          t("dashboard.token.permissionsConfig.limitItem.permissionCard.nodeGet.listAllAgentUuid")
         }}
       </Button>
       <Button
@@ -95,11 +85,7 @@ watch([listAllAgentUuid, getRtPool], () => {
         :variant="getRtPool ? 'default' : 'outline'"
         @click="getRtPool = !getRtPool"
       >
-        {{
-          t(
-            "dashboard.token.permissionsConfig.limitItem.permissionCard.nodeGet.getRtPool",
-          )
-        }}
+        {{ t("dashboard.token.permissionsConfig.limitItem.permissionCard.nodeGet.getRtPool") }}
       </Button>
     </div>
   </details>

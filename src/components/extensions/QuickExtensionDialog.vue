@@ -86,13 +86,9 @@ const handleConfirm = async () => {
   progressMessages.value = [];
 
   try {
-    const id = await createQuickExtension(
-      extName.value.trim(),
-      workerName.value,
-      (msg) => {
-        progressMessages.value.push(msg);
-      },
-    );
+    const id = await createQuickExtension(extName.value.trim(), workerName.value, (msg) => {
+      progressMessages.value.push(msg);
+    });
     createdId.value = id;
     step.value = "done";
   } catch (e: unknown) {
@@ -147,18 +143,12 @@ const handleDone = () => {
                 </SelectItem>
               </SelectContent>
             </Select>
-            <p
-              v-if="workerList.length === 0"
-              class="text-xs text-muted-foreground"
-            >
+            <p v-if="workerList.length === 0" class="text-muted-foreground text-xs">
               暂无可用 Worker
             </p>
           </div>
 
-          <p
-            v-if="formError"
-            class="text-sm text-destructive flex items-center gap-1"
-          >
+          <p v-if="formError" class="text-destructive flex items-center gap-1 text-sm">
             <AlertCircle class="h-4 w-4 flex-shrink-0" />
             {{ formError }}
           </p>
@@ -167,7 +157,7 @@ const handleDone = () => {
         <DialogFooter>
           <Button variant="outline" @click="handleClose">取消</Button>
           <Button @click="handleConfirm">
-            <Zap class="h-4 w-4 mr-2" />
+            <Zap class="mr-2 h-4 w-4" />
             创建
           </Button>
         </DialogFooter>
@@ -175,13 +165,13 @@ const handleDone = () => {
 
       <!-- 步骤：创建中 -->
       <template v-else-if="step === 'creating'">
-        <div class="py-4 space-y-4">
-          <div class="flex items-center gap-2 text-sm text-muted-foreground">
+        <div class="space-y-4 py-4">
+          <div class="text-muted-foreground flex items-center gap-2 text-sm">
             <Loader2 class="h-4 w-4 animate-spin" />
             正在创建快捷扩展，请稍候...
           </div>
-          <div class="h-32 overflow-y-auto rounded-md border bg-muted/30 p-2">
-            <div class="space-y-1 font-mono text-xs text-muted-foreground">
+          <div class="bg-muted/30 h-32 overflow-y-auto rounded-md border p-2">
+            <div class="text-muted-foreground space-y-1 font-mono text-xs">
               <p v-for="(msg, i) in progressMessages" :key="i">{{ msg }}</p>
             </div>
           </div>
@@ -190,12 +180,10 @@ const handleDone = () => {
 
       <!-- 步骤：完成 -->
       <template v-else-if="step === 'done'">
-        <div class="py-6 flex flex-col items-center gap-3">
+        <div class="flex flex-col items-center gap-3 py-6">
           <CheckCircle class="h-10 w-10 text-green-500" />
           <p class="text-sm font-medium">快捷扩展创建成功！</p>
-          <p class="text-xs text-muted-foreground font-mono">
-            ID: {{ createdId }}
-          </p>
+          <p class="text-muted-foreground font-mono text-xs">ID: {{ createdId }}</p>
         </div>
 
         <DialogFooter>

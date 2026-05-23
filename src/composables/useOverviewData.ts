@@ -141,17 +141,11 @@ function buildOverviewServers(
 /**
  * 启动轮询
  */
-function startPolling(
-  onDynamicFetch: () => Promise<void>,
-  onStaticFetch: () => Promise<void>,
-) {
+function startPolling(onDynamicFetch: () => Promise<void>, onStaticFetch: () => Promise<void>) {
   if (pollTimer) return; // 已在轮询
 
   pollTimer = setInterval(() => void onDynamicFetch(), POLL_INTERVAL_MS);
-  staticPollTimer = setInterval(
-    () => void onStaticFetch(),
-    STATIC_POLL_INTERVAL_MS,
-  );
+  staticPollTimer = setInterval(() => void onStaticFetch(), STATIC_POLL_INTERVAL_MS);
 }
 
 /**
@@ -248,8 +242,7 @@ export function useOverviewData() {
 
     try {
       const startedVisible =
-        typeof document === "undefined" ||
-        document.visibilityState === "visible";
+        typeof document === "undefined" || document.visibilityState === "visible";
 
       await dynamicMonitoring.refresh(uuids.value);
       lastFetchTime.value = Date.now();
@@ -282,10 +275,7 @@ export function useOverviewData() {
         .filter((u) => !uuids.value.includes(u));
 
       if (newUuids.length > 0) {
-        await Promise.all([
-          staticMonitoring.refresh(newUuids),
-          dynamicMonitoring.refresh(),
-        ]);
+        await Promise.all([staticMonitoring.refresh(newUuids), dynamicMonitoring.refresh()]);
 
         servers.value = buildOverviewServers(
           dynamicMonitoring.servers.value,

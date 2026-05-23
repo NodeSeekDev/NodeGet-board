@@ -98,11 +98,7 @@ const normalizeCronExpression = (value: string) => {
   return tokens.join(" ");
 };
 
-const validateCronSegment = (
-  segment: string,
-  min: number,
-  max: number,
-): boolean => {
+const validateCronSegment = (segment: string, min: number, max: number): boolean => {
   if (segment === "*" || segment === "?") return true;
   if (/^\d+$/.test(segment)) {
     const value = Number(segment);
@@ -110,15 +106,11 @@ const validateCronSegment = (
   }
   if (/^\*\/\d+$/.test(segment)) return Number(segment.slice(2)) > 0;
   if (/^\d+\/\d+$/.test(segment)) {
-    const [start = Number.NaN, step = Number.NaN] = segment
-      .split("/")
-      .map(Number);
+    const [start = Number.NaN, step = Number.NaN] = segment.split("/").map(Number);
     return start >= min && start <= max && step > 0;
   }
   if (/^\d+-\d+$/.test(segment)) {
-    const [start = Number.NaN, end = Number.NaN] = segment
-      .split("-")
-      .map(Number);
+    const [start = Number.NaN, end = Number.NaN] = segment.split("-").map(Number);
     return start >= min && end <= max && start <= end;
   }
   if (/^\d+(,\d+)+$/.test(segment)) {
@@ -194,9 +186,7 @@ const getCronValidationMessage = (value: string) => {
   const tokens = normalized.split(" ");
   if (tokens.length !== 6) {
     return (
-      t("dashboard.cron.expressionFieldCount") +
-      " " +
-      t("dashboard.cron.expressionFormatHint")
+      t("dashboard.cron.expressionFieldCount") + " " + t("dashboard.cron.expressionFormatHint")
     );
   }
 
@@ -220,8 +210,7 @@ const getCronValidationMessage = (value: string) => {
 };
 
 const describeCronSegment = (segment: string, fieldLabel: string) => {
-  if (segment === "*")
-    return t("dashboard.cron.expressionEveryField", { field: fieldLabel });
+  if (segment === "*") return t("dashboard.cron.expressionEveryField", { field: fieldLabel });
   if (segment === "?")
     return t("dashboard.cron.expressionUnspecifiedField", {
       field: fieldLabel,
@@ -265,9 +254,7 @@ const describeCronSegment = (segment: string, fieldLabel: string) => {
   });
 };
 
-const cronExpressionNormalized = computed(() =>
-  normalizeCronExpression(form.value.cronExpression),
-);
+const cronExpressionNormalized = computed(() => normalizeCronExpression(form.value.cronExpression));
 const cronExpressionValidationMessage = computed(() =>
   getCronValidationMessage(form.value.cronExpression),
 );
@@ -278,10 +265,7 @@ const cronExpressionMeaning = computed(() => {
   return tokens
     .map((token, index) => {
       const field = cronFieldDefs[index];
-      return describeCronSegment(
-        token,
-        t(field?.label ?? "dashboard.cron.expression"),
-      );
+      return describeCronSegment(token, t(field?.label ?? "dashboard.cron.expression"));
     })
     .join("；");
 });
@@ -303,17 +287,12 @@ const stringifyExecuteArgs = (args: string[]) =>
   args.map((arg) => (/\s/.test(arg) ? JSON.stringify(arg) : arg)).join(" ");
 
 const nodeNameMap = computed(
-  () =>
-    new Map(
-      props.nodes.map((node) => [node.uuid, node.customName || node.uuid]),
-    ),
+  () => new Map(props.nodes.map((node) => [node.uuid, node.customName || node.uuid])),
 );
 
 const selectedNodeSummary = computed(() => {
   if (!form.value.agentIds.length) return t("dashboard.cron.noNodes");
-  return form.value.agentIds
-    .map((id) => nodeNameMap.value.get(id) ?? id)
-    .join(", ");
+  return form.value.agentIds.map((id) => nodeNameMap.value.get(id) ?? id).join(", ");
 });
 
 const validateForm = (): boolean => {
@@ -332,9 +311,7 @@ const validateForm = (): boolean => {
   if (form.value.taskKind === "agent") {
     if (form.value.agentTaskType === "execute") {
       if (!form.value.agentExecuteCommand.trim()) {
-        errors.value.agentExecuteCommand = t(
-          "dashboard.cron.execCommandRequired",
-        );
+        errors.value.agentExecuteCommand = t("dashboard.cron.execCommandRequired");
       }
     } else {
       if (!form.value.agentTaskTarget.trim()) {
@@ -352,8 +329,7 @@ watch(
     if (val) {
       if (props.task) {
         const isJsWorker =
-          typeof props.task.serverTask === "object" &&
-          "js_worker" in props.task.serverTask;
+          typeof props.task.serverTask === "object" && "js_worker" in props.task.serverTask;
         form.value = {
           name: props.mode === "duplicate" ? "" : props.task.name,
           cronExpression: props.task.cronExpression,
@@ -362,26 +338,16 @@ watch(
           agentTaskType: props.task.agentTaskType,
           agentTaskTarget: props.task.agentTaskTarget,
           agentExecuteCommand: props.task.agentExecuteCommand,
-          agentExecuteArgsText: stringifyExecuteArgs(
-            props.task.agentExecuteArgs,
-          ),
+          agentExecuteArgsText: stringifyExecuteArgs(props.task.agentExecuteArgs),
           serverTaskType: isJsWorker ? "js_worker" : "string",
           serverTask:
-            typeof props.task.serverTask === "string"
-              ? props.task.serverTask
-              : "clean_up_database",
-          jsWorkerName: isJsWorker
-            ? ((props.task.serverTask as any).js_worker?.[0] ?? "")
-            : "",
+            typeof props.task.serverTask === "string" ? props.task.serverTask : "clean_up_database",
+          jsWorkerName: isJsWorker ? ((props.task.serverTask as any).js_worker?.[0] ?? "") : "",
           jsWorkerTask: isJsWorker
             ? ((props.task.serverTask as any).js_worker?.[1]?.task ?? "")
             : "",
           jsWorkerParams: isJsWorker
-            ? JSON.stringify(
-                (props.task.serverTask as any).js_worker?.[1] ?? {},
-                null,
-                2,
-              )
+            ? JSON.stringify((props.task.serverTask as any).js_worker?.[1] ?? {}, null, 2)
             : "{}",
         };
       } else {
@@ -432,9 +398,7 @@ const handleSave = () => {
     <DialogContent class="flex max-h-[85vh] flex-col sm:max-w-md">
       <DialogHeader>
         <DialogTitle>
-          {{
-            isEditMode ? t("dashboard.cron.edit") : t("dashboard.cron.create")
-          }}
+          {{ isEditMode ? t("dashboard.cron.edit") : t("dashboard.cron.create") }}
         </DialogTitle>
         <DialogDescription>
           {{ t("dashboard.cron.desc") }}
@@ -448,7 +412,7 @@ const handleSave = () => {
             :placeholder="t('dashboard.cron.name')"
             :disabled="isEditMode || saving"
           />
-          <p v-if="errors.name" class="text-xs text-destructive">
+          <p v-if="errors.name" class="text-destructive text-xs">
             {{ errors.name }}
           </p>
         </div>
@@ -461,7 +425,7 @@ const handleSave = () => {
               v-for="preset in cronPresets"
               :key="preset.value"
               variant="secondary"
-              class="cursor-pointer hover:bg-primary/20 transition-colors"
+              class="hover:bg-primary/20 cursor-pointer transition-colors"
               @click="applyPreset(preset.value)"
             >
               {{ preset.label }}
@@ -474,19 +438,13 @@ const handleSave = () => {
             placeholder="* * * * * *"
             class="font-mono"
             :disabled="saving"
-            @update:model-value="
-              form.cronExpression = sanitizeCronExpressionInput(String($event))
-            "
-            @blur="
-              form.cronExpression = normalizeCronExpression(form.cronExpression)
-            "
+            @update:model-value="form.cronExpression = sanitizeCronExpressionInput(String($event))"
+            @blur="form.cronExpression = normalizeCronExpression(form.cronExpression)"
           />
 
           <!-- 使用说明 -->
-          <div
-            class="rounded-md border bg-muted/60 px-3 py-2 text-xs text-muted-foreground"
-          >
-            <p class="font-medium mb-1">
+          <div class="bg-muted/60 text-muted-foreground rounded-md border px-3 py-2 text-xs">
+            <p class="mb-1 font-medium">
               {{ t("dashboard.cron.expressionSyntaxTitle") }}
             </p>
             <ul class="space-y-1">
@@ -514,18 +472,15 @@ const handleSave = () => {
           </div>
 
           <!-- 语义对照 -->
-          <div
-            v-if="cronExpressionMeaning"
-            class="rounded-md border bg-muted/60 px-3 py-2 text-xs"
-          >
-            <p class="font-medium mb-1">
+          <div v-if="cronExpressionMeaning" class="bg-muted/60 rounded-md border px-3 py-2 text-xs">
+            <p class="mb-1 font-medium">
               {{ t("dashboard.cron.expressionMeaningTitle") }}
             </p>
             <p class="text-muted-foreground">{{ cronExpressionMeaning }}</p>
           </div>
 
           <!-- 错误提示 -->
-          <p v-if="errors.cronExpression" class="text-xs text-destructive">
+          <p v-if="errors.cronExpression" class="text-destructive text-xs">
             {{ errors.cronExpression }}
           </p>
         </div>
@@ -536,12 +491,8 @@ const handleSave = () => {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="agent">{{
-                t("dashboard.cron.agentTask")
-              }}</SelectItem>
-              <SelectItem value="server">{{
-                t("dashboard.cron.serverTask")
-              }}</SelectItem>
+              <SelectItem value="agent">{{ t("dashboard.cron.agentTask") }}</SelectItem>
+              <SelectItem value="server">{{ t("dashboard.cron.serverTask") }}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -558,15 +509,13 @@ const handleSave = () => {
             >
               <div class="min-w-0 text-left">
                 <div>{{ t("dashboard.cron.selectNodes") }}</div>
-                <div class="text-xs text-muted-foreground truncate">
+                <div class="text-muted-foreground truncate text-xs">
                   {{ selectedNodeSummary }}
                 </div>
               </div>
-              <span class="shrink-0 text-muted-foreground">{{
-                form.agentIds.length
-              }}</span>
+              <span class="text-muted-foreground shrink-0">{{ form.agentIds.length }}</span>
             </Button>
-            <p v-if="errors.agentIds" class="text-xs text-destructive">
+            <p v-if="errors.agentIds" class="text-destructive text-xs">
               {{ errors.agentIds }}
             </p>
           </div>
@@ -600,15 +549,13 @@ const handleSave = () => {
               v-else
               v-model="form.agentTaskTarget"
               :placeholder="
-                form.agentTaskType === 'tcp_ping'
-                  ? 'www.example.com:80'
-                  : 'www.example.com'
+                form.agentTaskType === 'tcp_ping' ? 'www.example.com:80' : 'www.example.com'
               "
               :disabled="saving"
             />
             <p
               v-if="errors.agentExecuteCommand || errors.agentTaskTarget"
-              class="text-xs text-destructive"
+              class="text-destructive text-xs"
             >
               {{ errors.agentExecuteCommand || errors.agentTaskTarget }}
             </p>
@@ -623,7 +570,7 @@ const handleSave = () => {
           </div>
           <div
             v-if="form.agentTaskType === 'execute'"
-            class="rounded-md border bg-muted/60 px-3 py-2 text-xs text-muted-foreground space-y-1"
+            class="bg-muted/60 text-muted-foreground space-y-1 rounded-md border px-3 py-2 text-xs"
           >
             <p>{{ t("dashboard.cron.execGuide") }}</p>
             <p class="font-mono text-[11px]">
@@ -660,9 +607,7 @@ const handleSave = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="clean_up_database"
-                    >clean_up_database</SelectItem
-                  >
+                  <SelectItem value="clean_up_database">clean_up_database</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -685,11 +630,11 @@ const handleSave = () => {
                 placeholder='{
   "task": "update"
 }'
-                class="w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-sm text-foreground resize-none"
+                class="border-input bg-background text-foreground w-full resize-none rounded-md border px-3 py-2 font-mono text-sm"
                 :disabled="saving"
                 rows="5"
               ></textarea>
-              <p v-if="errors.jsWorkerParams" class="text-xs text-destructive">
+              <p v-if="errors.jsWorkerParams" class="text-destructive text-xs">
                 {{ errors.jsWorkerParams }}
               </p>
             </div>
@@ -697,16 +642,10 @@ const handleSave = () => {
         </template>
       </div>
       <DialogFooter>
-        <Button
-          variant="outline"
-          :disabled="saving"
-          @click="emit('update:open', false)"
-          >{{ t("dashboard.cron.cancel") }}</Button
-        >
-        <Button
-          :disabled="saving || !!cronExpressionValidationMessage"
-          @click="handleSave"
-        >
+        <Button variant="outline" :disabled="saving" @click="emit('update:open', false)">{{
+          t("dashboard.cron.cancel")
+        }}</Button>
+        <Button :disabled="saving || !!cronExpressionValidationMessage" @click="handleSave">
           <Loader2 v-if="saving" class="mr-2 h-4 w-4 animate-spin" />
           {{ saving ? t("dashboard.saving") : t("dashboard.save") }}
         </Button>

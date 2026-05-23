@@ -4,20 +4,12 @@ import { useI18n } from "vue-i18n";
 import { Check } from "lucide-vue-next";
 import { ColorPicker } from "vue3-colorpicker";
 import "vue3-colorpicker/style.css";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useThemeStore } from "@/stores/theme";
 import { useSystemSettingsStore } from "@/stores/systemSettings";
-import {
-  PALETTES,
-  COLOR_THEME_KEYS,
-  type ColorThemeName,
-} from "@/theme/palettes";
+import { PALETTES, COLOR_THEME_KEYS, type ColorThemeName } from "@/theme/palettes";
 
 definePage({
   meta: {
@@ -93,34 +85,31 @@ const onCustomTriggerClick = () => {
     <section class="space-y-3">
       <div>
         <h2 class="text-sm font-semibold">{{ t("settings.colorTheme") }}</h2>
-        <p class="text-xs text-muted-foreground mt-0.5">
+        <p class="text-muted-foreground mt-0.5 text-xs">
           {{ t("settings.colorThemeDesc") }}
         </p>
       </div>
 
-      <div class="flex flex-wrap gap-2 max-w-xl">
+      <div class="flex max-w-xl flex-wrap gap-2">
         <button
           v-for="item in swatches"
           :key="item.name"
           type="button"
           :aria-pressed="themeStore.colorTheme === item.name"
-          class="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-accent"
+          class="hover:bg-accent inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors"
           :class="
             themeStore.colorTheme === item.name
-              ? 'border-primary ring-1 ring-ring/40'
+              ? 'border-primary ring-ring/40 ring-1'
               : 'border-input'
           "
           @click="select(item.name)"
         >
           <span
-            class="h-3 w-3 rounded-full shrink-0 ring-1 ring-border/60"
+            class="ring-border/60 h-3 w-3 shrink-0 rounded-full ring-1"
             :style="{ backgroundColor: item.swatch }"
           />
           <span>{{ item.label }}</span>
-          <Check
-            v-if="themeStore.colorTheme === item.name"
-            class="h-3 w-3 ml-0.5 text-primary"
-          />
+          <Check v-if="themeStore.colorTheme === item.name" class="text-primary ml-0.5 h-3 w-3" />
         </button>
 
         <Popover v-model:open="customOpen">
@@ -128,22 +117,22 @@ const onCustomTriggerClick = () => {
             <button
               type="button"
               :aria-pressed="themeStore.colorTheme === 'custom'"
-              class="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-accent"
+              class="hover:bg-accent inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors"
               :class="
                 themeStore.colorTheme === 'custom'
-                  ? 'border-primary ring-1 ring-ring/40'
+                  ? 'border-primary ring-ring/40 ring-1'
                   : 'border-input'
               "
               @click="onCustomTriggerClick"
             >
               <span
-                class="h-3 w-3 rounded-full shrink-0 ring-1 ring-border/60"
+                class="ring-border/60 h-3 w-3 shrink-0 rounded-full ring-1"
                 :style="{ backgroundColor: themeStore.customColor }"
               />
               <span>{{ t("settings.customColor") }}</span>
               <Check
                 v-if="themeStore.colorTheme === 'custom'"
-                class="h-3 w-3 ml-0.5 text-primary"
+                class="text-primary ml-0.5 h-3 w-3"
               />
             </button>
           </PopoverTrigger>
@@ -166,19 +155,15 @@ const onCustomTriggerClick = () => {
     <section class="space-y-3">
       <div>
         <h2 class="text-sm font-semibold">RPC 调试面板</h2>
-        <p class="text-xs text-muted-foreground mt-0.5">
-          控制是否记录 WebSocket RPC 调试数据。
-        </p>
+        <p class="text-muted-foreground mt-0.5 text-xs">控制是否记录 WebSocket RPC 调试数据。</p>
       </div>
 
       <div
-        class="flex max-w-xl items-center justify-between gap-4 rounded-lg border bg-card px-4 py-3"
+        class="bg-card flex max-w-xl items-center justify-between gap-4 rounded-lg border px-4 py-3"
       >
         <div class="min-w-0 space-y-1">
-          <Label for="rpc-debug-panel-switch" class="text-sm">
-            RPC 调试面板
-          </Label>
-          <p class="text-xs leading-5 text-muted-foreground">
+          <Label for="rpc-debug-panel-switch" class="text-sm"> RPC 调试面板 </Label>
+          <p class="text-muted-foreground text-xs leading-5">
             开启后会处理并记录 RPC 调试数据，关闭时跳过调试数据处理。
           </p>
         </div>

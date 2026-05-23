@@ -2,13 +2,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import {
-  Loader2,
-  CircleCheckBig,
-  RefreshCw,
-  Copy,
-  Check,
-} from "lucide-vue-next";
+import { Loader2, CircleCheckBig, RefreshCw, Copy, Check } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -24,10 +18,7 @@ import { StreamLanguage } from "@codemirror/language";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { useThemeStore } from "@/stores/theme";
 import { getWsConnection } from "@/composables/useWsConnection";
-import {
-  useTask,
-  type CreateTaskBlockingResponse,
-} from "@/composables/useTask";
+import { useTask, type CreateTaskBlockingResponse } from "@/composables/useTask";
 import { useBackendExtra } from "@/composables/useBackendExtra";
 import { reGenerateToken } from "@/components/agents/generateToken";
 import { toast } from "vue-sonner";
@@ -75,10 +66,9 @@ const checkOnline = async () => {
   if (!currentBackendInfo.value) return;
   try {
     const conn = getWsConnection(currentBackendInfo.value.url);
-    const result = await conn.call<{ uuids: string[] }>(
-      "nodeget-server_list_all_agent_uuid",
-      { token: currentBackendInfo.value.token },
-    );
+    const result = await conn.call<{ uuids: string[] }>("nodeget-server_list_all_agent_uuid", {
+      token: currentBackendInfo.value.token,
+    });
     const version = await createVersionTask(props.uuid, true, 1500);
     isOnline.value = (version as CreateTaskBlockingResponse).success;
   } catch {
@@ -117,9 +107,7 @@ const installScript = computed(() => {
   const uuid = props.uuid || "{AGENT_UUID}";
   const token = generatedToken.value || "{TOKEN}";
   const serverWs =
-    currentBackendInfo.value?.agentConfigWsUrl ||
-    currentBackendInfo.value?.url ||
-    "{Server_WS}";
+    currentBackendInfo.value?.agentConfigWsUrl || currentBackendInfo.value?.url || "{Server_WS}";
   const serverName = currentBackendInfo.value?.name || "{Server_NAME}";
   return `bash <(curl -sL ${import.meta.env.VITE_INSTALL_URL}) install-agent  \\
   --agent-id "${uuid}" \\
@@ -140,9 +128,7 @@ onUnmounted(stopPolling);
 
 <template>
   <Dialog v-model:open="open">
-    <DialogContent
-      class="max-h-[80vh] grid-rows-[auto_1fr_auto] p-0 sm:max-w-xl"
-    >
+    <DialogContent class="max-h-[80vh] grid-rows-[auto_1fr_auto] p-0 sm:max-w-xl">
       <DialogHeader class="px-6 pt-6 pb-2">
         <DialogTitle>{{ t("dashboard.agents.addTitle") }}</DialogTitle>
         <DialogDescription>
@@ -156,7 +142,7 @@ onUnmounted(stopPolling);
             <h3 class="text-base font-medium">
               {{ t("dashboard.agents.installTitle") }}
             </h3>
-            <p class="text-sm text-muted-foreground">
+            <p class="text-muted-foreground text-sm">
               {{ t("dashboard.agents.installSubtitle") }}
             </p>
           </div>
@@ -164,11 +150,11 @@ onUnmounted(stopPolling);
             <button
               type="button"
               @click="copyInstallScript"
-              class="absolute top-2 right-2 z-10 rounded-md border border-border/50 bg-background/80 p-1.5 transition-colors hover:border-border hover:bg-background"
+              class="border-border/50 bg-background/80 hover:border-border hover:bg-background absolute top-2 right-2 z-10 rounded-md border p-1.5 transition-colors"
               :title="isCopied ? 'Copied!' : 'Copy to clipboard'"
             >
               <Check v-if="isCopied" class="h-4 w-4 text-green-500" />
-              <Copy v-else class="h-4 w-4 text-muted-foreground" />
+              <Copy v-else class="text-muted-foreground h-4 w-4" />
             </button>
             <Codemirror
               :model-value="installScript"
@@ -177,15 +163,12 @@ onUnmounted(stopPolling);
               :style="{ minHeight: '120px' }"
             />
           </div>
-          <p class="text-xs text-muted-foreground">
+          <p class="text-muted-foreground text-xs">
             定时器每3秒检查一次agent是否在线，运行后请耐心等待agent上线
           </p>
         </div>
 
-        <div
-          class="flex flex-col items-center justify-center gap-4 py-8"
-          v-if="isOnline"
-        >
+        <div class="flex flex-col items-center justify-center gap-4 py-8" v-if="isOnline">
           <CircleCheckBig class="h-16 w-16 text-green-500" />
           <h3 class="text-xl font-semibold">
             {{ t("dashboard.agents.completed") }}

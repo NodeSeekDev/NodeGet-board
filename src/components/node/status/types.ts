@@ -1,7 +1,4 @@
-import type {
-  FullDynamicSummaryResponseItem,
-  StaticMonitoringData,
-} from "@/types/monitoring";
+import type { FullDynamicSummaryResponseItem, StaticMonitoringData } from "@/types/monitoring";
 
 export interface StatusServer extends FullDynamicSummaryResponseItem {
   system?: StaticMonitoringData["system"];

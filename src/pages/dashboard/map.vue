@@ -32,9 +32,7 @@ const userLocation = ref<{
   name: string;
   value: [number, number, number];
 } | null>(null);
-const locationStatus = ref<
-  "idle" | "loading" | "success" | "unavailable" | "denied"
->("idle");
+const locationStatus = ref<"idle" | "loading" | "success" | "unavailable" | "denied">("idle");
 const displayedUserLocation = computed(() => {
   if (!showUserLinks.value || !userLocation.value) return null;
   return {
@@ -44,21 +42,15 @@ const displayedUserLocation = computed(() => {
 });
 const locationStatusText = computed(() => {
   if (!showUserLinks.value) return "";
-  if (locationStatus.value === "loading")
-    return t("dashboard.map.locationStatus.loading");
-  if (locationStatus.value === "success")
-    return t("dashboard.map.locationStatus.success");
-  if (locationStatus.value === "unavailable")
-    return t("dashboard.map.locationStatus.unavailable");
-  if (locationStatus.value === "denied")
-    return t("dashboard.map.locationStatus.denied");
+  if (locationStatus.value === "loading") return t("dashboard.map.locationStatus.loading");
+  if (locationStatus.value === "success") return t("dashboard.map.locationStatus.success");
+  if (locationStatus.value === "unavailable") return t("dashboard.map.locationStatus.unavailable");
+  if (locationStatus.value === "denied") return t("dashboard.map.locationStatus.denied");
   return "";
 });
 let locationWatchId: number | null = null;
 const regionDisplayNames =
-  typeof Intl !== "undefined"
-    ? new Intl.DisplayNames(["en"], { type: "region" })
-    : null;
+  typeof Intl !== "undefined" ? new Intl.DisplayNames(["en"], { type: "region" }) : null;
 const regionNameFallback: Record<string, string> = {
   // 大中华区
   HK: "Hong Kong",
@@ -342,28 +334,18 @@ function getCountryNameFromRegion(region?: string) {
   if (!region) return null;
   const normalized = region.trim().toUpperCase();
   if (!normalized) return null;
-  return (
-    regionNameFallback[normalized] ?? regionDisplayNames?.of(normalized) ?? null
-  );
+  return regionNameFallback[normalized] ?? regionDisplayNames?.of(normalized) ?? null;
 }
 
 function stopUserLocationWatch() {
-  if (
-    locationWatchId !== null &&
-    typeof navigator !== "undefined" &&
-    navigator.geolocation
-  ) {
+  if (locationWatchId !== null && typeof navigator !== "undefined" && navigator.geolocation) {
     navigator.geolocation.clearWatch(locationWatchId);
   }
   locationWatchId = null;
 }
 
 function startUserLocationWatch() {
-  if (
-    typeof navigator === "undefined" ||
-    !navigator.geolocation ||
-    locationWatchId !== null
-  ) {
+  if (typeof navigator === "undefined" || !navigator.geolocation || locationWatchId !== null) {
     locationStatus.value = "unavailable";
     return;
   }
@@ -410,20 +392,15 @@ watch(showUserLinks, (enabled) => {
   }
 });
 
-const visibleServers = computed(() =>
-  servers.value.filter((server) => !server.hidden),
-);
+const visibleServers = computed(() => servers.value.filter((server) => !server.hidden));
 
 const nodeList = computed(() => {
   const coordGroupCount = new Map<string, number>();
   const coordGroupIndex = new Map<string, number>();
   const baseNodes = visibleServers.value
     .map((server) => {
-      const hasCustomCoord =
-        Number.isFinite(server.longitude) && Number.isFinite(server.latitude);
-      const regionMeta = server.region
-        ? REGION_COORDS[server.region]
-        : undefined;
+      const hasCustomCoord = Number.isFinite(server.longitude) && Number.isFinite(server.latitude);
+      const regionMeta = server.region ? REGION_COORDS[server.region] : undefined;
       const coord: [number, number] | null = hasCustomCoord
         ? [server.longitude as number, server.latitude as number]
         : (regionMeta?.coord ?? null);
@@ -440,10 +417,7 @@ const nodeList = computed(() => {
         countryName: getCountryNameFromRegion(server.region),
         region:
           (getCountryNameFromRegion(server.region)
-            ? getDisplayCountryName(
-                getCountryNameFromRegion(server.region)!,
-                locale.value,
-              )
+            ? getDisplayCountryName(getCountryNameFromRegion(server.region)!, locale.value)
             : null) ||
           regionMeta?.name ||
           server.region ||
@@ -472,16 +446,14 @@ const nodeList = computed(() => {
         countryName: node.countryName,
         count: 1,
         nodes: [node.nodeName],
-        value: [
-          node.coord[0] + longitudeOffset,
-          node.coord[1] + latitudeOffset,
-          1,
-        ] as [number, number, number],
+        value: [node.coord[0] + longitudeOffset, node.coord[1] + latitudeOffset, 1] as [
+          number,
+          number,
+          number,
+        ],
       };
     })
-    .sort((a, b) =>
-      `${a.region}-${a.name}`.localeCompare(`${b.region}-${b.name}`, "zh-CN"),
-    );
+    .sort((a, b) => `${a.region}-${a.name}`.localeCompare(`${b.region}-${b.name}`, "zh-CN"));
 });
 
 const selectedNode = computed(
@@ -514,8 +486,7 @@ const mapPoints = computed(() => {
   for (const server of visibleServers.value) {
     const iso = server.region?.trim().toUpperCase();
     if (!iso) continue;
-    const hasCustomCoord =
-      Number.isFinite(server.longitude) && Number.isFinite(server.latitude);
+    const hasCustomCoord = Number.isFinite(server.longitude) && Number.isFinite(server.latitude);
     const regionMeta = REGION_COORDS[iso];
     const coord: [number, number] | null = hasCustomCoord
       ? [server.longitude as number, server.latitude as number]
@@ -527,10 +498,7 @@ const mapPoints = computed(() => {
         isoCode: iso,
         region:
           (getCountryNameFromRegion(iso)
-            ? getDisplayCountryName(
-                getCountryNameFromRegion(iso)!,
-                locale.value,
-              )
+            ? getDisplayCountryName(getCountryNameFromRegion(iso)!, locale.value)
             : null) ||
           regionMeta?.name ||
           iso,
@@ -563,10 +531,7 @@ watch(
       selectedNodeId.value = null;
       return;
     }
-    if (
-      !selectedNodeId.value ||
-      !nodes.some((node) => node.id === selectedNodeId.value)
-    ) {
+    if (!selectedNodeId.value || !nodes.some((node) => node.id === selectedNodeId.value)) {
       selectedNodeId.value = nodes[0]?.id ?? null;
     }
   },
@@ -580,11 +545,9 @@ watch(
       <h1 class="text-2xl font-bold tracking-tight">
         {{ t("dashboard.map.title") }}
       </h1>
-      <p class="text-sm text-muted-foreground">
+      <p class="text-muted-foreground text-sm">
         {{
-          loading
-            ? t("common.loading")
-            : t("dashboard.map.nodeCount", { count: nodeList.length })
+          loading ? t("common.loading") : t("dashboard.map.nodeCount", { count: nodeList.length })
         }}
       </p>
       <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
@@ -593,9 +556,7 @@ watch(
     <Card class="overflow-hidden border-sky-100/70">
       <CardContent class="px-4 sm:px-6">
         <Tabs v-model="activeView" class="gap-3">
-          <div
-            class="flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between"
-          >
+          <div class="flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between">
             <TabsList>
               <TabsTrigger value="flat">
                 {{ t("dashboard.map.tabs.flat") }}
@@ -606,21 +567,16 @@ watch(
             </TabsList>
 
             <div
-              class="flex flex-wrap items-center gap-3 text-sm text-muted-foreground sm:justify-end"
+              class="text-muted-foreground flex flex-wrap items-center gap-3 text-sm sm:justify-end"
             >
-              <span
-                v-if="locationStatusText"
-                class="text-xs text-muted-foreground/80"
-              >
+              <span v-if="locationStatusText" class="text-muted-foreground/80 text-xs">
                 {{ locationStatusText }}
               </span>
               <label class="flex cursor-pointer items-center gap-2">
                 <Checkbox
                   id="show-unlocked-countries"
                   :model-value="showUnlockedCountries"
-                  @update:model-value="
-                    (checked) => (showUnlockedCountries = !!checked)
-                  "
+                  @update:model-value="(checked) => (showUnlockedCountries = !!checked)"
                 />
                 <span>{{ t("dashboard.map.showUnlockedCountries") }}</span>
               </label>
@@ -656,15 +612,13 @@ watch(
           </TabsContent>
         </Tabs>
 
-        <div
-          class="mt-4 rounded-2xl border border-sky-100/80 bg-background/70 p-4"
-        >
+        <div class="bg-background/70 mt-4 rounded-2xl border border-sky-100/80 p-4">
           <div class="flex items-center justify-between gap-3">
             <div>
               <h2 class="text-base font-semibold">
                 {{ t("dashboard.map.nodeListTitle") }}
               </h2>
-              <p class="text-sm text-muted-foreground">
+              <p class="text-muted-foreground text-sm">
                 {{ t("dashboard.map.nodeListDescription") }}
               </p>
             </div>
@@ -692,10 +646,10 @@ watch(
               @click="selectedNodeId = node.id"
             >
               <div class="min-w-0">
-                <div class="truncate font-medium text-foreground">
+                <div class="text-foreground truncate font-medium">
                   {{ node.name }}
                 </div>
-                <div class="text-xs text-muted-foreground">
+                <div class="text-muted-foreground text-xs">
                   <span class="truncate">{{ node.region }}</span>
                   <span v-if="node.isoCode" class="ml-1 font-mono opacity-50">{{
                     node.isoCode
@@ -713,7 +667,7 @@ watch(
             </button>
           </div>
 
-          <p v-else class="mt-4 text-sm text-muted-foreground">
+          <p v-else class="text-muted-foreground mt-4 text-sm">
             {{ t("dashboard.map.noNodes") }}
           </p>
         </div>

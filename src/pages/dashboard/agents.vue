@@ -69,10 +69,9 @@ const fetchAgents = async () => {
   const results = await Promise.allSettled(
     backends.value.map(async (backend) => {
       const conn = getWsConnection(backend.url);
-      const result = await conn.call<{ uuids: string[] }>(
-        "nodeget-server_list_all_agent_uuid",
-        { token: backend.token },
-      );
+      const result = await conn.call<{ uuids: string[] }>("nodeget-server_list_all_agent_uuid", {
+        token: backend.token,
+      });
       return result?.uuids ?? [];
     }),
   );
@@ -99,12 +98,13 @@ const fetchAgents = async () => {
       backends.value.map(async (backend) => {
         const conn = getWsConnection(backend.url);
         try {
-          const result = await conn.call<
-            { namespace: string; key: string; value: unknown }[]
-          >("kv_get_multi_value", {
-            token: backend.token,
-            namespace_key: namespaceKeys,
-          });
+          const result = await conn.call<{ namespace: string; key: string; value: unknown }[]>(
+            "kv_get_multi_value",
+            {
+              token: backend.token,
+              namespace_key: namespaceKeys,
+            },
+          );
           return Array.isArray(result) ? result : [];
         } catch {
           return [];
@@ -115,11 +115,7 @@ const fetchAgents = async () => {
     for (const result of nameResults) {
       if (result.status !== "fulfilled") continue;
       for (const entry of result.value) {
-        if (
-          entry.key === "metadata_name" &&
-          entry.value &&
-          !nameMap.has(entry.namespace)
-        ) {
+        if (entry.key === "metadata_name" && entry.value && !nameMap.has(entry.namespace)) {
           nameMap.set(entry.namespace, String(entry.value));
         }
       }
@@ -141,9 +137,7 @@ const filteredAgents = computed(() => {
   const q = searchQuery.value.toLowerCase();
   if (!q) return agents.value;
   return agents.value.filter(
-    (a) =>
-      a.customName.toLowerCase().includes(q) ||
-      a.uuid.toLowerCase().includes(q),
+    (a) => a.customName.toLowerCase().includes(q) || a.uuid.toLowerCase().includes(q),
   );
 });
 
@@ -190,21 +184,19 @@ const handleSettings = (uuid: string) => {
         <h1 class="text-2xl font-semibold">
           {{ t("dashboard.agents.title") }}
         </h1>
-        <p class="text-sm text-muted-foreground mt-1">
+        <p class="text-muted-foreground mt-1 text-sm">
           {{ t("dashboard.agents.desc") }}
         </p>
       </div>
       <Button @click="addOpen = true">
-        <Plus class="h-4 w-4 mr-1.5" />
+        <Plus class="mr-1.5 h-4 w-4" />
         {{ t("dashboard.agents.addAgent") }}
       </Button>
     </div>
 
     <div class="flex items-center gap-3">
-      <div class="relative flex-1 max-w-sm">
-        <Search
-          class="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
-        />
+      <div class="relative max-w-sm flex-1">
+        <Search class="text-muted-foreground absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2" />
         <Input
           v-model="searchQuery"
           :placeholder="t('dashboard.agents.searchPlaceholder')"
@@ -212,22 +204,18 @@ const handleSettings = (uuid: string) => {
         />
       </div>
       <div v-if="hasSelection" class="flex items-center gap-2">
-        <Button
-          size="sm"
-          variant="outline"
-          @click="handleBatchAction('upgrade')"
-        >
-          <ArrowUpFromLine class="h-4 w-4 mr-1.5" />
+        <Button size="sm" variant="outline" @click="handleBatchAction('upgrade')">
+          <ArrowUpFromLine class="mr-1.5 h-4 w-4" />
           {{ t("dashboard.agents.batchUpgrade") }}
         </Button>
         <Button size="sm" variant="outline" @click="handleBatchAction('move')">
-          <FolderInput class="h-4 w-4 mr-1.5" />
+          <FolderInput class="mr-1.5 h-4 w-4" />
           {{ t("dashboard.agents.batchMove") }}
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
             <Button size="sm" variant="outline">
-              <Copy class="h-4 w-4 mr-1.5" />
+              <Copy class="mr-1.5 h-4 w-4" />
               {{ t("dashboard.agents.batchCopy") }}
             </Button>
           </DropdownMenuTrigger>
@@ -244,18 +232,12 @@ const handleSettings = (uuid: string) => {
       </div>
     </div>
 
-    <div
-      v-if="loading"
-      class="flex items-center justify-center py-12 text-muted-foreground"
-    >
-      <Loader2 class="h-5 w-5 animate-spin mr-2" />
+    <div v-if="loading" class="text-muted-foreground flex items-center justify-center py-12">
+      <Loader2 class="mr-2 h-5 w-5 animate-spin" />
       {{ t("common.loading") }}
     </div>
 
-    <div
-      v-else-if="agents.length === 0"
-      class="py-12 text-center text-muted-foreground text-sm"
-    >
+    <div v-else-if="agents.length === 0" class="text-muted-foreground py-12 text-center text-sm">
       {{ t("dashboard.agents.noAgents") }}
     </div>
 
@@ -264,18 +246,13 @@ const handleSettings = (uuid: string) => {
         <TableHeader>
           <TableRow>
             <TableHead class="w-[40px]">
-              <Checkbox
-                :checked="allSelected"
-                @update:checked="toggleSelectAll"
-              />
+              <Checkbox :checked="allSelected" @update:checked="toggleSelectAll" />
             </TableHead>
             <TableHead>{{ t("dashboard.agents.colId") }}</TableHead>
             <TableHead>{{ t("dashboard.agents.colName") }}</TableHead>
             <TableHead>{{ t("dashboard.agents.colServerCount") }}</TableHead>
             <TableHead>{{ t("dashboard.agents.colVersion") }}</TableHead>
-            <TableHead class="text-right">{{
-              t("dashboard.agents.colActions")
-            }}</TableHead>
+            <TableHead class="text-right">{{ t("dashboard.agents.colActions") }}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -289,7 +266,7 @@ const handleSettings = (uuid: string) => {
                 @update:checked="(v: boolean) => toggleSelect(agent.uuid, v)"
               />
             </TableCell>
-            <TableCell class="font-mono text-xs text-muted-foreground">
+            <TableCell class="text-muted-foreground font-mono text-xs">
               {{ agent.uuid.slice(0, 8) }}
             </TableCell>
             <TableCell class="font-medium">{{ agent.customName }}</TableCell>

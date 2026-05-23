@@ -55,26 +55,21 @@ const updateBucket = (key: PermissionBucketKey, value: PermissionEntry[]) => {
   );
 };
 
-const buckets = computed(() =>
-  createPermissionBuckets(props.permissions ?? []),
-);
+const buckets = computed(() => createPermissionBuckets(props.permissions ?? []));
 
 const staticMonitoringPermissions = computed({
   get: () => buckets.value.staticMonitoringPermissions,
-  set: (value: PermissionEntry[]) =>
-    updateBucket("staticMonitoringPermissions", value),
+  set: (value: PermissionEntry[]) => updateBucket("staticMonitoringPermissions", value),
 });
 
 const dynamicMonitoringPermissions = computed({
   get: () => buckets.value.dynamicMonitoringPermissions,
-  set: (value: PermissionEntry[]) =>
-    updateBucket("dynamicMonitoringPermissions", value),
+  set: (value: PermissionEntry[]) => updateBucket("dynamicMonitoringPermissions", value),
 });
 
 const dynamicMonitoringSummaryPermissions = computed({
   get: () => buckets.value.dynamicMonitoringSummaryPermissions,
-  set: (value: PermissionEntry[]) =>
-    updateBucket("dynamicMonitoringSummaryPermissions", value),
+  set: (value: PermissionEntry[]) => updateBucket("dynamicMonitoringSummaryPermissions", value),
 });
 
 const taskPermissions = computed({
@@ -89,8 +84,7 @@ const crontabPermissions = computed({
 
 const crontabResultPermissions = computed({
   get: () => buckets.value.crontabResultPermissions,
-  set: (value: PermissionEntry[]) =>
-    updateBucket("crontabResultPermissions", value),
+  set: (value: PermissionEntry[]) => updateBucket("crontabResultPermissions", value),
 });
 
 const kvPermissions = computed({
@@ -119,11 +113,7 @@ const jsResultPermissions = computed({
 });
 
 watch(
-  [
-    () => props.permissions,
-    canShowKvPermission,
-    canShowCrontabResultPermission,
-  ],
+  [() => props.permissions, canShowKvPermission, canShowCrontabResultPermission],
   ([permissions, allowKvPermission, allowCrontabResultPermission]) => {
     const normalized = mergePermissionBuckets(
       createPermissionBuckets(permissions ?? []),
@@ -143,18 +133,14 @@ watch(
   <Card class="w-full">
     <CardHeader>
       <CardTitle class="flex items-center gap-2">
-        {{
-          t("dashboard.token.permissionsConfig.limitItem.permissionCard.title")
-        }}
+        {{ t("dashboard.token.permissionsConfig.limitItem.permissionCard.title") }}
       </CardTitle>
     </CardHeader>
 
     <CardContent class="grid gap-2 space-y-2">
       <StaticMonitoringPermission v-model="staticMonitoringPermissions" />
       <DynamicMonitoringPermission v-model="dynamicMonitoringPermissions" />
-      <DynamicMonitoringSummaryPermission
-        v-model="dynamicMonitoringSummaryPermissions"
-      />
+      <DynamicMonitoringSummaryPermission v-model="dynamicMonitoringSummaryPermissions" />
       <TaskPermission v-model="taskPermissions" />
       <CrontabPermission v-model="crontabPermissions" />
       <CrontabResultPermission

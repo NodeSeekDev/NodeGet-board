@@ -49,13 +49,10 @@ export function useCronHistory() {
   const backendToken = computed(() => currentBackend.value?.token ?? "");
 
   const query = (condition: any[]): Promise<CrontabResult[]> => {
-    return getWsConnection(backendUrl.value).call<CrontabResult[]>(
-      "crontab-result_query",
-      {
-        token: backendToken.value,
-        query: { condition },
-      },
-    );
+    return getWsConnection(backendUrl.value).call<CrontabResult[]>("crontab-result_query", {
+      token: backendToken.value,
+      query: { condition },
+    });
   };
 
   const queryTask = (

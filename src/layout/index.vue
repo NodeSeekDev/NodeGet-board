@@ -10,11 +10,11 @@ const isMobileSidebarOpen = ref(false);
 </script>
 
 <template>
-  <div class="flex h-screen overflow-hidden bg-background relative">
+  <div class="bg-background relative flex h-screen overflow-hidden">
     <TooltipProvider>
       <div
         v-if="isMobileSidebarOpen"
-        class="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 md:hidden"
+        class="bg-background/80 fixed inset-0 z-40 backdrop-blur-sm md:hidden"
         @click="isMobileSidebarOpen = false"
       ></div>
 
@@ -24,7 +24,7 @@ const isMobileSidebarOpen = ref(false);
         @toggle="collapsed = !collapsed"
         @close-mobile="isMobileSidebarOpen = false"
       />
-      <div class="flex flex-1 flex-col overflow-hidden min-w-0">
+      <div class="flex min-w-0 flex-1 flex-col overflow-hidden">
         <DashboardHeader @open-mobile-sidebar="isMobileSidebarOpen = true" />
         <AppMain />
       </div>

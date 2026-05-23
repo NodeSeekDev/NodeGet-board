@@ -43,9 +43,7 @@ export function useScripts() {
     loading.value = true;
     error.value = null;
     try {
-      const kvGetScripts = await getMultiValue([
-        { namespace: namespace.value, key: "*" },
-      ]);
+      const kvGetScripts = await getMultiValue([{ namespace: namespace.value, key: "*" }]);
       // 将 KV 的 value 转为 Script
       scripts.value = kvGetScripts
         .map((e) => {

@@ -1,13 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import TokenTemplateList from "./TokenTemplateList.vue";
 import type { TokenTemplate } from "../tokenTemplates.ts";
 
@@ -41,10 +35,8 @@ const { t } = useI18n();
           {{ t("dashboard.token.create.custom.description") }}
         </CardDescription>
       </CardHeader>
-      <CardContent
-        class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
-      >
-        <div class="text-sm text-muted-foreground">
+      <CardContent class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div class="text-muted-foreground text-sm">
           {{ t("dashboard.token.create.custom.hint") }}
         </div>
         <Button type="button" @click="emits('select-custom')">
@@ -63,9 +55,7 @@ const { t } = useI18n();
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <TokenTemplateList
-          @select="(template) => emits('select-template', template)"
-        />
+        <TokenTemplateList @select="(template) => emits('select-template', template)" />
       </CardContent>
     </Card>
   </div>

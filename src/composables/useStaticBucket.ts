@@ -59,9 +59,7 @@ export function useStaticBucket(backend = useBackendStore().currentBackend) {
     });
   };
 
-  const createBucket = async (
-    input: StaticBucketInput,
-  ): Promise<StaticBucket> => {
+  const createBucket = async (input: StaticBucketInput): Promise<StaticBucket> => {
     const result = await rpc<StaticBucket>("static-bucket_create", {
       token: backendToken.value,
       ...input,
@@ -69,9 +67,7 @@ export function useStaticBucket(backend = useBackendStore().currentBackend) {
     return result;
   };
 
-  const updateBucket = async (
-    input: StaticBucketInput,
-  ): Promise<StaticBucket> => {
+  const updateBucket = async (input: StaticBucketInput): Promise<StaticBucket> => {
     return rpc<StaticBucket>("static-bucket_update", {
       token: backendToken.value,
       ...input,

@@ -5,13 +5,7 @@ import { Loader2 } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { NumberField } from "@/components/ui/number-field";
 import { PopConfirm } from "@/components/ui/pop-confirm";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { useKv } from "@/composables/useKv";
 import { useI18n } from "vue-i18n";
 import { useCron, taskToCronType } from "@/composables/useCron";
@@ -54,19 +48,13 @@ onMounted(async () => {
   loading.value = true;
   try {
     kv.namespace.value = props.uuid;
-    const results = await kv.getMultiValue([
-      { namespace: props.uuid, key: "database_limit_*" },
-    ]);
+    const results = await kv.getMultiValue([{ namespace: props.uuid, key: "database_limit_*" }]);
     const get = (key: string) => results.find((r) => r.key === key)?.value;
 
     if (get("database_limit_dynamic_monitoring_summary") !== undefined)
-      storageDynamicSummary.value = tsToMinute(
-        get("database_limit_dynamic_monitoring_summary"),
-      );
+      storageDynamicSummary.value = tsToMinute(get("database_limit_dynamic_monitoring_summary"));
     if (get("database_limit_dynamic_monitoring") !== undefined)
-      storageDynamic.value = tsToMinute(
-        get("database_limit_dynamic_monitoring"),
-      );
+      storageDynamic.value = tsToMinute(get("database_limit_dynamic_monitoring"));
     if (get("database_limit_static_monitoring") !== undefined)
       storageStatic.value = tsToMinute(get("database_limit_static_monitoring"));
     if (get("database_limit_task") !== undefined)
@@ -151,18 +139,13 @@ async function cleanExpiredData() {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div
-          v-if="loading"
-          class="flex items-center gap-2 text-muted-foreground text-sm py-2"
-        >
+        <div v-if="loading" class="text-muted-foreground flex items-center gap-2 py-2 text-sm">
           <Loader2 class="h-4 w-4 animate-spin" />
           {{ $t("common.loading") }}
         </div>
         <div v-else class="space-y-3">
           <div class="flex items-center justify-between gap-4">
-            <span class="text-sm">{{
-              $t("dashboard.agents.dynamicMonitoringSummary")
-            }}</span>
+            <span class="text-sm">{{ $t("dashboard.agents.dynamicMonitoringSummary") }}</span>
             <div class="flex items-center gap-1.5">
               <NumberField
                 :model-value="storageDynamicSummary"
@@ -170,15 +153,13 @@ async function cleanExpiredData() {
                 class="w-36"
                 @update:model-value="storageDynamicSummary = $event"
               />
-              <span class="text-sm text-muted-foreground whitespace-nowrap">
+              <span class="text-muted-foreground text-sm whitespace-nowrap">
                 {{ $t("dashboard.agents.minuteUnit") }}
               </span>
             </div>
           </div>
           <div class="flex items-center justify-between gap-4">
-            <span class="text-sm">{{
-              $t("dashboard.agents.dynamicMonitoring")
-            }}</span>
+            <span class="text-sm">{{ $t("dashboard.agents.dynamicMonitoring") }}</span>
             <div class="flex items-center gap-1.5">
               <NumberField
                 :model-value="storageDynamic"
@@ -186,7 +167,7 @@ async function cleanExpiredData() {
                 class="w-36"
                 @update:model-value="storageDynamic = $event"
               />
-              <span class="text-sm text-muted-foreground whitespace-nowrap">
+              <span class="text-muted-foreground text-sm whitespace-nowrap">
                 {{ $t("dashboard.agents.minuteUnit") }}
               </span>
             </div>
@@ -194,9 +175,7 @@ async function cleanExpiredData() {
 
           <!-- no need to change -->
           <div class="flex items-center justify-between gap-4" v-if="false">
-            <span class="text-sm">{{
-              $t("dashboard.agents.staticMonitoring")
-            }}</span>
+            <span class="text-sm">{{ $t("dashboard.agents.staticMonitoring") }}</span>
             <div class="flex items-center gap-1.5">
               <NumberField
                 :model-value="storageStatic"
@@ -204,7 +183,7 @@ async function cleanExpiredData() {
                 class="w-36"
                 @update:model-value="storageStatic = $event"
               />
-              <span class="text-sm text-muted-foreground whitespace-nowrap">
+              <span class="text-muted-foreground text-sm whitespace-nowrap">
                 {{ $t("dashboard.agents.minuteUnit") }}
               </span>
             </div>
@@ -218,14 +197,14 @@ async function cleanExpiredData() {
                 class="w-36"
                 @update:model-value="storageAgentTask = $event"
               />
-              <span class="text-sm text-muted-foreground whitespace-nowrap">
+              <span class="text-muted-foreground text-sm whitespace-nowrap">
                 {{ $t("dashboard.agents.minuteUnit") }}
               </span>
             </div>
           </div>
           <div class="pt-2">
             <Button :disabled="saveLoading" @click="handleSave">
-              <Loader2 v-if="saveLoading" class="h-4 w-4 animate-spin mr-2" />
+              <Loader2 v-if="saveLoading" class="mr-2 h-4 w-4 animate-spin" />
               {{ saveLoading ? $t("dashboard.saving") : $t("dashboard.save") }}
             </Button>
           </div>
@@ -253,7 +232,7 @@ async function cleanExpiredData() {
           @confirm="cleanExpiredData"
         >
           <Button variant="destructive" :disabled="cleanLoading">
-            <Loader2 v-if="cleanLoading" class="h-4 w-4 animate-spin mr-2" />
+            <Loader2 v-if="cleanLoading" class="mr-2 h-4 w-4 animate-spin" />
             {{
               cleanLoading
                 ? $t("dashboard.node.storage.cleaning")

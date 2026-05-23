@@ -59,9 +59,7 @@ async function refresh() {
     const config = await getAgentConfigExtra(props.uuid);
     agentConfig.value = config;
   } catch (e: unknown) {
-    toast.error(
-      e instanceof Error ? e.message : t("dashboard.node.config.loadFailed"),
-    );
+    toast.error(e instanceof Error ? e.message : t("dashboard.node.config.loadFailed"));
   } finally {
     loading.value = false;
   }
@@ -71,11 +69,7 @@ async function refresh() {
 const currentUpstreamIndex = ref(0);
 
 const copiedKey = ref<string | null>(null);
-const copyText = (
-  key: string,
-  index: number,
-  text: string | null | undefined,
-) => {
+const copyText = (key: string, index: number, text: string | null | undefined) => {
   if (!text) return;
   navigator.clipboard.writeText(text);
   copiedKey.value = key;
@@ -113,9 +107,7 @@ const openCreate = () => {
 const openEdit = (index: number) => {
   if (Array.isArray(agentConfig.value?.upstreams)) {
     formMode.value = "edit";
-    editingUpstream.value = JSON.parse(
-      JSON.stringify(agentConfig.value.upstreams[index]),
-    );
+    editingUpstream.value = JSON.parse(JSON.stringify(agentConfig.value.upstreams[index]));
     currentUpstreamIndex.value = index;
     formOpen.value = true;
   }
@@ -173,9 +165,7 @@ const handleSave = async (newUpstream: UpstreamServer) => {
 
 const handleDelete = async (index: number) => {
   if (saveLoading.value) return;
-  let server: Array<any> = JSON.parse(
-    JSON.stringify(agentConfig.value?.upstreams || []),
-  );
+  let server: Array<any> = JSON.parse(JSON.stringify(agentConfig.value?.upstreams || []));
   if (server.length <= 1) {
     toast.error("Must have at least one upstreams");
     return;
@@ -221,7 +211,7 @@ const handleDelete = async (index: number) => {
     >
       <!-- 名称 -->
       <div class="flex items-center gap-4 px-4 py-3">
-        <span class="w-28 shrink-0 text-sm text-muted-foreground">
+        <span class="text-muted-foreground w-28 shrink-0 text-sm">
           {{ t("dashboard.servers.detail.infoName") }}
         </span>
         <div class="flex min-w-0 items-center gap-1.5">
@@ -236,19 +226,17 @@ const handleDelete = async (index: number) => {
               v-if="currentUpstreamIndex === index && copiedKey === 'name'"
               class="h-3.5 w-3.5 text-green-500"
             />
-            <Copy v-else class="h-3.5 w-3.5 text-muted-foreground" />
+            <Copy v-else class="text-muted-foreground h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
       <!-- UUID -->
       <div class="flex items-center gap-4 px-4 py-3">
-        <span class="w-28 shrink-0 text-sm text-muted-foreground">
+        <span class="text-muted-foreground w-28 shrink-0 text-sm">
           {{ t("dashboard.servers.detail.infoId") }}
         </span>
         <div class="flex min-w-0 items-center gap-1.5">
-          <span class="font-mono text-sm">{{
-            upstream.server_uuid ?? "--"
-          }}</span>
+          <span class="font-mono text-sm">{{ upstream.server_uuid ?? "--" }}</span>
           <Button
             size="icon"
             variant="ghost"
@@ -259,13 +247,13 @@ const handleDelete = async (index: number) => {
               v-if="currentUpstreamIndex === index && copiedKey === 'uuid'"
               class="h-3.5 w-3.5 text-green-500"
             />
-            <Copy v-else class="h-3.5 w-3.5 text-muted-foreground" />
+            <Copy v-else class="text-muted-foreground h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
       <!-- API 地址 -->
       <div class="flex flex-wrap items-center gap-4 px-4 py-3">
-        <span class="w-28 shrink-0 text-sm text-muted-foreground">
+        <span class="text-muted-foreground w-28 shrink-0 text-sm">
           {{ t("dashboard.servers.detail.infoEndpoint") }}
         </span>
         <div class="flex min-w-0 items-center gap-1.5">
@@ -281,19 +269,16 @@ const handleDelete = async (index: number) => {
               v-if="currentUpstreamIndex === index && copiedKey === 'url'"
               class="h-3.5 w-3.5 text-green-500"
             />
-            <Copy v-else class="h-3.5 w-3.5 text-muted-foreground" />
+            <Copy v-else class="text-muted-foreground h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
       <!-- 状态 -->
       <div class="flex items-center gap-4 px-4 py-3">
-        <span class="w-28 shrink-0 text-sm text-muted-foreground">
+        <span class="text-muted-foreground w-28 shrink-0 text-sm">
           {{ t("dashboard.servers.detail.infoStatus") }}
         </span>
-        <Badge
-          v-if="upstream.server_uuid === currentBackendInfo?.uuid"
-          variant="default"
-        >
+        <Badge v-if="upstream.server_uuid === currentBackendInfo?.uuid" variant="default">
           {{ t("dashboard.servers.detail.infoActive") }}
         </Badge>
         <Badge v-else variant="secondary">
@@ -302,13 +287,11 @@ const handleDelete = async (index: number) => {
       </div>
       <!-- Token -->
       <div class="flex items-start gap-4 px-4 py-3">
-        <span class="w-28 shrink-0 pt-0.5 text-sm text-muted-foreground">
+        <span class="text-muted-foreground w-28 shrink-0 pt-0.5 text-sm">
           {{ t("dashboard.servers.detail.infoToken") }}
         </span>
         <div class="flex min-w-0 items-start gap-1.5">
-          <span class="font-mono text-sm break-all">{{
-            upstream.token ?? "--"
-          }}</span>
+          <span class="font-mono text-sm break-all">{{ upstream.token ?? "--" }}</span>
           <Button
             v-if="upstream.token"
             size="icon"
@@ -320,19 +303,15 @@ const handleDelete = async (index: number) => {
               v-if="currentUpstreamIndex === index && copiedKey === 'token'"
               class="h-3.5 w-3.5 text-green-500"
             />
-            <Copy v-else class="h-3.5 w-3.5 text-muted-foreground" />
+            <Copy v-else class="text-muted-foreground h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
       <!-- ignore_cert -->
       <div class="flex items-start gap-4 px-4 py-3">
-        <span class="w-28 shrink-0 pt-0.5 text-sm text-muted-foreground">
-          忽略TLS错误
-        </span>
+        <span class="text-muted-foreground w-28 shrink-0 pt-0.5 text-sm"> 忽略TLS错误 </span>
         <div class="flex min-w-0 items-start gap-1.5">
-          <span class="font-mono text-sm break-all">{{
-            upstream.ignore_cert ? "是" : "否"
-          }}</span>
+          <span class="font-mono text-sm break-all">{{ upstream.ignore_cert ? "是" : "否" }}</span>
         </div>
       </div>
       <!-- Operation -->

@@ -25,18 +25,13 @@ const getTargetToken = () => {
   return typeof queryToken === "string" ? queryToken.trim() : "";
 };
 
-const displayText = (
-  value: string | number | null | undefined,
-  fallback = "-",
-) => {
+const displayText = (value: string | number | null | undefined, fallback = "-") => {
   if (value === null || value === undefined) return fallback;
   if (typeof value === "string") return value.trim() || fallback;
   return String(value);
 };
 
-const formattedJson = computed(() =>
-  JSON.stringify(rawDetail.value ?? {}, null, 2),
-);
+const formattedJson = computed(() => JSON.stringify(rawDetail.value ?? {}, null, 2));
 
 const handleGetTokenDetail = async () => {
   const targetToken = getTargetToken();
@@ -80,9 +75,7 @@ onMounted(() => {
 
 <template>
   <div class="space-y-6">
-    <div
-      class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"
-    >
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
       <div class="space-y-1">
         <div class="flex items-start gap-3">
           <Button
@@ -93,9 +86,7 @@ onMounted(() => {
             @click="handleBack"
           >
             <ArrowLeft class="h-4 w-4" />
-            <span class="sr-only">{{
-              t("dashboard.token.detail.returnButtonDescription")
-            }}</span>
+            <span class="sr-only">{{ t("dashboard.token.detail.returnButtonDescription") }}</span>
           </Button>
           <div class="space-y-1">
             <div class="flex items-center gap-2">
@@ -131,12 +122,7 @@ onMounted(() => {
         </Button>
         <Button
           :disabled="detailLoading"
-          @click="
-            handleCopy(
-              formattedJson,
-              t('dashboard.token.detail.copyFullJsonSuccess'),
-            )
-          "
+          @click="handleCopy(formattedJson, t('dashboard.token.detail.copyFullJsonSuccess'))"
         >
           <Copy class="h-4 w-4" />
           {{ t("dashboard.token.detail.copyFullJson") }}
@@ -144,10 +130,6 @@ onMounted(() => {
       </div>
     </div>
 
-    <TokenDetailPreview
-      :token="normalizedToken"
-      :raw-detail="rawDetail"
-      :loading="detailLoading"
-    />
+    <TokenDetailPreview :token="normalizedToken" :raw-detail="rawDetail" :loading="detailLoading" />
   </div>
 </template>

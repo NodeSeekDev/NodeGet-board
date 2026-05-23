@@ -12,12 +12,7 @@ import {
 } from "@/components/ui/select";
 import { computed, onMounted, ref, watch } from "vue";
 import { Loader2 } from "lucide-vue-next";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useI18n } from "vue-i18n";
 import { toast } from "vue-sonner";
@@ -80,11 +75,9 @@ watch(
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem
-                v-for="version in availableVersions"
-                :value="version"
-                >{{ version }}</SelectItem
-              >
+              <SelectItem v-for="version in availableVersions" :value="version">{{
+                version
+              }}</SelectItem>
             </SelectContent>
           </Select>
         </div>

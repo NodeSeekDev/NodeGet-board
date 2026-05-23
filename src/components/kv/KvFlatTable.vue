@@ -54,18 +54,14 @@ const loadAll = async () => {
 onMounted(loadAll);
 
 const handleView = (ns: string, key: string) => {
-  const entry = flatEntries.value.find(
-    (x) => x.namespace === ns && x.key === key,
-  );
+  const entry = flatEntries.value.find((x) => x.namespace === ns && x.key === key);
   viewKey.value = key;
   viewValue.value = entry?.value;
   viewOpen.value = true;
 };
 
 const handleEdit = (ns: string, key: string) => {
-  const entry = flatEntries.value.find(
-    (x) => x.namespace === ns && x.key === key,
-  );
+  const entry = flatEntries.value.find((x) => x.namespace === ns && x.key === key);
   editNamespace.value = ns;
   editKey.value = key;
   editValue.value = entry?.value;
@@ -90,9 +86,7 @@ const handleDelete = async (ns: string, key: string) => {
   kv.namespace.value = ns;
   try {
     await kv.deleteKey(key);
-    flatEntries.value = flatEntries.value.filter(
-      (e) => !(e.namespace === ns && e.key === key),
-    );
+    flatEntries.value = flatEntries.value.filter((e) => !(e.namespace === ns && e.key === key));
     toast.success("删除成功");
   } catch (e: unknown) {
     toast.error(e instanceof Error ? e.message : "删除失败");

@@ -6,10 +6,7 @@ import { type Token } from "../type";
 import { KeyRound } from "lucide-vue-next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
-import {
-  mapTokenDetailToForm,
-  useEditTokenHook,
-} from "@/composables/token/useEditToken";
+import { mapTokenDetailToForm, useEditTokenHook } from "@/composables/token/useEditToken";
 import { useTokenListHook } from "@/composables/token/useTokenList";
 import TokenEditorWorkspace from "../components/TokenEditorWorkspace.vue";
 
@@ -80,7 +77,7 @@ const handleUpdateToken = async () => {
         class="flex min-h-[420px] flex-col items-center justify-center gap-3"
       >
         <Spinner />
-        <div class="text-sm text-muted-foreground">
+        <div class="text-muted-foreground text-sm">
           {{ t("dashboard.token.edit.editTokenCard.detailLoading") }}
         </div>
       </div>
@@ -91,9 +88,7 @@ const handleUpdateToken = async () => {
           :loading="createLoading"
           :disabled="detailLoading"
           :submit-label="t('dashboard.token.edit.editTokenCard.updateButton')"
-          :submitting-label="
-            t('dashboard.token.edit.editTokenCard.updetingButton')
-          "
+          :submitting-label="t('dashboard.token.edit.editTokenCard.updetingButton')"
           @update:token="handleTokenChange"
           @submit="handleUpdateToken"
         />

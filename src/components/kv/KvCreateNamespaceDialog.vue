@@ -46,9 +46,7 @@ const close = () => emit("update:open", false);
     <DialogContent>
       <DialogHeader>
         <DialogTitle>创建命名空间</DialogTitle>
-        <DialogDescription
-          >命名空间用于隔离不同的 KV 数据集合</DialogDescription
-        >
+        <DialogDescription>命名空间用于隔离不同的 KV 数据集合</DialogDescription>
       </DialogHeader>
 
       <div class="space-y-2">
@@ -59,15 +57,12 @@ const close = () => emit("update:open", false);
           placeholder="输入命名空间名称，例如 global"
           @keydown.enter="handleCreate"
         />
-        <p v-if="error" class="text-sm text-destructive">{{ error }}</p>
+        <p v-if="error" class="text-destructive text-sm">{{ error }}</p>
       </div>
 
       <DialogFooter>
         <Button variant="outline" @click="close">取消</Button>
-        <Button
-          :disabled="loading || !namespaceName.trim()"
-          @click="handleCreate"
-        >
+        <Button :disabled="loading || !namespaceName.trim()" @click="handleCreate">
           {{ loading ? "创建中..." : "创建" }}
         </Button>
       </DialogFooter>

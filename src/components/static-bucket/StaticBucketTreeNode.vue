@@ -1,14 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, inject } from "vue";
 import type { Ref } from "vue";
-import {
-  ChevronRight,
-  File as FileIcon,
-  Folder,
-  Download,
-  Loader2,
-  Trash2,
-} from "lucide-vue-next";
+import { ChevronRight, File as FileIcon, Folder, Download, Loader2, Trash2 } from "lucide-vue-next";
 import { PopConfirm } from "@/components/ui/pop-confirm";
 
 export type TreeNode = {
@@ -89,18 +82,18 @@ const onFileDragEnd = () => {
   <div
     v-if="node.isDir"
     class="rounded transition-all"
-    :class="isDragOver ? 'bg-primary/10 ring-1 ring-inset ring-primary/40' : ''"
+    :class="isDragOver ? 'bg-primary/10 ring-primary/40 ring-1 ring-inset' : ''"
     @dragover="onDirDragOver"
     @dragleave="onDirDragLeave"
     @drop="onDirDrop"
   >
     <button
-      class="flex items-center gap-1 w-full text-left text-xs px-1 py-1 rounded transition-all group"
+      class="group flex w-full items-center gap-1 rounded px-1 py-1 text-left text-xs transition-all"
       :class="isDragOver ? '' : 'hover:bg-muted'"
       @click="expanded = !expanded"
     >
       <ChevronRight
-        class="h-3 w-3 transition-all flex-shrink-0"
+        class="h-3 w-3 flex-shrink-0 transition-all"
         :class="[
           isDragOver ? 'text-primary' : 'text-muted-foreground',
           expanded ? 'rotate-90' : '',
@@ -108,9 +101,7 @@ const onFileDragEnd = () => {
       />
       <Folder
         class="h-3 w-3 flex-shrink-0 transition-colors"
-        :class="
-          isDragOver ? 'text-primary fill-primary/20' : 'text-muted-foreground'
-        "
+        :class="isDragOver ? 'text-primary fill-primary/20' : 'text-muted-foreground'"
       />
       <span
         class="truncate transition-colors"
@@ -120,7 +111,7 @@ const onFileDragEnd = () => {
       </span>
     </button>
     <Transition name="folder-expand">
-      <div v-if="expanded && node.children?.length" class="pl-4 space-y-0.5">
+      <div v-if="expanded && node.children?.length" class="space-y-0.5 pl-4">
         <StaticBucketTreeNode
           v-for="child in node.children"
           :key="child.path"
@@ -138,10 +129,10 @@ const onFileDragEnd = () => {
 
   <div
     v-else
-    class="flex items-center gap-1 w-full text-xs px-1 py-1 rounded transition-all group cursor-grab"
+    class="group flex w-full cursor-grab items-center gap-1 rounded px-1 py-1 text-xs transition-all"
     :class="[
       selected === node.path ? 'bg-muted' : 'hover:bg-muted',
-      isDragging ? 'opacity-40 scale-[0.98]' : '',
+      isDragging ? 'scale-[0.98] opacity-40' : '',
     ]"
     draggable="true"
     @dragstart="onFileDragStart"
@@ -150,10 +141,10 @@ const onFileDragEnd = () => {
     @click="emit('select', node.path)"
   >
     <div class="w-3 flex-shrink-0" />
-    <FileIcon class="h-3 w-3 text-muted-foreground flex-shrink-0" />
-    <span class="truncate flex-1">{{ node.name }}</span>
+    <FileIcon class="text-muted-foreground h-3 w-3 flex-shrink-0" />
+    <span class="flex-1 truncate">{{ node.name }}</span>
     <button
-      class="opacity-0 group-hover:opacity-100 h-5 w-5 flex items-center justify-center rounded hover:bg-background transition-opacity flex-shrink-0"
+      class="hover:bg-background flex h-5 w-5 flex-shrink-0 items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100"
       title="下载"
       @click.stop="emit('download', node.path)"
     >
@@ -161,7 +152,7 @@ const onFileDragEnd = () => {
     </button>
     <Loader2
       v-if="deletingPath === node.path"
-      class="h-3 w-3 animate-spin text-destructive flex-shrink-0"
+      class="text-destructive h-3 w-3 flex-shrink-0 animate-spin"
     />
     <PopConfirm
       v-else
@@ -171,7 +162,7 @@ const onFileDragEnd = () => {
       @click.stop
     >
       <button
-        class="opacity-0 group-hover:opacity-100 h-5 w-5 flex items-center justify-center rounded hover:bg-background text-destructive transition-opacity flex-shrink-0"
+        class="hover:bg-background text-destructive flex h-5 w-5 flex-shrink-0 items-center justify-center rounded opacity-0 transition-opacity group-hover:opacity-100"
         title="删除"
         @click.stop
       >

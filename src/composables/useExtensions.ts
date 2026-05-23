@@ -20,9 +20,7 @@ export const extractZipToFiles = (zipFile: File): Promise<File[]> =>
           ([p]) => p === "app.json" || /^[^/]+\/app\.json$/.test(p),
         )?.[0];
         const hasTopDir = !!appJsonPath && appJsonPath !== "app.json";
-        const prefix = hasTopDir
-          ? ""
-          : `${zipFile.name.replace(/\.zip$/i, "")}/`;
+        const prefix = hasTopDir ? "" : `${zipFile.name.replace(/\.zip$/i, "")}/`;
 
         for (const [path, content] of entries) {
           if (path.endsWith("/")) continue; // 跳过目录条目
@@ -123,9 +121,7 @@ export function useExtensions() {
 
   // backend.url 是 WebSocket 地址（wss/ws），静态文件接口需要 HTTP(S)
   const httpBaseUrl = computed(() =>
-    backendUrl.value
-      .replace(/^wss:\/\//, "https://")
-      .replace(/^ws:\/\//, "http://"),
+    backendUrl.value.replace(/^wss:\/\//, "https://").replace(/^ws:\/\//, "http://"),
   );
 
   const bucketBaseUrl = computed(() => {
@@ -139,10 +135,7 @@ export function useExtensions() {
 
   const getBackendCargoVersion = async (): Promise<string | undefined> => {
     try {
-      const info = await rpc<{ cargo_version: string }>(
-        "nodeget-server_version",
-        [],
-      );
+      const info = await rpc<{ cargo_version: string }>("nodeget-server_version", []);
       return info?.cargo_version;
     } catch {
       return undefined;
@@ -180,10 +173,7 @@ export function useExtensions() {
     const namespaces = await rpc<string[]>("kv_list_all_namespace", {
       token: backendToken.value,
     });
-    if (
-      !Array.isArray(namespaces) ||
-      !namespaces.includes(EXTENSION_NAMESPACE)
-    ) {
+    if (!Array.isArray(namespaces) || !namespaces.includes(EXTENSION_NAMESPACE)) {
       await rpc("kv_create", {
         token: backendToken.value,
         namespace: EXTENSION_NAMESPACE,
@@ -197,12 +187,13 @@ export function useExtensions() {
     error.value = null;
     try {
       await ensureNamespace();
-      const results = await rpc<
-        { namespace: string; key: string; value: unknown }[]
-      >("kv_get_multi_value", {
-        token: backendToken.value,
-        namespace_key: [{ namespace: EXTENSION_NAMESPACE, key: "*" }],
-      });
+      const results = await rpc<{ namespace: string; key: string; value: unknown }[]>(
+        "kv_get_multi_value",
+        {
+          token: backendToken.value,
+          namespace_key: [{ namespace: EXTENSION_NAMESPACE, key: "*" }],
+        },
+      );
       extensions.value = Array.isArray(results)
         ? results
             .filter((r) => r.value && typeof r.value === "object")
@@ -260,10 +251,7 @@ export function useExtensions() {
       try {
         await staticBucketApi.deleteBucket(getBucketName(id));
       } catch (e) {
-        console.warn(
-          `[deleteExtension] 清理 bucket 失败，请手动删除 ${getBucketName(id)}:`,
-          e,
-        );
+        console.warn(`[deleteExtension] 清理 bucket 失败，请手动删除 ${getBucketName(id)}:`, e);
       }
     }
     await rpc("kv_delete_key", {
@@ -281,8 +269,7 @@ export function useExtensions() {
     contentType?: string,
     storage?: ExtensionStorage,
   ) => {
-    const resolvedStorage =
-      storage ?? extensions.value.find((e) => e.id === extensionId)?.storage;
+    const resolvedStorage = storage ?? extensions.value.find((e) => e.id === extensionId)?.storage;
 
     if (resolvedStorage === "static") {
       await rpc("static-bucket-file_upload", {
@@ -299,9 +286,7 @@ export function useExtensions() {
       if (contentType) headers["Content-Type"] = contentType;
       const resp = await fetch(url, { method: "POST", body: content, headers });
       if (!resp.ok) {
-        throw new Error(
-          `上传文件 ${path} 失败: ${resp.status} ${resp.statusText}`,
-        );
+        throw new Error(`上传文件 ${path} 失败: ${resp.status} ${resp.statusText}`);
       }
     }
   };
@@ -322,20 +307,17 @@ export function useExtensions() {
             },
           ];
 
-    const result = await rpc<{ key?: string; secret?: string }>(
-      "token_create",
-      {
-        father_token: backendToken.value,
-        token_creation: {
-          username: null,
-          password: null,
-          timestamp_from: null,
-          timestamp_to: null,
-          version: 1,
-          token_limit: tokenLimit,
-        },
+    const result = await rpc<{ key?: string; secret?: string }>("token_create", {
+      father_token: backendToken.value,
+      token_creation: {
+        username: null,
+        password: null,
+        timestamp_from: null,
+        timestamp_to: null,
+        version: 1,
+        token_limit: tokenLimit,
       },
-    );
+    });
 
     const key = result?.key || "";
     const secret = result?.secret || "";
@@ -365,10 +347,7 @@ export function useExtensions() {
     // 找到 readme.md
     const readmeFile = files.find((f) => {
       const parts = f.webkitRelativePath.split("/");
-      return (
-        (parts[parts.length - 1] ?? "").toLowerCase() === "readme.md" &&
-        parts.length === 2
-      );
+      return (parts[parts.length - 1] ?? "").toLowerCase() === "readme.md" && parts.length === 2;
     });
     const readme = readmeFile ? await readmeFile.text() : "";
 
@@ -376,10 +355,7 @@ export function useExtensions() {
     const extensionId = crypto.randomUUID();
 
     const backendVersion = await getBackendCargoVersion();
-    const storage: ExtensionStorage = semverGt(
-      backendVersion,
-      STATIC_STORAGE_MIN_VERSION,
-    )
+    const storage: ExtensionStorage = semverGt(backendVersion, STATIC_STORAGE_MIN_VERSION)
       ? "static"
       : "worker";
 
@@ -397,22 +373,14 @@ export function useExtensions() {
     // 上传 resources/ 目录下的文件
     const rootFolder = files[0]?.webkitRelativePath.split("/")[0] ?? "";
     const resourcePrefix = `${rootFolder}/resources/`;
-    const resourceFiles = files.filter((f) =>
-      f.webkitRelativePath.startsWith(resourcePrefix),
-    );
+    const resourceFiles = files.filter((f) => f.webkitRelativePath.startsWith(resourcePrefix));
     const uploadedFiles: ExtensionFile[] = [];
 
     for (const file of resourceFiles) {
       const relativePath = file.webkitRelativePath.slice(resourcePrefix.length);
       if (!relativePath) continue;
       const content = await file.arrayBuffer();
-      await uploadFile(
-        extensionId,
-        relativePath,
-        content,
-        file.type || undefined,
-        storage,
-      );
+      await uploadFile(extensionId, relativePath, content, file.type || undefined, storage);
       uploadedFiles.push({ path: relativePath, size: file.size });
       onProgress?.(`已上传: ${relativePath}`);
     }
@@ -422,10 +390,7 @@ export function useExtensions() {
     if (appJson.worker?.filename) {
       const workerFile = files.find((f) => {
         const parts = f.webkitRelativePath.split("/");
-        return (
-          parts[parts.length - 1] === appJson.worker!.filename &&
-          parts.length === 2
-        );
+        return parts[parts.length - 1] === appJson.worker!.filename && parts.length === 2;
       });
       if (workerFile) {
         const workerContent = await workerFile.text();
@@ -440,9 +405,7 @@ export function useExtensions() {
           worker_name = workerName;
           onProgress?.(`已注册 Worker: ${workerName}`);
         } catch (e: unknown) {
-          onProgress?.(
-            `Worker 注册失败（已忽略）: ${e instanceof Error ? e.message : String(e)}`,
-          );
+          onProgress?.(`Worker 注册失败（已忽略）: ${e instanceof Error ? e.message : String(e)}`);
         }
         if (worker_name && appJson.worker.cron) {
           try {
@@ -499,10 +462,7 @@ export function useExtensions() {
 
     const readmeFile = files.find((f) => {
       const parts = f.webkitRelativePath.split("/");
-      return (
-        (parts[parts.length - 1] ?? "").toLowerCase() === "readme.md" &&
-        parts.length === 2
-      );
+      return (parts[parts.length - 1] ?? "").toLowerCase() === "readme.md" && parts.length === 2;
     });
     const readme = readmeFile ? await readmeFile.text() : existing.readme;
 
@@ -532,8 +492,7 @@ export function useExtensions() {
 
     const backendVersion = await getBackendCargoVersion();
     const storage: ExtensionStorage =
-      existing.storage === "static" ||
-      semverGt(backendVersion, STATIC_STORAGE_MIN_VERSION)
+      existing.storage === "static" || semverGt(backendVersion, STATIC_STORAGE_MIN_VERSION)
         ? "static"
         : "worker";
 
@@ -545,22 +504,14 @@ export function useExtensions() {
     onProgress?.("正在上传静态文件...");
     const rootFolder = files[0]?.webkitRelativePath.split("/")[0] ?? "";
     const resourcePrefix = `${rootFolder}/resources/`;
-    const resourceFiles = files.filter((f) =>
-      f.webkitRelativePath.startsWith(resourcePrefix),
-    );
+    const resourceFiles = files.filter((f) => f.webkitRelativePath.startsWith(resourcePrefix));
     const uploadedFiles: ExtensionFile[] = [];
 
     for (const file of resourceFiles) {
       const relativePath = file.webkitRelativePath.slice(resourcePrefix.length);
       if (!relativePath) continue;
       const content = await file.arrayBuffer();
-      await uploadFile(
-        existing.id,
-        relativePath,
-        content,
-        file.type || undefined,
-        storage,
-      );
+      await uploadFile(existing.id, relativePath, content, file.type || undefined, storage);
       uploadedFiles.push({ path: relativePath, size: file.size });
       onProgress?.(`已上传: ${relativePath}`);
     }
@@ -612,9 +563,7 @@ export function useExtensions() {
           }
           worker_name = workerName;
         } catch (e: unknown) {
-          onProgress?.(
-            `Worker 注册失败（已忽略）: ${e instanceof Error ? e.message : String(e)}`,
-          );
+          onProgress?.(`Worker 注册失败（已忽略）: ${e instanceof Error ? e.message : String(e)}`);
         }
         if (worker_name && appJson.worker.cron) {
           try {
@@ -666,11 +615,7 @@ export function useExtensions() {
     await saveExtension(existing.id, kvData);
   };
 
-  const getStaticUrl = (
-    extensionId: string,
-    path: string,
-    storage?: ExtensionStorage,
-  ): string => {
+  const getStaticUrl = (extensionId: string, path: string, storage?: ExtensionStorage): string => {
     if (storage === "static") {
       return `${bucketBaseUrl.value}/nodeget/static/${getBucketName(extensionId)}/${path}`;
     }
@@ -697,10 +642,7 @@ export function useExtensions() {
       base = getStaticUrl(extensionId, entry, storage);
     }
     const theme = useThemeStore().isDark ? "dark" : "light";
-    const params: string[] = [
-      `token=${encodeURIComponent(token)}`,
-      `theme=${theme}`,
-    ];
+    const params: string[] = [`token=${encodeURIComponent(token)}`, `theme=${theme}`];
     if (nodeUuid) params.push(`node=${encodeURIComponent(nodeUuid)}`);
     return `${base}#?${params.join("&")}`;
   };
@@ -722,13 +664,7 @@ export function useExtensions() {
     await ensureNamespace();
 
     onProgress?.("正在上传图标...");
-    await uploadFile(
-      extensionId,
-      "assets/icon.svg",
-      svgBytes,
-      "image/svg+xml",
-      "worker",
-    );
+    await uploadFile(extensionId, "assets/icon.svg", svgBytes, "image/svg+xml", "worker");
 
     const appJson: AppJson = {
       name,

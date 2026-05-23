@@ -63,14 +63,12 @@ async function afterServerCreate(backend: Backend, force: boolean = false) {
 
   try {
     const baseWorkerName = "base-worker";
-    const worker = await getWorker(baseWorkerName).catch(
-      (v: Error | string) => {
-        if (v.toString().indexOf("js_worker not found") !== -1) {
-          return null;
-        }
-        throw v;
-      },
-    );
+    const worker = await getWorker(baseWorkerName).catch((v: Error | string) => {
+      if (v.toString().indexOf("js_worker not found") !== -1) {
+        return null;
+      }
+      throw v;
+    });
     if (!worker) {
       const jsContent = await fetch(
         `${import.meta.env.VITE_BOOTSTRAP}/workers/base-worker/index.js`,
@@ -163,8 +161,7 @@ async function afterAgentCreate(
 
     toast.success("Agent post-processing completed successfully");
   } catch (e: unknown) {
-    const errorMsg =
-      e instanceof Error ? e.message : "Agent post-processing failed";
+    const errorMsg = e instanceof Error ? e.message : "Agent post-processing failed";
     toast.error(errorMsg);
     console.error("afterAgentCreate error:", e);
   }
@@ -235,8 +232,7 @@ async function afterAgentDelete(agentUUID: string, stage: string) {
         break;
     }
   } catch (e: unknown) {
-    const errorMsg =
-      e instanceof Error ? e.message : "Agent post-processing failed";
+    const errorMsg = e instanceof Error ? e.message : "Agent post-processing failed";
     toast.error(errorMsg);
     console.error("agent delete error:", e);
   }

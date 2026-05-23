@@ -10,9 +10,7 @@ definePage({
 });
 
 const route = useRoute();
-const routeName = computed(
-  () => (route.params as Record<string, string>).extensionRoute ?? "",
-);
+const routeName = computed(() => (route.params as Record<string, string>).extensionRoute ?? "");
 
 const { extensions, fetchExtensions, getIframeUrl } = useExtensions();
 
@@ -20,9 +18,7 @@ const { extensions, fetchExtensions, getIframeUrl } = useExtensions();
 const matched = computed(() => {
   for (const ext of extensions.value) {
     if (ext.disabled) continue;
-    const r = ext.app.routes?.find(
-      (r) => r.type === "global" && r.name === routeName.value,
-    );
+    const r = ext.app.routes?.find((r) => r.type === "global" && r.name === routeName.value);
     if (r) return { ext, route: r };
   }
   return null;
@@ -71,14 +67,12 @@ watch(
 <template>
   <div class="flex h-full w-full flex-col">
     <div v-if="!ready" class="flex flex-1 items-center justify-center">
-      <div
-        class="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"
-      />
+      <div class="border-primary h-6 w-6 animate-spin rounded-full border-2 border-t-transparent" />
     </div>
 
     <div
       v-else-if="!matched"
-      class="flex flex-1 items-center justify-center gap-2 text-muted-foreground"
+      class="text-muted-foreground flex flex-1 items-center justify-center gap-2"
     >
       <AlertCircle class="h-5 w-5" />
       <span>未找到扩展路由「{{ routeName }}」</span>

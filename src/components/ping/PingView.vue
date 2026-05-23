@@ -21,8 +21,7 @@ const ispFilter = ref<ISP | "all">("all");
 const selectedProvince = ref<string | null>(null);
 
 function onProvinceClick(province: string) {
-  selectedProvince.value =
-    selectedProvince.value === province ? null : province;
+  selectedProvince.value = selectedProvince.value === province ? null : province;
 }
 const concurrency = ref(10);
 const delayBeforeQueryMs = ref(400);
@@ -38,13 +37,7 @@ const activeLoopCount = ref(1);
 
 function runOnce() {
   activeLoopCount.value = 1;
-  start(
-    testType.value,
-    ispFilter.value,
-    false,
-    concurrency.value,
-    delayBeforeQueryMs.value,
-  );
+  start(testType.value, ispFilter.value, false, concurrency.value, delayBeforeQueryMs.value);
 }
 
 const isContinuousRunning = ref(false);
@@ -83,17 +76,14 @@ const elapsedDisplay = computed(() => {
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
   const sec = s % 60;
-  if (h > 0)
-    return `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+  if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
   return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
 });
 
 // 进度
 const totalPings = computed(() => results.value.length * activeLoopCount.value);
 const progressPercent = computed(() =>
-  totalPings.value > 0
-    ? Math.min(100, Math.round((probesDone.value / totalPings.value) * 100))
-    : 0,
+  totalPings.value > 0 ? Math.min(100, Math.round((probesDone.value / totalPings.value) * 100)) : 0,
 );
 
 const mapWrapRef = ref<HTMLElement | null>(null);
@@ -109,9 +99,7 @@ async function doScreenshot() {
     { key: "histogram", el: histRef.value, label: "直方图" },
     { key: "table", el: tableRef.value, label: "表格" },
   ]
-    .filter(
-      (m) => shotModules.value[m.key as keyof typeof shotModules.value] && m.el,
-    )
+    .filter((m) => shotModules.value[m.key as keyof typeof shotModules.value] && m.el)
     .map((m) => ({ el: m.el as HTMLElement, label: m.label }));
 
   if (!modules.length) return;
@@ -128,7 +116,7 @@ async function doScreenshot() {
   <div class="space-y-6">
     <!-- 第一排：测试类型 / ISP / 参数 / 操作按钮 -->
     <div class="flex flex-wrap items-center gap-3">
-      <div class="flex rounded-md border overflow-hidden">
+      <div class="flex overflow-hidden rounded-md border">
         <button
           v-for="t in [
             { id: 'tcp_ping', label: 'TCP Ping' },
@@ -147,15 +135,9 @@ async function doScreenshot() {
         </button>
       </div>
 
-      <div class="flex rounded-md border overflow-hidden">
+      <div class="flex overflow-hidden rounded-md border">
         <button
-          v-for="isp in [
-            'all',
-            'telecom',
-            'unicom',
-            'mobile',
-            'international',
-          ] as const"
+          v-for="isp in ['all', 'telecom', 'unicom', 'mobile', 'international'] as const"
           :key="isp"
           @click="ispFilter = isp"
           :class="[
@@ -169,14 +151,14 @@ async function doScreenshot() {
         </button>
       </div>
 
-      <div class="flex items-center gap-2 ml-auto text-sm">
+      <div class="ml-auto flex items-center gap-2 text-sm">
         <label class="text-muted-foreground">并发</label>
         <input
           v-model.number="concurrency"
           type="number"
           min="1"
           max="50"
-          class="w-14 rounded-md border px-2 py-1.5 text-sm text-center bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+          class="bg-background focus:ring-ring w-14 rounded-md border px-2 py-1.5 text-center text-sm focus:ring-1 focus:outline-none"
         />
         <label class="text-muted-foreground">延迟</label>
         <input
@@ -184,7 +166,7 @@ async function doScreenshot() {
           type="number"
           min="0"
           step="100"
-          class="w-20 rounded-md border px-2 py-1.5 text-sm text-center bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+          class="bg-background focus:ring-ring w-20 rounded-md border px-2 py-1.5 text-center text-sm focus:ring-1 focus:outline-none"
         />
         <span class="text-muted-foreground">ms</span>
         <label class="text-muted-foreground ml-1">循环</label>
@@ -193,15 +175,10 @@ async function doScreenshot() {
           type="number"
           min="1"
           max="500"
-          class="w-16 rounded-md border px-2 py-1.5 text-sm text-center bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+          class="bg-background focus:ring-ring w-16 rounded-md border px-2 py-1.5 text-center text-sm focus:ring-1 focus:outline-none"
         />
         <span class="text-muted-foreground">次</span>
-        <Button
-          size="sm"
-          variant="outline"
-          :disabled="pingStatus === 'running'"
-          @click="runOnce"
-        >
+        <Button size="sm" variant="outline" :disabled="pingStatus === 'running'" @click="runOnce">
           单次测试
         </Button>
         <Button
@@ -223,23 +200,21 @@ async function doScreenshot() {
         <span class="font-mono tabular-nums">{{ elapsedDisplay }}</span>
         <span class="text-muted-foreground/40 select-none">|</span>
         <span class="text-muted-foreground">进度</span>
-        <span class="font-mono tabular-nums">
-          {{ probesDone }} / {{ totalPings }}
-        </span>
+        <span class="font-mono tabular-nums"> {{ probesDone }} / {{ totalPings }} </span>
         <div class="flex items-center gap-1.5">
-          <div class="w-24 h-1.5 rounded-full bg-muted overflow-hidden">
+          <div class="bg-muted h-1.5 w-24 overflow-hidden rounded-full">
             <div
-              class="h-full rounded-full bg-primary transition-all duration-300"
+              class="bg-primary h-full rounded-full transition-all duration-300"
               :style="{ width: progressPercent + '%' }"
             />
           </div>
-          <span class="text-muted-foreground tabular-nums w-8 text-right"
+          <span class="text-muted-foreground w-8 text-right tabular-nums"
             >{{ progressPercent }}%</span
           >
         </div>
       </template>
 
-      <div class="flex items-center gap-2 ml-auto">
+      <div class="ml-auto flex items-center gap-2">
         <label
           v-for="m in [
             { key: 'map', label: '地图' },
@@ -247,7 +222,7 @@ async function doScreenshot() {
             { key: 'table', label: '表格' },
           ]"
           :key="m.key"
-          class="flex items-center gap-1 text-muted-foreground cursor-pointer select-none"
+          class="text-muted-foreground flex cursor-pointer items-center gap-1 select-none"
         >
           <input
             type="checkbox"
@@ -269,11 +244,7 @@ async function doScreenshot() {
 
     <!-- 地图 + 直方图 -->
     <div class="flex gap-4">
-      <div
-        ref="mapWrapRef"
-        class="shrink-0 border rounded-lg bg-card p-2"
-        style="width: 450px"
-      >
+      <div ref="mapWrapRef" class="bg-card shrink-0 rounded-lg border p-2" style="width: 450px">
         <PingChinaMapNative
           :results="results"
           :isp-filter="ispFilter"
@@ -283,11 +254,7 @@ async function doScreenshot() {
       </div>
 
       <!-- 直方图 -->
-      <div
-        ref="histRef"
-        class="flex-1 min-w-0 border rounded-lg bg-card p-2"
-        style="height: 416px"
-      >
+      <div ref="histRef" class="bg-card min-w-0 flex-1 rounded-lg border p-2" style="height: 416px">
         <PingHistogram :results="results" />
       </div>
     </div>

@@ -20,31 +20,25 @@ const tabs: ReadonlyArray<{ id: TabId; label: string; icon: typeof Cpu }> = [
 </script>
 
 <template>
-  <div
-    class="flex items-center gap-2 px-4 py-3 border-b shrink-0 overflow-x-auto"
-  >
+  <div class="flex shrink-0 items-center gap-2 overflow-x-auto border-b px-4 py-3">
     <button
       v-for="tab in tabs"
       :key="tab.id"
       @click="activeTab = tab.id"
       :class="[
-        'flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all border whitespace-nowrap',
+        'flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm whitespace-nowrap transition-all',
         activeTab === tab.id
-          ? 'border-border bg-muted shadow-sm font-medium'
-          : 'border-transparent hover:bg-muted/50 text-muted-foreground',
+          ? 'border-border bg-muted font-medium shadow-sm'
+          : 'hover:bg-muted/50 text-muted-foreground border-transparent',
       ]"
     >
       <component :is="tab.icon" class="h-4 w-4" />
       <span>{{ tab.label }}</span>
     </button>
     <div class="ml-auto shrink-0">
-      <Badge
-        v-if="showLive && liveLabel"
-        variant="outline"
-        class="font-mono text-xs"
-      >
+      <Badge v-if="showLive && liveLabel" variant="outline" class="font-mono text-xs">
         <span
-          class="inline-block w-1.5 h-1.5 rounded-full mr-1.5"
+          class="mr-1.5 inline-block h-1.5 w-1.5 rounded-full"
           :style="{ backgroundColor: liveColor }"
         ></span>
         {{ liveLabel }}

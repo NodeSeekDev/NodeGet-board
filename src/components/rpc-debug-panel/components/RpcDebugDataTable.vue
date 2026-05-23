@@ -1,15 +1,6 @@
-<script
-  setup
-  lang="ts"
-  generic="TData extends Record<string, unknown> | object"
->
+<script setup lang="ts" generic="TData extends Record<string, unknown> | object">
 import { computed } from "vue";
-import {
-  FlexRender,
-  getCoreRowModel,
-  useVueTable,
-  type ColumnDef,
-} from "@tanstack/vue-table";
+import { FlexRender, getCoreRowModel, useVueTable, type ColumnDef } from "@tanstack/vue-table";
 import {
   Table,
   TableBody,
@@ -47,9 +38,7 @@ const table = useVueTable({
   getCoreRowModel: getCoreRowModel(),
 });
 
-const columnCount = computed(
-  () => table.getAllLeafColumns().length || props.columns.length || 1,
-);
+const columnCount = computed(() => table.getAllLeafColumns().length || props.columns.length || 1);
 
 function metaClass(meta: unknown, key: "headerClass" | "cellClass") {
   if (!meta || typeof meta !== "object") return "";
@@ -61,16 +50,13 @@ function metaClass(meta: unknown, key: "headerClass" | "cellClass") {
   <div :class="cn('rounded-md border', props.class)">
     <ScrollArea class="h-full w-full">
       <Table table-container-class="overflow-visible">
-        <TableHeader class="sticky top-0 bg-muted/60">
-          <TableRow
-            v-for="headerGroup in table.getHeaderGroups()"
-            :key="headerGroup.id"
-          >
+        <TableHeader class="bg-muted/60 sticky top-0">
+          <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
             <TableHead
               v-for="header in headerGroup.headers"
               :key="header.id"
               :class="[
-                'h-9 bg-muted/60 px-3 text-xs font-medium text-muted-foreground',
+                'bg-muted/60 text-muted-foreground h-9 px-3 text-xs font-medium',
                 metaClass(header.column.columnDef.meta, 'headerClass'),
               ]"
               :style="{ width: `${header.getSize()}px` }"
@@ -87,24 +73,15 @@ function metaClass(meta: unknown, key: "headerClass" | "cellClass") {
           <TableRow
             v-for="(row, index) in table.getRowModel().rows"
             :key="rowKey ? rowKey(row.original, index) : row.id"
-            :class="[
-              onRowClick ? 'cursor-pointer' : '',
-              rowClass?.(row.original),
-            ]"
+            :class="[onRowClick ? 'cursor-pointer' : '', rowClass?.(row.original)]"
             @click="onRowClick?.(row.original)"
           >
             <TableCell
               v-for="cell in row.getVisibleCells()"
               :key="cell.id"
-              :class="[
-                'h-10 px-3',
-                metaClass(cell.column.columnDef.meta, 'cellClass'),
-              ]"
+              :class="['h-10 px-3', metaClass(cell.column.columnDef.meta, 'cellClass')]"
             >
-              <FlexRender
-                :render="cell.column.columnDef.cell"
-                :props="cell.getContext()"
-              />
+              <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />
             </TableCell>
           </TableRow>
           <TableEmpty

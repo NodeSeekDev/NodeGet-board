@@ -12,10 +12,7 @@ import { useBackendExtra } from "@/composables/useBackendExtra";
 import { type TASK_NAME, TASK_NAME_LIST } from "@/types/task";
 import { compareVersions } from "compare-versions";
 
-import {
-  useTask,
-  type CreateTaskBlockingResponse,
-} from "@/composables/useTask";
+import { useTask, type CreateTaskBlockingResponse } from "@/composables/useTask";
 import TOML from "smol-toml";
 
 export type LogLevel = "trace" | "debug" | "info" | "warn" | "error";
@@ -76,18 +73,13 @@ const { currentBackend } = useBackendStore();
 const { createReadConfigTask } = useTask(currentBackend);
 const { currentBackendInfo, refreshAll } = useBackendExtra();
 
-function getRawAgentConfig(
-  agentUuid: string,
-  timeoutMs: number = 9000,
-): Promise<string> {
-  return createReadConfigTask(agentUuid, true, timeoutMs).then(
-    (response: any) => {
-      if ("read_config" in response.task_event_result) {
-        return response.task_event_result.read_config;
-      }
-      throw new Error("Failed to read agent config");
-    },
-  );
+function getRawAgentConfig(agentUuid: string, timeoutMs: number = 9000): Promise<string> {
+  return createReadConfigTask(agentUuid, true, timeoutMs).then((response: any) => {
+    if ("read_config" in response.task_event_result) {
+      return response.task_event_result.read_config;
+    }
+    throw new Error("Failed to read agent config");
+  });
 }
 
 /**
@@ -122,9 +114,7 @@ function parseToml(tomlStr: string): AgentConfig {
 
     return config;
   } catch (e) {
-    throw new Error(
-      `Failed to parse TOML: ${e instanceof Error ? e.message : String(e)}`,
-    );
+    throw new Error(`Failed to parse TOML: ${e instanceof Error ? e.message : String(e)}`);
   }
 }
 
@@ -188,16 +178,11 @@ function serializeToml(config: AgentConfig): string {
   try {
     return TOML.stringify(config as any);
   } catch (e) {
-    throw new Error(
-      `Failed to serialize TOML: ${e instanceof Error ? e.message : String(e)}`,
-    );
+    throw new Error(`Failed to serialize TOML: ${e instanceof Error ? e.message : String(e)}`);
   }
 }
 
-function getAgentConfig(
-  agentUuid: string,
-  timeoutMs: number = 5000,
-): Promise<AgentConfig> {
+function getAgentConfig(agentUuid: string, timeoutMs: number = 5000): Promise<AgentConfig> {
   return getRawAgentConfig(agentUuid, timeoutMs).then((tomlStr) => {
     const config = parseToml(tomlStr);
     config.server = config.server.map((v) => {
@@ -222,17 +207,12 @@ async function getAgentConfigExtra(
   agentUuid: string,
   timeoutMs: number = 5000,
 ): Promise<splitConfig> {
-  const [cfg, _] = await Promise.all([
-    getAgentConfig(agentUuid, timeoutMs),
-    refreshAll(),
-  ]);
+  const [cfg, _] = await Promise.all([getAgentConfig(agentUuid, timeoutMs), refreshAll()]);
   const upstreams = cfg.server;
   const currentUpstream = cfg.server.find(
     (v) => v.server_uuid === currentBackendInfo.value?.uuid,
   ) as UpstreamServer;
-  const otherUpstreams = cfg.server.filter(
-    (v) => v.server_uuid !== currentBackendInfo.value?.uuid,
-  );
+  const otherUpstreams = cfg.server.filter((v) => v.server_uuid !== currentBackendInfo.value?.uuid);
   const basicConfig = {
     ...cfg,
     server: undefined,

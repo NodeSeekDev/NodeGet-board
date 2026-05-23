@@ -1,9 +1,7 @@
 import { ref, watch } from "vue";
 import type { PermissionEntry } from "../../type";
 
-export const usePermissionModuleOpen = (
-  getEntries: () => PermissionEntry[] | undefined,
-) => {
+export const usePermissionModuleOpen = (getEntries: () => PermissionEntry[] | undefined) => {
   const isOpen = ref(false);
   let lastAutoOpen = false;
 

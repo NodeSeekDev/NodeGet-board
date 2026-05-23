@@ -21,10 +21,7 @@ export const useKvHook = () => {
     const token = currentBackend.value?.token?.trim() || "";
     if (!url || !token) return [];
     try {
-      const result = await getWsConnection(url).call<string[]>(
-        "kv_list_all_namespace",
-        { token },
-      );
+      const result = await getWsConnection(url).call<string[]>("kv_list_all_namespace", { token });
       if (result.length > 0) {
         return result;
       }

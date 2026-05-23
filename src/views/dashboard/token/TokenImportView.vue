@@ -14,18 +14,11 @@ const handleBack = () => {
 </script>
 
 <template>
-  <div class="h-full flex flex-col space-y-6">
+  <div class="flex h-full flex-col space-y-6">
     <div class="flex items-start gap-3">
-      <Button
-        variant="ghost"
-        size="icon"
-        class="mt-0.5 size-9 shrink-0"
-        @click="handleBack"
-      >
+      <Button variant="ghost" size="icon" class="mt-0.5 size-9 shrink-0" @click="handleBack">
         <ArrowLeft class="h-4 w-4" />
-        <span class="sr-only">{{
-          t("dashboard.token.import.returnButtonDescription")
-        }}</span>
+        <span class="sr-only">{{ t("dashboard.token.import.returnButtonDescription") }}</span>
       </Button>
       <div>
         <h2 class="text-2xl font-bold tracking-tight">

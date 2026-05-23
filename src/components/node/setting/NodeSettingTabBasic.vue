@@ -14,8 +14,7 @@ const props = defineProps<{ uuid: string }>();
 
 const { t } = useI18n();
 const kv = useKv();
-const { parseMetadataFields, buildMetadataBatch, initDefaultMetadata } =
-  useNodeMetadata(kv);
+const { parseMetadataFields, buildMetadataBatch, initDefaultMetadata } = useNodeMetadata(kv);
 
 const loading = ref(false);
 const saveLoading = ref(false);
@@ -42,15 +41,11 @@ onMounted(async () => {
     }
 
     kv.namespace.value = props.uuid;
-    let results = await kv.getMultiValue([
-      { namespace: props.uuid, key: "metadata_*" },
-    ]);
+    let results = await kv.getMultiValue([{ namespace: props.uuid, key: "metadata_*" }]);
 
     if (results.length === 0) {
       await initDefaultMetadata(props.uuid);
-      results = await kv.getMultiValue([
-        { namespace: props.uuid, key: "metadata_*" },
-      ]);
+      results = await kv.getMultiValue([{ namespace: props.uuid, key: "metadata_*" }]);
     }
 
     form.value = parseMetadataFields(results, shorterUUID(props.uuid));
@@ -65,9 +60,7 @@ async function handleSave() {
   saveLoading.value = true;
   try {
     kv.namespace.value = props.uuid;
-    const { partialFailures } = await kv.setValueBatch(
-      buildMetadataBatch(form.value),
-    );
+    const { partialFailures } = await kv.setValueBatch(buildMetadataBatch(form.value));
     if (partialFailures.length > 0) {
       toast.warning(`Partial save failure: ${partialFailures.join(", ")}`);
     } else {
@@ -83,10 +76,7 @@ async function handleSave() {
 
 <template>
   <div class="max-w-lg space-y-6">
-    <div
-      v-if="loading"
-      class="flex items-center gap-2 py-4 text-sm text-muted-foreground"
-    >
+    <div v-if="loading" class="text-muted-foreground flex items-center gap-2 py-4 text-sm">
       <Loader2 class="h-4 w-4 animate-spin" />
       {{ $t("common.loading") }}
     </div>

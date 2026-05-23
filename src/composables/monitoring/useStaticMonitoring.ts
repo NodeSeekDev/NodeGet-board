@@ -9,12 +9,8 @@ import { useInFlightDedupe } from "@/composables/useInFlightDedupe";
 获取节点的最新静态数据
 */
 
-export function useStaticMonitoring(
-  backend = useBackendStore().currentBackend,
-) {
-  const status = ref<"disconnected" | "connecting" | "connected">(
-    "disconnected",
-  );
+export function useStaticMonitoring(backend = useBackendStore().currentBackend) {
+  const status = ref<"disconnected" | "connecting" | "connected">("disconnected");
   const error = ref("");
   const servers = ref<StaticResponseItem[]>([]);
   const queryFields = ["cpu", "system", "gpu"];
@@ -36,13 +32,14 @@ export function useStaticMonitoring(
 
       status.value = "connecting";
       error.value = "";
-      const result = await getWsConnection(backend.value.url).call<
-        StaticResponseItem[]
-      >("agent_static_data_multi_last_query", {
-        token: backend.value.token,
-        uuids: uuids,
-        fields: queryFields,
-      });
+      const result = await getWsConnection(backend.value.url).call<StaticResponseItem[]>(
+        "agent_static_data_multi_last_query",
+        {
+          token: backend.value.token,
+          uuids: uuids,
+          fields: queryFields,
+        },
+      );
       if (Array.isArray(result)) {
         servers.value = result;
         status.value = "connected";
@@ -62,8 +59,7 @@ export function useStaticMonitoring(
   watch(
     backend,
     (newVal, oldVal) => {
-      if (newVal?.url === oldVal?.url && newVal?.token === oldVal?.token)
-        return;
+      if (newVal?.url === oldVal?.url && newVal?.token === oldVal?.token) return;
       servers.value = [];
       status.value = "disconnected";
       if (newVal) void refresh();

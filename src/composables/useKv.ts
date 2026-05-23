@@ -39,12 +39,13 @@ export function useKv(backend = useBackendStore().currentBackend) {
     loading.value = true;
     error.value = null;
     try {
-      const results = await rpc<
-        { namespace: string; key: string; value: unknown }[]
-      >("kv_get_multi_value", {
-        token: backendToken.value,
-        namespace_key: [{ namespace: namespace.value, key: "*" }],
-      });
+      const results = await rpc<{ namespace: string; key: string; value: unknown }[]>(
+        "kv_get_multi_value",
+        {
+          token: backendToken.value,
+          namespace_key: [{ namespace: namespace.value, key: "*" }],
+        },
+      );
       entries.value = Array.isArray(results)
         ? results.map((r) => ({ key: r.key, value: r.value }))
         : [];
@@ -59,12 +60,13 @@ export function useKv(backend = useBackendStore().currentBackend) {
   const getMultiValue = async (
     namespaceKeys: { namespace: string; key: string }[],
   ): Promise<{ namespace: string; key: string; value: unknown }[]> => {
-    const results = await rpc<
-      { namespace: string; key: string; value: unknown }[]
-    >("kv_get_multi_value", {
-      token: backendToken.value,
-      namespace_key: namespaceKeys,
-    });
+    const results = await rpc<{ namespace: string; key: string; value: unknown }[]>(
+      "kv_get_multi_value",
+      {
+        token: backendToken.value,
+        namespace_key: namespaceKeys,
+      },
+    );
     return Array.isArray(results) ? results : [];
   };
 
@@ -134,9 +136,7 @@ export function useKv(backend = useBackendStore().currentBackend) {
     results.forEach((result, i) => {
       const item = items[i]!;
       if (result?.success === false) {
-        partialFailures.push(
-          item.key + (result.message ? `：${result.message}` : ""),
-        );
+        partialFailures.push(item.key + (result.message ? `：${result.message}` : ""));
       } else {
         const entry = entries.value.find((e) => e.key === item.key);
         if (entry) {
@@ -159,9 +159,7 @@ export function useKv(backend = useBackendStore().currentBackend) {
     entries.value = entries.value.filter((e) => e.key !== key);
   };
 
-  const deleteNamespace = async (
-    ns: string,
-  ): Promise<{ partialFailures: string[] }> => {
+  const deleteNamespace = async (ns: string): Promise<{ partialFailures: string[] }> => {
     // const results = await getMultiValue([{ namespace: ns, key: "*" }]);
     // const keys = results.map((r) => r.key);
     const keys = await rpc<string[]>("kv_get_all_keys", {
@@ -205,12 +203,9 @@ export function useKv(backend = useBackendStore().currentBackend) {
   };
 
   const listAgentUuids = async (): Promise<string[]> => {
-    const result = await rpc<{ uuids: string[] }>(
-      "nodeget-server_list_all_agent_uuid",
-      {
-        token: backendToken.value,
-      },
-    );
+    const result = await rpc<{ uuids: string[] }>("nodeget-server_list_all_agent_uuid", {
+      token: backendToken.value,
+    });
     return Array.isArray(result?.uuids) ? result.uuids : [];
   };
 

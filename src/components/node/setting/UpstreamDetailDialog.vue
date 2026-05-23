@@ -23,12 +23,7 @@ import {
   Inbox,
   Loader2,
 } from "lucide-vue-next";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import {
   useCronHistory,
@@ -43,10 +38,7 @@ import {
   type splitConfig,
 } from "@/composables/useAgentConfig";
 import { useI18n } from "vue-i18n";
-import {
-  useBackendExtra,
-  type ServerInfo,
-} from "@/composables/useBackendExtra";
+import { useBackendExtra, type ServerInfo } from "@/composables/useBackendExtra";
 import { preGenerateToken } from "@/components/agents/generateToken";
 import { Switch } from "@/components/ui/switch";
 
@@ -81,9 +73,7 @@ const availableServerInfo = computed(() => {
   return upstreams;
 });
 
-const upstreamSelected = ref<string>(
-  availableServerInfo.value[0]?.uuid as string,
-);
+const upstreamSelected = ref<string>(availableServerInfo.value[0]?.uuid as string);
 
 watch(
   upstreamSelected,
@@ -168,9 +158,7 @@ watch(
     <DialogContent class="flex max-h-[85vh] flex-col sm:max-w-md">
       <DialogHeader>
         <DialogTitle>
-          {{
-            formMode === "edit" ? "Edit Upstream Server" : "Add Upstream Server"
-          }}
+          {{ formMode === "edit" ? "Edit Upstream Server" : "Add Upstream Server" }}
         </DialogTitle>
         <!-- <DialogDescription>
         </DialogDescription> -->
@@ -183,11 +171,9 @@ watch(
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem
-                v-for="upstream in availableServerInfo"
-                :value="upstream.uuid"
-                >{{ upstream.name }}</SelectItem
-              >
+              <SelectItem v-for="upstream in availableServerInfo" :value="upstream.uuid">{{
+                upstream.name
+              }}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -213,12 +199,9 @@ watch(
         </div>
       </div>
       <DialogFooter>
-        <Button
-          variant="outline"
-          :disabled="saving"
-          @click="emit('update:open', false)"
-          >{{ t("dashboard.scripts.cancel") }}</Button
-        >
+        <Button variant="outline" :disabled="saving" @click="emit('update:open', false)">{{
+          t("dashboard.scripts.cancel")
+        }}</Button>
         <Button :disabled="saving" @click="handleSave">
           <Loader2 v-if="saving" class="mr-2 h-4 w-4 animate-spin" />
           {{ saving ? t("dashboard.saving") : t("dashboard.save") }}

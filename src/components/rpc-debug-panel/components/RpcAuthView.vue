@@ -102,17 +102,15 @@ const permissionColumns = computed<ColumnDef<PermissionRule>[]>(() => [
 
 <template>
   <div class="h-full p-6">
-    <div
-      class="mb-6 flex items-center justify-between rounded-lg border bg-muted/25 px-5 py-4"
-    >
+    <div class="bg-muted/25 mb-6 flex items-center justify-between rounded-lg border px-5 py-4">
       <div>
         <h2 class="font-semibold">鉴权来源</h2>
-        <p class="mt-1 text-sm text-muted-foreground">
+        <p class="text-muted-foreground mt-1 text-sm">
           调试面板直接读取项目中已保存的后端凭据，不额外维护 Token。
         </p>
       </div>
       <button
-        class="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-medium transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50"
+        class="border-border bg-background hover:bg-muted inline-flex h-10 items-center justify-center gap-2 rounded-md border px-3 text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50"
         type="button"
         @click="refreshPermission"
       >
@@ -124,9 +122,7 @@ const permissionColumns = computed<ColumnDef<PermissionRule>[]>(() => [
     <div class="grid gap-6 lg:grid-cols-[520px_minmax(0,1fr)]">
       <section class="rounded-lg border p-5">
         <h2 class="font-semibold">可用调试凭据</h2>
-        <p class="mt-1 text-sm text-muted-foreground">
-          来自 useBackendStore.backends
-        </p>
+        <p class="text-muted-foreground mt-1 text-sm">来自 useBackendStore.backends</p>
         <RpcDebugDataTable
           class="mt-4"
           :columns="backendColumns"
@@ -148,9 +144,7 @@ const permissionColumns = computed<ColumnDef<PermissionRule>[]>(() => [
             </span>
           </div>
           <div class="mt-4 grid gap-2 text-sm">
-            <div>
-              Token Key：{{ permissionStore.tokenInfo?.token_key ?? "-" }}
-            </div>
+            <div>Token Key：{{ permissionStore.tokenInfo?.token_key ?? "-" }}</div>
             <div>用户名：{{ permissionStore.tokenInfo?.username ?? "-" }}</div>
             <div>权限数量：{{ permissionStore.rules.length }}</div>
             <div>状态：{{ permissionStore.status }}</div>
@@ -159,9 +153,8 @@ const permissionColumns = computed<ColumnDef<PermissionRule>[]>(() => [
 
         <div class="rounded-lg border p-5">
           <h2 class="font-semibold">当前 Token 权限明细</h2>
-          <p class="mt-1 text-sm text-muted-foreground">
-            SuperToken 专用方法不作为普通权限行展示；这里展示 token_limit
-            可枚举权限。
+          <p class="text-muted-foreground mt-1 text-sm">
+            SuperToken 专用方法不作为普通权限行展示；这里展示 token_limit 可枚举权限。
           </p>
           <RpcDebugDataTable
             class="mt-4"
