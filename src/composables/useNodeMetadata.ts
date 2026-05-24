@@ -1,8 +1,10 @@
 import type { NodeMetadata } from "@/types/agent";
 import type { useKv } from "@/composables/useKv";
+import { shorterUUID } from "@/utils/format";
 
 export function makeDefaultMetadata(uuid: string) {
-  const defaultName = "节点" + uuid.slice(-6);
+  const defaultName = "节点" + shorterUUID(uuid);
+
   return {
     metadata_name: defaultName,
     metadata_tags: [],

@@ -152,15 +152,7 @@ export function useAgentInfo(
     if (!backend.value) {
       return;
     }
-    await afterAgentCreate(
-      agentUUID,
-      {
-        cronList: [],
-        metadata: {},
-        databaseLimit: {},
-      },
-      backend,
-    );
+    await kv.createNamespace(agentUUID);
   };
 
   const fetchAgentIp = async (agent: AgentInfo) => {

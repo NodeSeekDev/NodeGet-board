@@ -7,6 +7,7 @@ import { ref, provide, onMounted, watch } from "vue";
 import { useBackendStore } from "@/composables/useBackendStore";
 import { usePermissionStore } from "@/stores/permission";
 import "@/utils/detectUpdate";
+import RpcDebugPanelDialog from "@/components/rpc-debug-panel/RpcDebugPanelDialog.vue";
 
 const background = ref<"default" | "flickering">("default");
 

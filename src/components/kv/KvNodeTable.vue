@@ -56,23 +56,10 @@ async function loadNodes() {
       namespace: uuid,
       key: "metadata_*",
     }));
-    let results: { namespace: string; key: string; value: unknown }[] = [];
+    let results: { namespace: string; key: string; value: unknown }[] =
+      await kv.getMultiValue(namespaceKeys);
 
-    for (let attempt = 0; attempt <= uuids.length; attempt++) {
-      try {
-        results = await kv.getMultiValue(namespaceKeys);
-        break;
-      } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message : String(e);
-        const match = msg.match(/Namespace '([^']+)' not found/);
-        if (match && attempt < uuids.length) {
-          await kv.createNamespace(match[1]!);
-          continue;
-        }
-        throw e;
-      }
-    }
-
+    /*
     // Step 3: detect empty UUIDs and initialize default metadata values
     const namespacesWithData = new Set(results.map((r) => r.namespace));
     const emptyUuids = uuids.filter((uuid) => !namespacesWithData.has(uuid));
@@ -88,6 +75,7 @@ async function loadNodes() {
       );
       results = [...results, ...newResults];
     }
+    */
 
     // Step 5: group by namespace
     const grouped = new Map<string, { key: string; value: unknown }[]>();

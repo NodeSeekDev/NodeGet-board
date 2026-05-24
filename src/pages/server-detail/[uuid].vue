@@ -346,7 +346,7 @@ onUnmounted(() => {
                   'flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-all',
                   activeTab === tab.id
                     ? 'shadow-sm'
-                    : 'hover:bg-muted/50 text-muted-foreground hover:text-foreground border-transparent',
+                    : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground border-transparent',
                 ]"
               >
                 <div
@@ -470,7 +470,7 @@ onUnmounted(() => {
                   </CardHeader>
                   <CardContent>
                     <div
-                      class="bg-muted/10 group relative flex h-[200px] w-full items-end overflow-hidden rounded-md border p-0"
+                      class="group bg-muted/10 relative flex h-[200px] w-full items-end overflow-hidden rounded-md border p-0"
                     >
                       <!-- Axis Guide -->
                       <div

@@ -153,6 +153,7 @@ async function loadNodes() {
     }
   }
 
+  /*
   const namespacesWithData = new Set(results.map((row) => row.namespace));
   const emptyUuids = uuids.filter((uuid) => !namespacesWithData.has(uuid));
   for (const emptyUuid of emptyUuids) {
@@ -164,6 +165,7 @@ async function loadNodes() {
     );
     results = [...results, ...newResults];
   }
+  */
 
   const grouped = new Map<string, { key: string; value: unknown }[]>();
   for (const row of results) {
