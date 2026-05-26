@@ -377,14 +377,14 @@ watch(
 </script>
 
 <template>
-  <div class="relative h-full w-full">
-    <div ref="chartRef" class="h-full w-full" />
+  <div class="relative w-full h-full">
+    <div ref="chartRef" class="w-full h-full" />
     <Transition name="uplot-loading">
       <div
         v-if="props.loading"
-        class="bg-background/40 absolute inset-0 flex items-center justify-center"
+        class="absolute inset-0 flex items-center justify-center bg-background/40"
       >
-        <Spinner class="text-muted-foreground size-5" />
+        <Spinner class="size-5 text-muted-foreground" />
       </div>
     </Transition>
   </div>

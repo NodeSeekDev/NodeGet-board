@@ -14,9 +14,12 @@ const { t } = useI18n();
 
 const connect = ref(false);
 const hydrating = ref(false);
-const { isOpen, handleToggle } = usePermissionModuleOpen(() => props.modelValue);
+const { isOpen, handleToggle } = usePermissionModuleOpen(
+  () => props.modelValue,
+);
 
-const build = (): PermissionEntry[] => (connect.value ? [{ terminal: "connect" }] : []);
+const build = (): PermissionEntry[] =>
+  connect.value ? [{ terminal: "connect" }] : [];
 
 const hydrate = (entries: PermissionEntry[]) => {
   connect.value = entries.some((entry) => entry?.terminal === "connect");
@@ -45,8 +48,12 @@ watch(connect, () => {
 
 <template>
   <details class="rounded-md border p-3" :open="isOpen" @toggle="handleToggle">
-    <summary class="cursor-pointer text-sm font-medium select-none">
-      {{ t("dashboard.token.permissionsConfig.limitItem.permissionCard.terminal.title") }}
+    <summary class="cursor-pointer select-none text-sm font-medium">
+      {{
+        t(
+          "dashboard.token.permissionsConfig.limitItem.permissionCard.terminal.title",
+        )
+      }}
     </summary>
     <div class="mt-3 flex flex-wrap gap-2">
       <Button
@@ -55,7 +62,11 @@ watch(connect, () => {
         :variant="connect ? 'default' : 'outline'"
         @click="connect = !connect"
       >
-        {{ t("dashboard.token.permissionsConfig.limitItem.permissionCard.terminal.connect") }}
+        {{
+          t(
+            "dashboard.token.permissionsConfig.limitItem.permissionCard.terminal.connect",
+          )
+        }}
       </Button>
     </div>
   </details>

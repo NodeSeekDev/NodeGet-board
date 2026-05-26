@@ -8,7 +8,12 @@ import { statusText } from "../helpers";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 type DetailTabKey = "headers" | "payload" | "response";
@@ -59,13 +64,17 @@ const responseText = computed(() => {
   return formatDebugPayload(record.response, record.method);
 });
 
-const effectiveDrawerWidth = computed(() => clampDrawerWidth(drawerWidth.value));
+const effectiveDrawerWidth = computed(() =>
+  clampDrawerWidth(drawerWidth.value),
+);
 
 const drawerStyle = computed(() => ({
   width: `${effectiveDrawerWidth.value}px`,
 }));
 
-const showActionText = computed(() => effectiveDrawerWidth.value >= ACTION_TEXT_DRAWER_WIDTH);
+const showActionText = computed(
+  () => effectiveDrawerWidth.value >= ACTION_TEXT_DRAWER_WIDTH,
+);
 
 const statusBadgeVariant = computed(() => {
   const record = props.record;
@@ -120,7 +129,9 @@ function formatTimestamp(timestamp?: number) {
 }
 
 function headerText() {
-  return headerRows.value.map((row) => `${row.label}: ${String(row.value)}`).join("\n");
+  return headerRows.value
+    .map((row) => `${row.label}: ${String(row.value)}`)
+    .join("\n");
 }
 
 function activeTabCopyText() {
@@ -158,7 +169,10 @@ function editRecord() {
 }
 
 function maxDrawerWidth() {
-  return Math.min(MAX_DRAWER_WIDTH, Math.max(MIN_DRAWER_WIDTH, windowWidth.value - 48));
+  return Math.min(
+    MAX_DRAWER_WIDTH,
+    Math.max(MIN_DRAWER_WIDTH, windowWidth.value - 48),
+  );
 }
 
 function clampDrawerWidth(width: number) {
@@ -199,7 +213,7 @@ useEventListener("keydown", handleDrawerEscapeKeydown, { capture: true });
     v-show="open"
     :class="
       cn(
-        'bg-background absolute top-0 right-0 bottom-0 flex max-w-full flex-col border-l shadow-xl',
+        'absolute top-0 right-0 bottom-0 flex max-w-full flex-col border-l bg-background shadow-xl',
         props.class,
       )
     "
@@ -213,7 +227,7 @@ useEventListener("keydown", handleDrawerEscapeKeydown, { capture: true });
       <div
         :class="
           cn(
-            'bg-border group-hover:bg-primary/60 group-focus-visible:bg-primary mx-auto h-full w-px transition-colors',
+            'mx-auto h-full w-px bg-border transition-colors group-hover:bg-primary/60 group-focus-visible:bg-primary',
             isResizingDrawer && 'bg-primary',
           )
         "
@@ -226,7 +240,10 @@ useEventListener("keydown", handleDrawerEscapeKeydown, { capture: true });
           <div class="min-w-0 space-y-1">
             <div class="flex min-w-0 flex-wrap items-center gap-1.5">
               <h2 class="shrink-0 text-sm font-semibold">消息详情</h2>
-              <Badge :variant="statusBadgeVariant" class="h-5 rounded px-1.5 text-[10px]">
+              <Badge
+                :variant="statusBadgeVariant"
+                class="h-5 rounded px-1.5 text-[10px]"
+              >
                 {{ statusText(record) }}
               </Badge>
               <Badge variant="outline" class="h-5 rounded px-1.5 text-[10px]">
@@ -236,18 +253,25 @@ useEventListener("keydown", handleDrawerEscapeKeydown, { capture: true });
                 {{ record.direction }}
               </Badge>
             </div>
-            <p class="text-muted-foreground max-w-full truncate text-xs">
+            <p class="max-w-full truncate text-xs text-muted-foreground">
               {{ record.method }}
             </p>
           </div>
-          <Button variant="ghost" size="icon-sm" class="shrink-0" @click="emit('close')">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            class="shrink-0"
+            @click="emit('close')"
+          >
             <X class="size-4" />
           </Button>
         </div>
       </div>
 
       <Tabs v-model="activeDetailTab" class="flex min-h-0 flex-1 flex-col">
-        <div class="flex h-10 shrink-0 items-center justify-between border-b px-4">
+        <div
+          class="flex h-10 shrink-0 items-center justify-between border-b px-4"
+        >
           <TabsList class="h-8 rounded-md p-0.5">
             <TabsTrigger
               v-for="tab in detailTabs"
@@ -310,7 +334,12 @@ useEventListener("keydown", handleDrawerEscapeKeydown, { capture: true });
 
               <Tooltip>
                 <TooltipTrigger as-child>
-                  <Button aria-label="编辑" variant="ghost" size="icon-sm" @click="editRecord">
+                  <Button
+                    aria-label="编辑"
+                    variant="ghost"
+                    size="icon-sm"
+                    @click="editRecord"
+                  >
                     <Pencil class="size-3.5" />
                   </Button>
                 </TooltipTrigger>
@@ -348,18 +377,20 @@ useEventListener("keydown", handleDrawerEscapeKeydown, { capture: true });
           </TabsContent>
 
           <TabsContent value="payload" class="m-0 h-full min-h-0">
-            <div class="bg-muted/35 overflow-hidden rounded-md border">
-              <pre class="min-h-full overflow-auto p-3 text-xs leading-relaxed">{{
-                requestText || "无发送内容"
-              }}</pre>
+            <div class="overflow-hidden rounded-md border bg-muted/35">
+              <pre
+                class="min-h-full overflow-auto p-3 text-xs leading-relaxed"
+                >{{ requestText || "无发送内容" }}</pre
+              >
             </div>
           </TabsContent>
 
           <TabsContent value="response" class="m-0 h-full min-h-0">
-            <div class="bg-muted/35 overflow-hidden rounded-md border">
-              <pre class="min-h-full overflow-auto p-3 text-xs leading-relaxed">{{
-                responseText || "等待响应"
-              }}</pre>
+            <div class="overflow-hidden rounded-md border bg-muted/35">
+              <pre
+                class="min-h-full overflow-auto p-3 text-xs leading-relaxed"
+                >{{ responseText || "等待响应" }}</pre
+              >
             </div>
           </TabsContent>
         </div>
@@ -368,7 +399,7 @@ useEventListener("keydown", handleDrawerEscapeKeydown, { capture: true });
 
     <div
       v-else
-      class="text-muted-foreground flex h-full items-center justify-center px-6 text-center text-sm"
+      class="flex h-full items-center justify-center px-6 text-center text-sm text-muted-foreground"
     >
       暂无选中记录
     </div>

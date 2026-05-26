@@ -40,7 +40,7 @@ const activeTab = computed({
         <h1 class="text-2xl font-semibold">
           {{ t("dashboard.nodeManage.title") }}
         </h1>
-        <p class="text-muted-foreground mt-1 text-sm">
+        <p class="text-sm text-muted-foreground mt-1">
           {{ t("dashboard.nodeManage.desc") }}
         </p>
       </div>

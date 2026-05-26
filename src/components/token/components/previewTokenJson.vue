@@ -39,12 +39,14 @@ const hasError = computed(() => props.errorMessage.trim().length > 0);
         :rows="24"
         class="min-h-[420px] font-mono text-xs leading-5"
         :aria-invalid="hasError"
-        @update:model-value="(value) => emits('update:modelValue', String(value ?? ''))"
+        @update:model-value="
+          (value) => emits('update:modelValue', String(value ?? ''))
+        "
       />
 
       <div
         v-if="hasError"
-        class="border-destructive/40 bg-destructive/5 text-destructive rounded-md border px-3 py-2 text-sm"
+        class="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm text-destructive"
       >
         {{ props.errorMessage }}
       </div>

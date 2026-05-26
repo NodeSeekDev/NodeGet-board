@@ -106,7 +106,7 @@ const filteredRegions = computed(() => {
     <!-- tags -->
     <div class="space-y-2">
       <Label>{{ $t("dashboard.node.metadata.tags") }}</Label>
-      <div class="mb-2 flex flex-wrap gap-2">
+      <div class="flex flex-wrap gap-2 mb-2">
         <Badge
           v-for="(tag, i) in modelValue.tags"
           :key="tag"
@@ -116,7 +116,7 @@ const filteredRegions = computed(() => {
           {{ tag }}
           <button
             type="button"
-            class="hover:bg-muted-foreground/20 ml-0.5 rounded-full p-0.5"
+            class="ml-0.5 rounded-full hover:bg-muted-foreground/20 p-0.5"
             @click="removeTag(i)"
           >
             <X class="h-3 w-3" />
@@ -150,10 +150,16 @@ const filteredRegions = computed(() => {
           @update:model-value="update({ priceUnit: $event as string })"
         >
           <SelectTrigger>
-            <SelectValue :placeholder="$t('dashboard.node.metadata.priceUnitPlaceholder')" />
+            <SelectValue
+              :placeholder="$t('dashboard.node.metadata.priceUnitPlaceholder')"
+            />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem v-for="u in PRICE_UNITS" :key="u.symbol" :value="u.symbol">
+            <SelectItem
+              v-for="u in PRICE_UNITS"
+              :key="u.symbol"
+              :value="u.symbol"
+            >
               {{ u.label }}
             </SelectItem>
           </SelectContent>
@@ -163,7 +169,9 @@ const filteredRegions = computed(() => {
 
     <!-- priceCycle -->
     <div class="space-y-2">
-      <Label for="nm-price-cycle">{{ $t("dashboard.node.metadata.priceCycle") }}</Label>
+      <Label for="nm-price-cycle">{{
+        $t("dashboard.node.metadata.priceCycle")
+      }}</Label>
       <NumberField
         id="nm-price-cycle"
         :model-value="modelValue.priceCycle"
@@ -175,13 +183,17 @@ const filteredRegions = computed(() => {
 
     <!-- expireTime -->
     <div class="space-y-2">
-      <Label for="nm-expire-time">{{ $t("dashboard.node.metadata.expireTime") }}</Label>
+      <Label for="nm-expire-time">{{
+        $t("dashboard.node.metadata.expireTime")
+      }}</Label>
       <input
         id="nm-expire-time"
         type="date"
         :value="modelValue.expireTime"
-        class="placeholder:text-muted-foreground border-input dark:bg-input/30 focus-visible:border-ring focus-visible:ring-ring/50 h-9 w-full rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[1px] md:text-sm"
-        @change="update({ expireTime: ($event.target as HTMLInputElement).value })"
+        class="placeholder:text-muted-foreground border-input dark:bg-input/30 h-9 w-full rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[1px] md:text-sm"
+        @change="
+          update({ expireTime: ($event.target as HTMLInputElement).value })
+        "
       />
     </div>
 
@@ -206,7 +218,7 @@ const filteredRegions = computed(() => {
             "
           />
           <ChevronsUpDown
-            class="text-muted-foreground pointer-events-none absolute top-2.5 right-2.5 h-4 w-4 shrink-0"
+            class="pointer-events-none absolute right-2.5 top-2.5 h-4 w-4 shrink-0 text-muted-foreground"
           />
         </AutocompleteAnchor>
         <AutocompletePortal>
@@ -215,7 +227,7 @@ const filteredRegions = computed(() => {
             :side-offset="4"
             :class="
               cn(
-                'bg-popover text-popover-foreground z-50 w-[var(--reka-combobox-trigger-width)] min-w-48 overflow-hidden rounded-md border shadow-md',
+                'z-50 min-w-48 w-[var(--reka-combobox-trigger-width)] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md',
                 'data-[state=open]:animate-in data-[state=closed]:animate-out',
                 'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
                 'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
@@ -224,7 +236,9 @@ const filteredRegions = computed(() => {
             "
           >
             <AutocompleteViewport class="p-1">
-              <AutocompleteEmpty class="text-muted-foreground py-6 text-center text-sm">
+              <AutocompleteEmpty
+                class="py-6 text-center text-sm text-muted-foreground"
+              >
                 {{ $t("dashboard.node.metadata.regionEmpty") }}
               </AutocompleteEmpty>
               <AutocompleteItem
@@ -234,18 +248,21 @@ const filteredRegions = computed(() => {
                 :text-value="`${r.code} · ${r.name}`"
                 :class="
                   cn(
-                    'relative flex cursor-pointer items-center rounded-sm px-2 py-1.5 text-sm outline-none select-none',
+                    'relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none',
                     'data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground',
                     'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
                   )
                 "
                 @select="update({ region: r.code })"
               >
-                <span class="text-muted-foreground w-8 font-mono text-xs">
+                <span class="w-8 font-mono text-xs text-muted-foreground">
                   {{ r.code }}
                 </span>
                 <span class="ml-2">{{ r.name }}</span>
-                <Check v-if="modelValue.region === r.code" class="ml-auto h-4 w-4" />
+                <Check
+                  v-if="modelValue.region === r.code"
+                  class="ml-auto h-4 w-4"
+                />
               </AutocompleteItem>
             </AutocompleteViewport>
           </AutocompleteContent>
@@ -257,17 +274,17 @@ const filteredRegions = computed(() => {
     <div class="flex items-center justify-between">
       <div class="space-y-0.5">
         <Label>{{ $t("dashboard.node.metadata.hidden") }}</Label>
-        <p class="text-muted-foreground text-sm">
+        <p class="text-sm text-muted-foreground">
           {{ $t("dashboard.node.metadata.hiddenDesc") }}
         </p>
       </div>
       <SwitchRoot
         :checked="modelValue.hidden"
-        class="focus-visible:ring-ring data-[state=checked]:bg-primary data-[state=unchecked]:bg-input relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+        class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input"
         @update:checked="update({ hidden: $event })"
       >
         <SwitchThumb
-          class="bg-background pointer-events-none block h-5 w-5 rounded-full shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0"
+          class="pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0"
         />
       </SwitchRoot>
     </div>

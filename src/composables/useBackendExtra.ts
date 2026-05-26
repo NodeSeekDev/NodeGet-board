@@ -76,7 +76,8 @@ async function saveAgentConfigWsUrl(backend: Ref<Backend>, url: string) {
 }
 
 async function getServerIpInfo(backend: Ref<Backend>) {
-  const { runWorker, poolingWorkerLogs, listAllWorkers } = useJsRuntime(backend);
+  const { runWorker, poolingWorkerLogs, listAllWorkers } =
+    useJsRuntime(backend);
   for (let t = 0; t < 3000; t += 200) {
     const r = await listAllWorkers();
     if (r.find((v) => v === "server-task-worker")) {
@@ -130,7 +131,11 @@ const fetchServerInfo = async (backend: Backend) => {
   try {
     serverInfoLoading.value = true;
     tasks.push(
-      getSingleBackendProperty("uuid", backend, conn.call<string>("nodeget-server_uuid", [])),
+      getSingleBackendProperty(
+        "uuid",
+        backend,
+        conn.call<string>("nodeget-server_uuid", []),
+      ),
     );
     tasks.push(
       getSingleBackendProperty(
@@ -142,13 +147,19 @@ const fetchServerInfo = async (backend: Backend) => {
       ),
     );
     tasks.push(
-      getSingleBackendProperty("agentConfigWsUrl", backend, getAgentConfigWsUrl(ref(backend))),
+      getSingleBackendProperty(
+        "agentConfigWsUrl",
+        backend,
+        getAgentConfigWsUrl(ref(backend)),
+      ),
     );
     tasks.push(
       getSingleBackendProperty(
         "ip",
         backend,
-        getServerIpInfo(ref(backend)).then((ipinfo) => (ipinfo && ipinfo?.address) || ""),
+        getServerIpInfo(ref(backend)).then(
+          (ipinfo) => (ipinfo && ipinfo?.address) || "",
+        ),
       ),
     );
     await Promise.all(tasks);
@@ -171,7 +182,8 @@ watch(
 );
 
 const isActive = (backend: Backend) =>
-  currentBackend.value?.url === backend.url && currentBackend.value?.token === backend.token;
+  currentBackend.value?.url === backend.url &&
+  currentBackend.value?.token === backend.token;
 
 const currentBackendInfo = computed(() => {
   if (!currentBackend.value) {

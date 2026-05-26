@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from "vue";
 import { useElementSize } from "@vueuse/core";
-import { LATENCY_SEGMENTS, LOSS_COLOR } from "@/components/ping/pingLatencyConfig";
+import {
+  LATENCY_SEGMENTS,
+  LOSS_COLOR,
+} from "@/components/ping/pingLatencyConfig";
 
 const CANVAS_HEIGHT = 16;
 const HEIGHT_CAP_MS = 400;
@@ -73,5 +76,9 @@ watch(canvasWidth, () => draw());
 </script>
 
 <template>
-  <canvas ref="canvasRef" :height="CANVAS_HEIGHT" class="block h-4 w-full bg-black/4" />
+  <canvas
+    ref="canvasRef"
+    :height="CANVAS_HEIGHT"
+    class="block h-4 w-full bg-black/4"
+  />
 </template>

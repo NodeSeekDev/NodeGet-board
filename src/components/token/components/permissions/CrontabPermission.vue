@@ -16,7 +16,9 @@ const read = ref(false);
 const write = ref(false);
 const del = ref(false);
 const hydrating = ref(false);
-const { isOpen, handleToggle } = usePermissionModuleOpen(() => props.modelValue);
+const { isOpen, handleToggle } = usePermissionModuleOpen(
+  () => props.modelValue,
+);
 
 const build = (): PermissionEntry[] => {
   const result: PermissionEntry[] = [];
@@ -64,12 +66,25 @@ watch(
 
 <template>
   <details class="rounded-md border p-3" :open="isOpen" @toggle="handleToggle">
-    <summary class="cursor-pointer text-sm font-medium select-none">
-      {{ t("dashboard.token.permissionsConfig.limitItem.permissionCard.crontab.title") }}
+    <summary class="cursor-pointer select-none text-sm font-medium">
+      {{
+        t(
+          "dashboard.token.permissionsConfig.limitItem.permissionCard.crontab.title",
+        )
+      }}
     </summary>
     <div class="mt-3 flex flex-wrap gap-2">
-      <Button type="button" size="sm" :variant="read ? 'default' : 'outline'" @click="read = !read">
-        {{ t("dashboard.token.permissionsConfig.limitItem.permissionCard.crontab.read") }}
+      <Button
+        type="button"
+        size="sm"
+        :variant="read ? 'default' : 'outline'"
+        @click="read = !read"
+      >
+        {{
+          t(
+            "dashboard.token.permissionsConfig.limitItem.permissionCard.crontab.read",
+          )
+        }}
       </Button>
       <Button
         type="button"
@@ -77,10 +92,23 @@ watch(
         :variant="write ? 'default' : 'outline'"
         @click="write = !write"
       >
-        {{ t("dashboard.token.permissionsConfig.limitItem.permissionCard.crontab.write") }}
+        {{
+          t(
+            "dashboard.token.permissionsConfig.limitItem.permissionCard.crontab.write",
+          )
+        }}
       </Button>
-      <Button type="button" size="sm" :variant="del ? 'default' : 'outline'" @click="del = !del">
-        {{ t("dashboard.token.permissionsConfig.limitItem.permissionCard.crontab.delete") }}
+      <Button
+        type="button"
+        size="sm"
+        :variant="del ? 'default' : 'outline'"
+        @click="del = !del"
+      >
+        {{
+          t(
+            "dashboard.token.permissionsConfig.limitItem.permissionCard.crontab.delete",
+          )
+        }}
       </Button>
     </div>
   </details>

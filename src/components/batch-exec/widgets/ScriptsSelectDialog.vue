@@ -79,26 +79,30 @@ const pickScript = (script: Script) => {
         </div>
         <div class="space-y-1.5">
           <Label>{{ t("dashboard.batchExec.scripts.search") }}</Label>
-          <div class="flex h-[20vh] flex-col gap-1 overflow-y-auto">
+          <div class="flex flex-col gap-1 h-[20vh] overflow-y-auto">
             <Button
-              :variant="selectScript.name == script.name ? 'default' : 'outline'"
-              class="flex h-auto flex-col items-start gap-1 border"
+              :variant="
+                selectScript.name == script.name ? 'default' : 'outline'
+              "
+              class="flex flex-col gap-1 items-start h-auto border"
               v-for="script in scripts"
               @click="pickScript(script)"
             >
-              <div class="flex flex-row items-start gap-1">
-                <div class="font-blod text-base">{{ script.name }}</div>
+              <div class="flex flex-row gap-1 items-start">
+                <div class="text-base font-blod">{{ script.name }}</div>
                 <div>
                   <Badge
-                    class="font-mono text-xs"
-                    :variant="selectScript.name == script.name ? 'secondary' : 'outline'"
+                    class="text-xs font-mono"
+                    :variant="
+                      selectScript.name == script.name ? 'secondary' : 'outline'
+                    "
                   >
                     {{ script.lang }}
                   </Badge>
                 </div>
               </div>
-              <div class="flex w-full flex-col items-start gap-1 text-left">
-                <div class="w-full truncate text-xs break-words opacity-80">
+              <div class="flex flex-col gap-1 items-start w-full text-left">
+                <div class="truncate text-xs opacity-80 break-words w-full">
                   {{ script.content }}
                 </div>
               </div>

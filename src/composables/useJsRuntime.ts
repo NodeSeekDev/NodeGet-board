@@ -204,7 +204,10 @@ export function useJsRuntime(backend = useBackendStore().currentBackend) {
    * 轮询 JS 运行结果
    * API: js-result_query
    */
-  const poolingWorkerLogs = async (workerId: number, timeout: number = 5000): Promise<JsResult> => {
+  const poolingWorkerLogs = async (
+    workerId: number,
+    timeout: number = 5000,
+  ): Promise<JsResult> => {
     const delayPerTime = 100;
     for (let t = 0; t < timeout; t += delayPerTime) {
       await delay(delayPerTime);

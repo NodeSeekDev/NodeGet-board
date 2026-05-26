@@ -6,7 +6,11 @@ import { generateUuid } from "../scopeCodec";
 import { ChevronDown, CircleX } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -20,7 +24,9 @@ const { t } = useI18n();
 
 const isOpen = ref(false);
 const localToken = ref<Token>(props.token);
-const timestampFromInput = ref(formatTimestampForInput(props.token.timestamp_from));
+const timestampFromInput = ref(
+  formatTimestampForInput(props.token.timestamp_from),
+);
 const timestampToInput = ref(formatTimestampForInput(props.token.timestamp_to));
 
 watch(
@@ -173,12 +179,14 @@ const clearTimestampTo = () => {
                 :max="timestampFromMax"
                 @blur="handleTimestampFromBlur"
                 type="datetime-local"
-                :placeholder="t('dashboard.token.tokenInfo.startTimePlaceholder')"
+                :placeholder="
+                  t('dashboard.token.tokenInfo.startTimePlaceholder')
+                "
               ></Input>
               <button
                 v-if="timestampFromInput"
                 type="button"
-                class="text-muted-foreground hover:text-foreground focus-visible:text-foreground focus-visible:ring-ring/50 bg-background/80 pointer-events-none absolute top-1/2 right-2 z-10 -translate-y-1/2 rounded-sm p-0.5 opacity-0 shadow-sm transition-opacity group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100 focus-visible:ring-[1px] focus-visible:outline-none"
+                class="text-muted-foreground hover:text-foreground focus-visible:text-foreground focus-visible:ring-ring/50 absolute top-1/2 right-2 z-10 -translate-y-1/2 rounded-sm bg-background/80 p-0.5 opacity-0 shadow-sm transition-opacity pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-[1px]"
                 @click="clearTimestampFrom"
               >
                 <CircleX class="h-4 w-4" />
@@ -200,7 +208,7 @@ const clearTimestampTo = () => {
               <button
                 v-if="timestampToInput"
                 type="button"
-                class="text-muted-foreground hover:text-foreground focus-visible:text-foreground focus-visible:ring-ring/50 bg-background/80 pointer-events-none absolute top-1/2 right-2 z-10 -translate-y-1/2 rounded-sm p-0.5 opacity-0 shadow-sm transition-opacity group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100 focus-visible:ring-[1px] focus-visible:outline-none"
+                class="text-muted-foreground hover:text-foreground focus-visible:text-foreground focus-visible:ring-ring/50 absolute top-1/2 right-2 z-10 -translate-y-1/2 rounded-sm bg-background/80 p-0.5 opacity-0 shadow-sm transition-opacity pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 focus-visible:pointer-events-auto focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-[1px]"
                 @click="clearTimestampTo"
               >
                 <CircleX class="h-4 w-4" />

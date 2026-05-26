@@ -126,13 +126,20 @@ const goToServerDetail = (uuid: string) => {
 </script>
 
 <template>
-  <div class="flex h-full flex-col space-y-6">
+  <div class="h-full flex flex-col space-y-6">
     <div class="flex items-center justify-between gap-4">
       <div>
         <h2 class="text-2xl font-bold tracking-tight">Servers</h2>
-        <p class="text-muted-foreground">Manage and monitor your servers in a list layout.</p>
+        <p class="text-muted-foreground">
+          Manage and monitor your servers in a list layout.
+        </p>
       </div>
-      <Button class="ml-auto" variant="outline" size="sm" @click="() => refresh()">
+      <Button
+        class="ml-auto"
+        variant="outline"
+        size="sm"
+        @click="() => refresh()"
+      >
         <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': loading }" />
       </Button>
       <div v-if="allTags.length > 0" class="w-40 shrink-0">
@@ -141,8 +148,12 @@ const goToServerDetail = (uuid: string) => {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">{{ $t("dashboard.batchExec.selectTag") }}</SelectItem>
-            <SelectItem v-for="t in allTags" :key="t" :value="t">{{ t }}</SelectItem>
+            <SelectItem value="all">{{
+              $t("dashboard.batchExec.selectTag")
+            }}</SelectItem>
+            <SelectItem v-for="t in allTags" :key="t" :value="t">{{
+              t
+            }}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -154,22 +165,28 @@ const goToServerDetail = (uuid: string) => {
       <AlertDescription>{{ error }}</AlertDescription>
     </Alert>
 
-    <div v-if="servers.length === 0 && loading" class="text-muted-foreground py-10 text-center">
+    <div
+      v-if="servers.length === 0 && loading"
+      class="text-center py-10 text-muted-foreground"
+    >
       Loading server data...
     </div>
 
-    <div v-if="servers.length === 0 && !loading" class="text-muted-foreground py-10 text-center">
+    <div
+      v-if="servers.length === 0 && !loading"
+      class="text-center py-10 text-muted-foreground"
+    >
       No servers found.
     </div>
 
     <div
       v-if="servers.length > 0 && filteredServers.length === 0"
-      class="text-muted-foreground py-10 text-center"
+      class="text-center py-10 text-muted-foreground"
     >
       No servers match the selected tag.
     </div>
 
-    <div class="bg-card rounded-md border" v-if="filteredServers.length > 0">
+    <div class="border rounded-md bg-card" v-if="filteredServers.length > 0">
       <Table>
         <TableHeader>
           <TableRow>
@@ -190,7 +207,7 @@ const goToServerDetail = (uuid: string) => {
           <TableRow
             v-for="server in filteredServers"
             :key="server.uuid"
-            class="hover:bg-muted/50 cursor-pointer transition-colors"
+            class="cursor-pointer hover:bg-muted/50 transition-colors"
             :class="{ 'opacity-60': !isOnline(server) }"
             @click="goToServerDetail(server.uuid)"
           >
@@ -198,8 +215,14 @@ const goToServerDetail = (uuid: string) => {
             <TableCell>
               <div class="flex items-center justify-center">
                 <span
-                  :title="inactive ? 'Inactive' : isOnline(server) ? 'Online' : 'Offline'"
-                  class="inline-block h-2 w-2 shrink-0 rounded-full"
+                  :title="
+                    inactive
+                      ? 'Inactive'
+                      : isOnline(server)
+                        ? 'Online'
+                        : 'Offline'
+                  "
+                  class="inline-block w-2 h-2 rounded-full shrink-0"
                   :class="
                     inactive
                       ? 'bg-gray-400 ring-2 ring-gray-400/25'
@@ -218,25 +241,28 @@ const goToServerDetail = (uuid: string) => {
                   v-if="distroLogo(server)"
                   :src="distroLogo(server)"
                   alt=""
-                  class="h-5 w-5 shrink-0 object-contain"
+                  class="w-5 h-5 shrink-0 object-contain"
                   loading="lazy"
                 />
-                <div v-else class="bg-primary/10 rounded-lg p-2">
-                  <Server class="text-primary h-4 w-4" />
+                <div v-else class="p-2 bg-primary/10 rounded-lg">
+                  <Server class="h-4 w-4 text-primary" />
                 </div>
                 <div class="flex flex-col">
                   <div class="flex items-center gap-1">
                     <span
-                      class="max-w-[150px] truncate font-medium"
+                      class="font-medium truncate max-w-[150px]"
                       :title="server.customName || showHostname(server)"
                     >
                       {{ server.customName || showHostname(server) }}
                     </span>
-                    <Badge v-if="server.hidden" variant="secondary" class="ml-1 text-xs"
+                    <Badge
+                      v-if="server.hidden"
+                      variant="secondary"
+                      class="ml-1 text-xs"
                       >隐藏</Badge
                     >
                   </div>
-                  <span class="text-muted-foreground font-mono text-[10px]">
+                  <span class="text-[10px] text-muted-foreground font-mono">
                     {{ server.uuid.substring(0, 8) }}
                   </span>
                 </div>
@@ -251,14 +277,18 @@ const goToServerDetail = (uuid: string) => {
                 :alt="server.region"
                 :title="server.region"
                 loading="lazy"
-                class="inline-block h-3.5 w-5 rounded-[1px] object-cover shadow-sm"
+                class="inline-block w-5 h-3.5 rounded-[1px] object-cover shadow-sm"
               />
               <span v-else class="text-muted-foreground text-sm">—</span>
             </TableCell>
 
             <!-- OS -->
             <TableCell>
-              <Badge variant="outline" class="text-xs font-normal" :title="showOS(server)">
+              <Badge
+                variant="outline"
+                class="font-normal text-xs"
+                :title="showOS(server)"
+              >
                 {{ showOS(server) }}
               </Badge>
             </TableCell>
@@ -268,7 +298,7 @@ const goToServerDetail = (uuid: string) => {
               <Badge
                 v-if="virtLabel(server)"
                 variant="secondary"
-                class="text-[10px] tracking-wide uppercase"
+                class="text-[10px] uppercase tracking-wide"
               >
                 {{ virtLabel(server) }}
               </Badge>
@@ -277,7 +307,9 @@ const goToServerDetail = (uuid: string) => {
 
             <!-- Uptime -->
             <TableCell>
-              <div class="text-muted-foreground flex items-center gap-1 text-sm">
+              <div
+                class="flex items-center gap-1 text-sm text-muted-foreground"
+              >
                 <Clock class="h-3 w-3" />
                 <span>{{ formatUptime(server.uptime ?? 0) }}</span>
               </div>
@@ -285,7 +317,9 @@ const goToServerDetail = (uuid: string) => {
 
             <!-- Load -->
             <TableCell>
-              <div class="text-muted-foreground flex flex-col gap-1 font-mono text-sm">
+              <div
+                class="flex flex-col text-sm font-mono text-muted-foreground gap-1"
+              >
                 <div class="flex items-center gap-1">
                   <Activity class="h-3 w-3" />
                   <span>{{
@@ -301,13 +335,18 @@ const goToServerDetail = (uuid: string) => {
 
             <!-- CPU -->
             <TableCell>
-              <div class="space-y-1.5" :style="{ '--primary': `hsl(${colors.cpu.hsl})` }">
+              <div
+                class="space-y-1.5"
+                :style="{ '--primary': `hsl(${colors.cpu.hsl})` }"
+              >
                 <div class="flex justify-between text-xs">
-                  <span class="text-muted-foreground flex items-center gap-1">
+                  <span class="flex items-center gap-1 text-muted-foreground">
                     <Cpu class="h-3 w-3" :style="{ color: colors.cpu.color }" />
                     CPU
                   </span>
-                  <span class="font-medium">{{ showCpuPercent(server).toFixed(1) }}%</span>
+                  <span class="font-medium"
+                    >{{ showCpuPercent(server).toFixed(1) }}%</span
+                  >
                 </div>
                 <Progress :model-value="showCpuPercent(server)" class="h-1.5" />
               </div>
@@ -315,13 +354,21 @@ const goToServerDetail = (uuid: string) => {
 
             <!-- RAM -->
             <TableCell>
-              <div class="space-y-1.5" :style="{ '--primary': `hsl(${colors.memory.hsl})` }">
+              <div
+                class="space-y-1.5"
+                :style="{ '--primary': `hsl(${colors.memory.hsl})` }"
+              >
                 <div class="flex justify-between text-xs">
-                  <span class="text-muted-foreground flex items-center gap-1">
-                    <Database class="h-3 w-3" :style="{ color: colors.memory.color }" />
+                  <span class="flex items-center gap-1 text-muted-foreground">
+                    <Database
+                      class="h-3 w-3"
+                      :style="{ color: colors.memory.color }"
+                    />
                     Mem
                   </span>
-                  <span class="font-medium">{{ showRamPercent(server).toFixed(1) }}%</span>
+                  <span class="font-medium"
+                    >{{ showRamPercent(server).toFixed(1) }}%</span
+                  >
                 </div>
                 <Progress :model-value="showRamPercent(server)" class="h-1.5" />
               </div>
@@ -335,43 +382,57 @@ const goToServerDetail = (uuid: string) => {
                 :style="{ '--primary': `hsl(${colors.disk.hsl})` }"
               >
                 <div class="flex justify-between text-xs">
-                  <span class="text-muted-foreground flex items-center gap-1">
-                    <HardDrive class="h-3 w-3" :style="{ color: colors.disk.color }" />
+                  <span class="flex items-center gap-1 text-muted-foreground">
+                    <HardDrive
+                      class="h-3 w-3"
+                      :style="{ color: colors.disk.color }"
+                    />
                     Disk
                   </span>
-                  <span class="font-medium">{{ showDiskPercent(server).toFixed(1) }}%</span>
+                  <span class="font-medium"
+                    >{{ showDiskPercent(server).toFixed(1) }}%</span
+                  >
                 </div>
-                <Progress :model-value="showDiskPercent(server)" class="h-1.5" />
+                <Progress
+                  :model-value="showDiskPercent(server)"
+                  class="h-1.5"
+                />
               </div>
-              <div v-else class="text-muted-foreground text-xs">N/A</div>
+              <div v-else class="text-xs text-muted-foreground">N/A</div>
             </TableCell>
 
             <!-- Network -->
             <TableCell class="w-[150px]">
               <div
-                class="flex flex-col gap-1 font-mono text-xs"
-                v-if="server.receive_speed != null || server.transmit_speed != null"
+                class="flex flex-col gap-1 text-xs font-mono"
+                v-if="
+                  server.receive_speed != null || server.transmit_speed != null
+                "
               >
-                <div class="text-muted-foreground flex items-center justify-between gap-2">
+                <div
+                  class="flex items-center justify-between gap-2 text-muted-foreground"
+                >
                   <div class="flex items-center gap-1">
                     <ArrowDownIcon class="h-3 w-3" />
                     <span>Rx</span>
                   </div>
-                  <span class="text-right whitespace-nowrap tabular-nums">{{
+                  <span class="tabular-nums text-right whitespace-nowrap">{{
                     showNetworkSpeed(server, "rx")
                   }}</span>
                 </div>
-                <div class="text-muted-foreground flex items-center justify-between gap-2">
+                <div
+                  class="flex items-center justify-between gap-2 text-muted-foreground"
+                >
                   <div class="flex items-center gap-1">
                     <ArrowUpIcon class="h-3 w-3" />
                     <span>Tx</span>
                   </div>
-                  <span class="text-right whitespace-nowrap tabular-nums">{{
+                  <span class="tabular-nums text-right whitespace-nowrap">{{
                     showNetworkSpeed(server, "tx")
                   }}</span>
                 </div>
               </div>
-              <div v-else class="text-muted-foreground text-xs">N/A</div>
+              <div v-else class="text-xs text-muted-foreground">N/A</div>
             </TableCell>
           </TableRow>
         </TableBody>

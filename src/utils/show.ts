@@ -15,7 +15,12 @@ export const showOS = (server: any) => {
       .replace(/\s*GNU\/Linux\s*$/i, "")
       .replace(/\s*Alpine Linux\s*$/i, "Alpine")
       .trim() || s.system_name;
-  const version = (s.system_version ?? s.system_os_version ?? s.system_os_long_version ?? "")
+  const version = (
+    s.system_version ??
+    s.system_os_version ??
+    s.system_os_long_version ??
+    ""
+  )
     .toString()
     .trim();
   return version ? `${name} ${version}` : name;
@@ -45,7 +50,10 @@ const formatSpeed = (bytes: number) => {
   if (!+bytes) return "0.00 KB/s";
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB", "TB", "PB"];
-  const i = Math.min(sizes.length - 1, Math.max(0, Math.floor(Math.log(bytes) / Math.log(k))));
+  const i = Math.min(
+    sizes.length - 1,
+    Math.max(0, Math.floor(Math.log(bytes) / Math.log(k))),
+  );
   const value = bytes / Math.pow(k, i);
   return `${value.toFixed(2)} ${sizes[i]}/s`;
 };

@@ -1,7 +1,10 @@
 import { reactive, type Ref } from "vue";
 import { toast } from "vue-sonner";
 import { fetchDynamicSummary } from "@/composables/monitoring/useDynamicMonitoring";
-import type { DynamicSummaryResponseItem, SummaryField } from "@/types/monitoring";
+import type {
+  DynamicSummaryResponseItem,
+  SummaryField,
+} from "@/types/monitoring";
 import type { TabId } from "@/components/node/status/constants";
 
 const DEFAULT_WINDOW_MS = 6 * 60 * 60 * 1000;
@@ -42,10 +45,17 @@ function createSummarySlice(uuid: Ref<string>, tab: TabId): SummarySlice {
   let fetchSeq = 0;
 
   // Pulls one window slice + merges across summary field groups returned by backend
-  async function pull(from: number, to: number): Promise<DynamicSummaryResponseItem[]> {
+  async function pull(
+    from: number,
+    to: number,
+  ): Promise<DynamicSummaryResponseItem[]> {
     const groups = await Promise.all(
       TAB_FIELDS_AVG[tab].map((fields) =>
-        fetchDynamicSummary(uuid.value, { timestamp_from: from, timestamp_to: to }, fields),
+        fetchDynamicSummary(
+          uuid.value,
+          { timestamp_from: from, timestamp_to: to },
+          fields,
+        ),
       ),
     );
     const merged = new Map<number, DynamicSummaryResponseItem>();
@@ -73,7 +83,8 @@ function createSummarySlice(uuid: Ref<string>, tab: TabId): SummarySlice {
     } catch (e) {
       if (seq !== fetchSeq) return;
       console.error(`[Status] ${tab} summary fetch failed:`, e);
-      const description = e instanceof Error ? e.message : typeof e === "string" ? e : String(e);
+      const description =
+        e instanceof Error ? e.message : typeof e === "string" ? e : String(e);
       toast.error("数据查询失败", { description });
     } finally {
       if (showLoading && seq === fetchSeq) state.loading = false;

@@ -55,7 +55,11 @@ const init = () => {
   }
 
   // If in dev mode, add dev backend
-  if (import.meta.env.DEV && backends.value.length === 0 && import.meta.env.VITE_BACKEND_WS) {
+  if (
+    import.meta.env.DEV &&
+    backends.value.length === 0 &&
+    import.meta.env.VITE_BACKEND_WS
+  ) {
     const devBackend: Backend = {
       name: "Dev",
       url: import.meta.env.VITE_BACKEND_WS || "",
@@ -85,7 +89,9 @@ watch(
     localStorage.setItem(LS_KEY_BACKENDS, JSON.stringify(newVal));
     if (currentBackend.value) {
       const found = newVal.find(
-        (b) => b.url === currentBackend.value?.url && b.token === currentBackend.value?.token,
+        (b) =>
+          b.url === currentBackend.value?.url &&
+          b.token === currentBackend.value?.token,
       );
       if (!found) {
         if (newVal.length > 0) {
@@ -120,7 +126,9 @@ const addBackend = (backend: Backend) => {
 };
 
 const removeBackend = (backend: Backend) => {
-  const index = backends.value.findIndex((b) => b.url === backend.url && b.token === backend.token); // Simple check
+  const index = backends.value.findIndex(
+    (b) => b.url === backend.url && b.token === backend.token,
+  ); // Simple check
   if (index !== -1) {
     backends.value.splice(index, 1);
   }

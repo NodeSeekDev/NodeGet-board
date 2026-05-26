@@ -1,4 +1,9 @@
-export type RpcDebugTabKey = "network" | "composer" | "subscription" | "auth" | "settings";
+export type RpcDebugTabKey =
+  | "network"
+  | "composer"
+  | "subscription"
+  | "auth"
+  | "settings";
 
 export interface RpcDebugTab {
   key: RpcDebugTabKey;

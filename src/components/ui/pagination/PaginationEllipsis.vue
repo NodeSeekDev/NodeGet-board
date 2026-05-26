@@ -6,7 +6,9 @@ import { MoreHorizontal } from "lucide-vue-next";
 import { PaginationEllipsis } from "reka-ui";
 import { cn } from "@/lib/utils";
 
-const props = defineProps<PaginationEllipsisProps & { class?: HTMLAttributes["class"] }>();
+const props = defineProps<
+  PaginationEllipsisProps & { class?: HTMLAttributes["class"] }
+>();
 
 const delegatedProps = reactiveOmit(props, "class");
 </script>

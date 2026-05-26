@@ -44,9 +44,9 @@ const isDeleting = (name: string) => props.deletingIds.includes(name);
   <div class="relative w-full">
     <div
       v-if="loading && workers.length"
-      class="bg-background/40 absolute inset-0 z-10 flex flex-col items-center justify-center rounded-md backdrop-blur-[1px]"
+      class="absolute inset-0 z-10 bg-background/40 backdrop-blur-[1px] flex flex-col items-center justify-center rounded-md"
     >
-      <Loader2 class="text-muted-foreground h-8 w-8 animate-spin" />
+      <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
     </div>
     <Table>
       <TableHeader>
@@ -55,63 +55,82 @@ const isDeleting = (name: string) => props.deletingIds.includes(name);
           <TableHead>{{ t("dashboard.jsRuntime.route") }}</TableHead>
           <TableHead>{{ t("dashboard.jsRuntime.createdAt") }}</TableHead>
           <TableHead>{{ t("dashboard.jsRuntime.updatedAt") }}</TableHead>
-          <TableHead class="text-right">{{ t("dashboard.jsRuntime.actions") }}</TableHead>
+          <TableHead class="text-right">{{
+            t("dashboard.jsRuntime.actions")
+          }}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         <TableRow v-if="loading && !workers.length">
-          <TableCell colspan="5" class="text-muted-foreground h-32 text-center">
+          <TableCell colspan="5" class="h-32 text-center text-muted-foreground">
             <div class="flex flex-col items-center justify-center space-y-3">
-              <Loader2 class="text-muted-foreground/50 h-6 w-6 animate-spin" />
+              <Loader2 class="w-6 h-6 animate-spin text-muted-foreground/50" />
               <span class="text-sm font-medium">{{ t("common.loading") }}</span>
             </div>
           </TableCell>
         </TableRow>
         <TableRow v-else-if="!workers.length">
-          <TableCell colspan="5" class="text-muted-foreground py-12 text-center">
+          <TableCell
+            colspan="5"
+            class="text-center text-muted-foreground py-12"
+          >
             {{ t("common.noData") }}
           </TableCell>
         </TableRow>
         <TableRow v-for="worker in workers" :key="worker.id">
           <TableCell
-            class="text-primary cursor-pointer font-medium hover:underline"
+            class="font-medium hover:underline cursor-pointer text-primary"
             @click="openDetail(worker)"
           >
             {{ worker.name }}
           </TableCell>
-          <TableCell class="py-0 font-mono text-sm">
+          <TableCell class="font-mono text-sm py-0">
             <Button
               v-if="worker.route"
               variant="link"
-              class="text-primary h-auto p-0 font-mono hover:underline"
-              @click="router.push(`/dashboard/worker-route-preview?route=${worker.route}`)"
+              class="h-auto p-0 font-mono text-primary hover:underline"
+              @click="
+                router.push(
+                  `/dashboard/worker-route-preview?route=${worker.route}`,
+                )
+              "
             >
               {{ worker.route }}
             </Button>
             <span v-else class="text-muted-foreground">-</span>
           </TableCell>
-          <TableCell class="text-muted-foreground text-sm">{{
+          <TableCell class="text-sm text-muted-foreground">{{
             formatTime(worker.created_at)
           }}</TableCell>
-          <TableCell class="text-muted-foreground text-sm">{{
+          <TableCell class="text-sm text-muted-foreground">{{
             formatTime(worker.updated_at)
           }}</TableCell>
           <TableCell class="text-right">
             <div class="flex items-center justify-end gap-1">
-              <Button size="icon" variant="ghost" class="h-8 w-8" @click="openDetail(worker)">
+              <Button
+                size="icon"
+                variant="ghost"
+                class="h-8 w-8"
+                @click="openDetail(worker)"
+              >
                 <Pencil class="h-4 w-4" />
               </Button>
               <PopConfirm
-                :description="t('dashboard.jsRuntime.deleteConfirm', { name: worker.name })"
+                :description="
+                  t('dashboard.jsRuntime.deleteConfirm', { name: worker.name })
+                "
                 @confirm="emit('delete', worker.name)"
               >
                 <Button
                   size="icon"
                   variant="ghost"
-                  class="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8"
+                  class="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                   :disabled="isDeleting(worker.name)"
                 >
-                  <Loader2 v-if="isDeleting(worker.name)" class="h-4 w-4 animate-spin" />
+                  <Loader2
+                    v-if="isDeleting(worker.name)"
+                    class="h-4 w-4 animate-spin"
+                  />
                   <Trash2 v-else class="h-4 w-4" />
                 </Button>
               </PopConfirm>

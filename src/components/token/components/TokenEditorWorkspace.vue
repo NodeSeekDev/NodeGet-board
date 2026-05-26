@@ -39,10 +39,13 @@ const jsonText = ref("");
 const jsonErrorMessage = ref("");
 const skipNextTokenSync = ref(false);
 
-const serializedToken = computed(() => JSON.stringify(serializeTokenPayload(props.token), null, 2));
+const serializedToken = computed(() =>
+  JSON.stringify(serializeTokenPayload(props.token), null, 2),
+);
 
 const submitDisabled = computed(
-  () => props.disabled || props.loading || jsonErrorMessage.value.trim().length > 0,
+  () =>
+    props.disabled || props.loading || jsonErrorMessage.value.trim().length > 0,
 );
 
 watch(
@@ -69,7 +72,9 @@ const handleJsonChange = (value: string) => {
     const parsed = JSON.parse(value) as unknown;
     const result = applyPartialTokenPayload(props.token, parsed);
     jsonErrorMessage.value =
-      result.dataIssues.length > 0 ? result.dataIssues.map(formatJsonIssue).join(" ") : "";
+      result.dataIssues.length > 0
+        ? result.dataIssues.map(formatJsonIssue).join(" ")
+        : "";
 
     skipNextTokenSync.value = true;
     emits("update:token", result.token);
@@ -93,12 +98,19 @@ const handleJsonChange = (value: string) => {
       >
         {{ props.backLabel }}
       </Button>
-      <BaseInfoFrom :token="props.token" @update:token="(value) => emits('update:token', value)" />
+      <BaseInfoFrom
+        :token="props.token"
+        @update:token="(value) => emits('update:token', value)"
+      />
       <TokenLimitFrom
         :token="props.token"
         @update:token="(value) => emits('update:token', value)"
       />
-      <Button class="w-full" :disabled="submitDisabled" @click="emits('submit')">
+      <Button
+        class="w-full"
+        :disabled="submitDisabled"
+        @click="emits('submit')"
+      >
         <div v-if="props.loading">
           {{ props.submittingLabel }}
         </div>

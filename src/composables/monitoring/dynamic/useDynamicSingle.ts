@@ -54,4 +54,5 @@ const _fetchDynamic = async (
   }
 };
 
-export const { execute: fetchDynamic, isLoading: loading } = useInFlightDedupe(_fetchDynamic);
+export const { execute: fetchDynamic, isLoading: loading } =
+  useInFlightDedupe(_fetchDynamic);

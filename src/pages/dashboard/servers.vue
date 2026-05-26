@@ -32,7 +32,8 @@ definePage({
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
-const { backends, currentBackend, selectBackend, removeBackend, addBackend } = useBackendStore();
+const { backends, currentBackend, selectBackend, removeBackend, addBackend } =
+  useBackendStore();
 
 const addOpen = ref(false);
 
@@ -69,7 +70,8 @@ const fetchServerInfo = (backend: Backend) => {
 watch(backends, (list) => list.forEach(fetchServerInfo), { immediate: true });
 
 const isActive = (backend: Backend) =>
-  currentBackend.value?.url === backend.url && currentBackend.value?.token === backend.token;
+  currentBackend.value?.url === backend.url &&
+  currentBackend.value?.token === backend.token;
 
 const handleManage = (backend: Backend) => {
   router.push(
@@ -85,7 +87,9 @@ onMounted(() => {
     const decoded = JSON.parse(atob(raw)) as Backend;
     if (!decoded.url || !decoded.token || !decoded.name) return;
 
-    const exists = backends.value.some((b) => b.url === decoded.url && b.token === decoded.token);
+    const exists = backends.value.some(
+      (b) => b.url === decoded.url && b.token === decoded.token,
+    );
     if (!exists) {
       addBackend(decoded);
       if (backends.value.length === 1) {
@@ -107,7 +111,7 @@ onMounted(() => {
         <h1 class="text-2xl font-semibold">
           {{ t("dashboard.servers.title") }}
         </h1>
-        <p class="text-muted-foreground mt-1 text-sm">
+        <p class="mt-1 text-sm text-muted-foreground">
           {{ t("dashboard.servers.desc") }}
         </p>
       </div>
@@ -126,7 +130,9 @@ onMounted(() => {
             <TableHead>{{ t("dashboard.servers.colEndpoint") }}</TableHead>
             <TableHead>{{ t("dashboard.servers.colVersion") }}</TableHead>
             <TableHead>{{ t("dashboard.servers.colStatus") }}</TableHead>
-            <TableHead class="text-right">{{ t("dashboard.servers.colActions") }}</TableHead>
+            <TableHead class="text-right">{{
+              t("dashboard.servers.colActions")
+            }}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -135,10 +141,13 @@ onMounted(() => {
           </TableEmpty>
           <TableRow v-for="backend in backends" :key="backend.url">
             <TableCell class="font-medium">{{ backend.name }}</TableCell>
-            <TableCell class="text-muted-foreground font-mono text-xs">
+            <TableCell class="font-mono text-xs text-muted-foreground">
               {{ serverInfo[backend.url]?.uuid ?? "--" }}
             </TableCell>
-            <TableCell class="max-w-[200px] truncate font-mono text-xs" :title="backend.url">
+            <TableCell
+              class="max-w-[200px] truncate font-mono text-xs"
+              :title="backend.url"
+            >
               {{ backend.url }}
             </TableCell>
             <TableCell class="text-muted-foreground">
@@ -148,13 +157,23 @@ onMounted(() => {
               <Badge v-if="isActive(backend)" variant="default">
                 {{ t("dashboard.servers.active") }}
               </Badge>
-              <Button v-else size="sm" variant="secondary" @click="selectBackend(backend)">
+              <Button
+                v-else
+                size="sm"
+                variant="secondary"
+                @click="selectBackend(backend)"
+              >
                 {{ t("dashboard.servers.select") }}
               </Button>
             </TableCell>
             <TableCell class="text-right">
               <div class="flex items-center justify-end gap-1">
-                <Button size="icon" variant="ghost" class="h-8 w-8" @click="handleManage(backend)">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  class="h-8 w-8"
+                  @click="handleManage(backend)"
+                >
                   <Wrench class="h-4 w-4" />
                 </Button>
                 <PopConfirm
@@ -167,7 +186,7 @@ onMounted(() => {
                   <Button
                     size="icon"
                     variant="ghost"
-                    class="text-destructive hover:text-destructive/90 h-8 w-8"
+                    class="h-8 w-8 text-destructive hover:text-destructive/90"
                   >
                     <Trash2 class="h-4 w-4" />
                   </Button>

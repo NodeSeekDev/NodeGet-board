@@ -49,17 +49,19 @@ function handleComposerSourceOpen(recordId: string) {
 </script>
 
 <template>
-  <Card class="bg-background h-full max-h-full gap-0 overflow-hidden rounded-lg py-0">
+  <Card
+    class="h-full max-h-full gap-0 overflow-hidden rounded-lg bg-background py-0"
+  >
     <Tabs v-model="activeTab" class="flex min-h-0 flex-1 flex-col gap-0">
       <header
         class="flex min-h-12 flex-none items-center justify-between gap-3 border-b px-4 py-1.5"
       >
-        <TabsList class="bg-muted/60 h-8 shrink-0 rounded-md p-0.5">
+        <TabsList class="h-8 shrink-0 rounded-md bg-muted/60 p-0.5">
           <TabsTrigger
             v-for="tab in rpcDebugTabs"
             :key="tab.key"
             :value="tab.key"
-            class="text-muted-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground h-7 flex-none px-2.5 text-xs data-[state=active]:shadow-none"
+            class="h-7 flex-none px-2.5 text-xs text-muted-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-none"
           >
             {{ tab.label }}
           </TabsTrigger>
@@ -67,26 +69,40 @@ function handleComposerSourceOpen(recordId: string) {
 
         <div class="flex min-w-0 flex-none flex-col items-end gap-0.5">
           <div class="flex min-w-0 items-center gap-1.5">
-            <div class="shrink-0 text-sm leading-none font-semibold">NodeGet RPC 调试</div>
+            <div class="shrink-0 text-sm leading-none font-semibold">
+              NodeGet RPC 调试
+            </div>
             <Badge
-              :variant="debugStore.activeConnectionCount.value > 0 ? 'default' : 'destructive'"
+              :variant="
+                debugStore.activeConnectionCount.value > 0
+                  ? 'default'
+                  : 'destructive'
+              "
               class="h-5 rounded-md px-2 text-[11px] leading-none"
             >
               WS
               {{ debugStore.activeConnectionCount.value > 0 ? "就绪" : "断开" }}
             </Badge>
-            <Badge variant="secondary" class="h-5 rounded-md px-2 text-[11px] leading-none">
+            <Badge
+              variant="secondary"
+              class="h-5 rounded-md px-2 text-[11px] leading-none"
+            >
               {{ latencyLabel }}
             </Badge>
           </div>
-          <span class="text-muted-foreground max-w-md truncate text-[11px] leading-none">
+          <span
+            class="max-w-md truncate text-[11px] leading-none text-muted-foreground"
+          >
             {{ connectionLabel }}
           </span>
         </div>
       </header>
 
       <CardContent class="inset-0 flex min-h-0 flex-auto overflow-hidden p-0">
-        <TabsContent :value="activeTab" class="m-0 h-full w-full overflow-hidden p-0">
+        <TabsContent
+          :value="activeTab"
+          class="m-0 h-full w-full overflow-hidden p-0"
+        >
           <!-- 配合 KeepAlive 缓存内部切换的各个业务子组件 -->
           <KeepAlive>
             <RpcNetworkView

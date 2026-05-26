@@ -45,7 +45,9 @@ const handleReadFile = async (path: string) => {
     }
     fileViewRef.value.onFileContentLoaded(new TextDecoder().decode(buf));
   } catch (e: unknown) {
-    fileViewRef.value?.onFileContentError(e instanceof Error ? e.message : String(e));
+    fileViewRef.value?.onFileContentError(
+      e instanceof Error ? e.message : String(e),
+    );
   }
 };
 
@@ -131,12 +133,19 @@ const handleUploadFile = async (path: string, base64: string) => {
   }
 };
 
-const handleUploadDir = async (files: Array<{ path: string; base64: string }>) => {
+const handleUploadDir = async (
+  files: Array<{ path: string; base64: string }>,
+) => {
   uploadDirLoading.value = true;
   uploadDirError.value = null;
   try {
-    const { uploaded, deleted } = await bucketFile.syncBucketDir(bucketName, files);
-    toast.success(`已同步到「${bucketName}」：上传 ${uploaded} 个，删除 ${deleted} 个`);
+    const { uploaded, deleted } = await bucketFile.syncBucketDir(
+      bucketName,
+      files,
+    );
+    toast.success(
+      `已同步到「${bucketName}」：上传 ${uploaded} 个，删除 ${deleted} 个`,
+    );
     uploadDirOpen.value = false;
     await bucketFile.fetchList(bucketName);
   } catch (e: unknown) {
@@ -148,7 +157,7 @@ const handleUploadDir = async (files: Array<{ path: string; base64: string }>) =
 </script>
 
 <template>
-  <div class="flex h-full flex-col overflow-hidden">
+  <div class="h-full flex flex-col overflow-hidden">
     <StaticBucketFileView
       ref="fileViewRef"
       class="flex-1 overflow-hidden"

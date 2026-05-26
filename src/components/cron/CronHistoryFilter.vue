@@ -79,10 +79,10 @@ const formatDateTimeLocal = (date: Date): string => {
 </script>
 
 <template>
-  <div class="bg-card rounded-xl border p-5 shadow-sm transition-all">
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+  <div class="bg-card border rounded-xl shadow-sm p-5 transition-all">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <div class="space-y-1.5">
-        <label class="text-foreground/80 text-sm font-medium">
+        <label class="text-sm font-medium text-foreground/80">
           {{ t("dashboard.cron.history.recordId") }}
         </label>
         <Input
@@ -95,7 +95,7 @@ const formatDateTimeLocal = (date: Date): string => {
       </div>
 
       <div class="space-y-1.5">
-        <label class="text-foreground/80 text-sm font-medium">
+        <label class="text-sm font-medium text-foreground/80">
           {{ t("dashboard.cron.history.filterStatus") }}
         </label>
         <Select v-model="localFilter.status" @update:model-value="updateFilter">
@@ -123,7 +123,7 @@ const formatDateTimeLocal = (date: Date): string => {
       </div>
 
       <div class="space-y-1.5">
-        <label class="text-foreground/80 text-sm font-medium">
+        <label class="text-sm font-medium text-foreground/80">
           {{ t("dashboard.cron.history.limit") }}
         </label>
         <Input
@@ -132,13 +132,15 @@ const formatDateTimeLocal = (date: Date): string => {
           min="1"
           max="500"
           class="bg-background/50 h-9"
-          @update:model-value="localFilter.limit = Math.max(1, Number($event) || 20)"
+          @update:model-value="
+            localFilter.limit = Math.max(1, Number($event) || 20)
+          "
           @change="updateFilter"
         />
       </div>
 
       <div class="space-y-1.5">
-        <label class="text-foreground/80 text-sm font-medium">
+        <label class="text-sm font-medium text-foreground/80">
           {{ t("dashboard.cron.history.latestOnly") }}
         </label>
         <Select
@@ -152,14 +154,18 @@ const formatDateTimeLocal = (date: Date): string => {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="no">{{ t("dashboard.cron.history.disabled") }}</SelectItem>
-            <SelectItem value="yes">{{ t("dashboard.cron.history.enabled") }}</SelectItem>
+            <SelectItem value="no">{{
+              t("dashboard.cron.history.disabled")
+            }}</SelectItem>
+            <SelectItem value="yes">{{
+              t("dashboard.cron.history.enabled")
+            }}</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       <div class="space-y-1.5">
-        <label class="text-foreground/80 text-sm font-medium">
+        <label class="text-sm font-medium text-foreground/80">
           {{ t("dashboard.cron.history.startTime") }}
         </label>
         <Input
@@ -171,7 +177,7 @@ const formatDateTimeLocal = (date: Date): string => {
       </div>
 
       <div class="space-y-1.5">
-        <label class="text-foreground/80 text-sm font-medium">
+        <label class="text-sm font-medium text-foreground/80">
           {{ t("dashboard.cron.history.endTime") }}
         </label>
         <Input
@@ -182,20 +188,25 @@ const formatDateTimeLocal = (date: Date): string => {
         />
       </div>
 
-      <div class="mt-2 flex w-full items-end justify-end gap-3 sm:col-span-2 sm:mt-0">
+      <div
+        class="sm:col-span-2 flex items-end justify-end gap-3 mt-2 sm:mt-0 w-full"
+      >
         <Button
           :disabled="loading"
           @click="handleReset"
           variant="outline"
-          class="hover:bg-muted h-9 flex-1 px-4 transition-all sm:flex-none"
+          class="flex-1 sm:flex-none h-9 px-4 transition-all hover:bg-muted"
         >
-          <RotateCcw class="mr-2 h-4 w-4" :class="{ 'animate-spin': loading }" />
+          <RotateCcw
+            class="mr-2 h-4 w-4"
+            :class="{ 'animate-spin': loading }"
+          />
           {{ t("dashboard.cron.history.reset") }}
         </Button>
         <Button
           :disabled="loading"
           @click="handleSearch"
-          class="h-9 flex-1 px-6 shadow-sm transition-all hover:shadow-md active:scale-95 sm:flex-none"
+          class="flex-1 sm:flex-none h-9 px-6 shadow-sm transition-all hover:shadow-md active:scale-95"
         >
           <Search v-if="!loading" class="mr-2 h-4 w-4" />
           <Loader2 v-else class="mr-2 h-4 w-4 animate-spin" />

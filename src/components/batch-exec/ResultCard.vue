@@ -16,7 +16,7 @@ const toggleExpandAll = () => {
 <template>
   <Card>
     <CardHeader>
-      <CardTitle class="flex w-full items-center justify-between">
+      <CardTitle class="flex items-center justify-between w-full">
         <div class="flex items-center gap-2">
           <CheckCircle class="h-5 w-5" />{{ $t("dashboard.batchExec.results") }}
         </div>
@@ -33,7 +33,11 @@ const toggleExpandAll = () => {
       </CardTitle>
     </CardHeader>
     <CardContent>
-      <ExecResultCard :result="result" :nodes="nodes" :expanded-all="expandedAll" />
+      <ExecResultCard
+        :result="result"
+        :nodes="nodes"
+        :expanded-all="expandedAll"
+      />
     </CardContent>
   </Card>
 </template>

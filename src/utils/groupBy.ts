@@ -1,4 +1,7 @@
-export function groupBy<T, K extends keyof T>(arr: T[], key: K): Record<string, T[]> {
+export function groupBy<T, K extends keyof T>(
+  arr: T[],
+  key: K,
+): Record<string, T[]> {
   return arr.reduce(
     (acc, item) => {
       const groupKey = String(item[key]);

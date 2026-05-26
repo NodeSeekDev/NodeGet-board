@@ -14,19 +14,19 @@ definePage({
   },
 });
 
-const route = useRoute();
-const uuid = (route.params as { uuid: string }).uuid;
+const route = useRoute("/dashboard/node/[uuid]/setting");
+const uuid = route.params.uuid;
 const activeTab = ref("basic");
 </script>
 
 <template>
   <div class="flex h-full flex-col">
-    <div class="bg-card flex-1 overflow-auto rounded-md border p-6">
+    <div class="flex-1 overflow-auto rounded-md border bg-card p-6">
       <div class="mb-6">
         <h2 class="text-lg font-semibold">
           {{ $t("dashboard.node.settingsTitle") }}
         </h2>
-        <p class="text-muted-foreground mt-1 text-sm">
+        <p class="mt-1 text-sm text-muted-foreground">
           {{ $t("dashboard.node.settingsDesc") }}
         </p>
       </div>

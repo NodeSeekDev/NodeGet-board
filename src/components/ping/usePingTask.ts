@@ -101,9 +101,13 @@ export function usePingTask(uuid: string, url: string, token: string) {
     });
   }
 
-  async function createTask(host: string, testType: "ping" | "tcp_ping"): Promise<number | null> {
+  async function createTask(
+    host: string,
+    testType: "ping" | "tcp_ping",
+  ): Promise<number | null> {
     try {
-      const task_type = testType === "tcp_ping" ? { tcp_ping: `${host}:80` } : { ping: host };
+      const task_type =
+        testType === "tcp_ping" ? { tcp_ping: `${host}:80` } : { ping: host };
       const params: Record<string, unknown> = {
         token,
         target_uuid: uuid,
@@ -156,10 +160,14 @@ export function usePingTask(uuid: string, url: string, token: string) {
 
     const history = result.latencyHistory;
     result.latency = latency;
-    result.avg = history.length ? history.reduce((a, b) => a + b, 0) / history.length : null;
+    result.avg = history.length
+      ? history.reduce((a, b) => a + b, 0) / history.length
+      : null;
     result.fastest = history.length ? Math.min(...history) : null;
     result.slowest = history.length ? Math.max(...history) : null;
-    result.loss = Math.round(((result.sent - history.length) / result.sent) * 100);
+    result.loss = Math.round(
+      ((result.sent - history.length) / result.sent) * 100,
+    );
     result.status = "success";
 
     if (history.length >= 2) {
@@ -271,7 +279,10 @@ export function usePingTask(uuid: string, url: string, token: string) {
     stop();
     stopped = false;
 
-    const nodes = ispFilter === "all" ? PING_NODES : PING_NODES.filter((n) => n.isp === ispFilter);
+    const nodes =
+      ispFilter === "all"
+        ? PING_NODES
+        : PING_NODES.filter((n) => n.isp === ispFilter);
     initResults(nodes);
     probesDone.value = 0;
     pingStatus.value = "running";
@@ -294,7 +305,13 @@ export function usePingTask(uuid: string, url: string, token: string) {
               while (!stopped) {
                 const index = nodeQueue.shift();
                 if (index === undefined) break;
-                await runSingleProbe(index, nodes, testType, delayBeforeQueryMs, probe === 0);
+                await runSingleProbe(
+                  index,
+                  nodes,
+                  testType,
+                  delayBeforeQueryMs,
+                  probe === 0,
+                );
               }
             })(),
           ),
@@ -311,7 +328,13 @@ export function usePingTask(uuid: string, url: string, token: string) {
       const queue = Array.from({ length: nodes.length }, (_, i) => i);
       await Promise.allSettled(
         Array.from({ length: Math.min(concurrency, nodes.length) }, (_, i) =>
-          worker(queue, nodes, testType, delayBeforeQueryMs, i * WORKER_START_INTERVAL_MS),
+          worker(
+            queue,
+            nodes,
+            testType,
+            delayBeforeQueryMs,
+            i * WORKER_START_INTERVAL_MS,
+          ),
         ),
       );
       if (!stopped) pingStatus.value = "done";

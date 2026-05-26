@@ -6,7 +6,7 @@ const { t } = useI18n();
 </script>
 
 <template>
-  <div class="flex h-full flex-col space-y-6">
+  <div class="h-full flex flex-col space-y-6">
     <div>
       <h2 class="text-2xl font-bold tracking-tight">
         {{ t("dashboard.token.detail.title") }}

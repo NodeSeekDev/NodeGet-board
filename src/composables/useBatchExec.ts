@@ -54,7 +54,9 @@ export async function createTasks(tasks: Task[]): Promise<TaskResult[]> {
   return results;
 }
 
-export async function queryTaskResults(taskResults: TaskResult[]): Promise<TaskResult[]> {
+export async function queryTaskResults(
+  taskResults: TaskResult[],
+): Promise<TaskResult[]> {
   const { currentBackend } = useBackendStore();
   const backend = currentBackend.value;
   if (!backend) throw new Error("No backend selected");

@@ -18,7 +18,9 @@ const createTargets = ref<string[]>([]);
 const readTargets = ref<string[]>([]);
 const writeTargets = ref<string[]>([]);
 const hydrating = ref(false);
-const { isOpen, handleToggle } = usePermissionModuleOpen(() => props.modelValue);
+const { isOpen, handleToggle } = usePermissionModuleOpen(
+  () => props.modelValue,
+);
 
 const toggle = (list: string[], value: string) => {
   const index = list.indexOf(value);
@@ -29,9 +31,11 @@ const toggle = (list: string[], value: string) => {
 const build = (): PermissionEntry[] => {
   const result: PermissionEntry[] = [];
   if (listen.value) result.push({ task: "listen" });
-  for (const value of createTargets.value) result.push({ task: { create: value } });
+  for (const value of createTargets.value)
+    result.push({ task: { create: value } });
   for (const value of readTargets.value) result.push({ task: { read: value } });
-  for (const value of writeTargets.value) result.push({ task: { write: value } });
+  for (const value of writeTargets.value)
+    result.push({ task: { write: value } });
   return result;
 };
 
@@ -49,11 +53,17 @@ const hydrate = (entries: PermissionEntry[]) => {
     }
     if (!value || typeof value !== "object" || Array.isArray(value)) continue;
     const obj = value as Record<string, unknown>;
-    if (typeof obj.create === "string" && !createTargets.value.includes(obj.create))
+    if (
+      typeof obj.create === "string" &&
+      !createTargets.value.includes(obj.create)
+    )
       createTargets.value.push(obj.create);
     if (typeof obj.read === "string" && !readTargets.value.includes(obj.read))
       readTargets.value.push(obj.read);
-    if (typeof obj.write === "string" && !writeTargets.value.includes(obj.write))
+    if (
+      typeof obj.write === "string" &&
+      !writeTargets.value.includes(obj.write)
+    )
       writeTargets.value.push(obj.write);
   }
 };
@@ -86,7 +96,11 @@ watch(
 <template>
   <details class="rounded-md border p-3" :open="isOpen" @toggle="handleToggle">
     <summary class="cursor-pointer text-sm font-medium select-none">
-      {{ t("dashboard.token.permissionsConfig.limitItem.permissionCard.task.title") }}
+      {{
+        t(
+          "dashboard.token.permissionsConfig.limitItem.permissionCard.task.title",
+        )
+      }}
     </summary>
     <div class="mt-3 space-y-3">
       <div class="flex flex-wrap gap-2">
@@ -96,13 +110,21 @@ watch(
           :variant="listen ? 'default' : 'outline'"
           @click="listen = !listen"
         >
-          {{ t("dashboard.token.permissionsConfig.limitItem.permissionCard.task.listen") }}
+          {{
+            t(
+              "dashboard.token.permissionsConfig.limitItem.permissionCard.task.listen",
+            )
+          }}
         </Button>
       </div>
 
       <div class="space-y-2">
-        <div class="text-muted-foreground text-xs">
-          {{ t("dashboard.token.permissionsConfig.limitItem.permissionCard.task.create") }}
+        <div class="text-xs text-muted-foreground">
+          {{
+            t(
+              "dashboard.token.permissionsConfig.limitItem.permissionCard.task.create",
+            )
+          }}
         </div>
         <div class="flex flex-wrap gap-2">
           <Button
@@ -118,8 +140,12 @@ watch(
       </div>
 
       <div class="space-y-2">
-        <div class="text-muted-foreground text-xs">
-          {{ t("dashboard.token.permissionsConfig.limitItem.permissionCard.task.read") }}
+        <div class="text-xs text-muted-foreground">
+          {{
+            t(
+              "dashboard.token.permissionsConfig.limitItem.permissionCard.task.read",
+            )
+          }}
         </div>
         <div class="flex flex-wrap gap-2">
           <Button
@@ -135,8 +161,12 @@ watch(
       </div>
 
       <div class="space-y-2">
-        <div class="text-muted-foreground text-xs">
-          {{ t("dashboard.token.permissionsConfig.limitItem.permissionCard.task.write") }}
+        <div class="text-xs text-muted-foreground">
+          {{
+            t(
+              "dashboard.token.permissionsConfig.limitItem.permissionCard.task.write",
+            )
+          }}
         </div>
         <div class="flex flex-wrap gap-2">
           <Button

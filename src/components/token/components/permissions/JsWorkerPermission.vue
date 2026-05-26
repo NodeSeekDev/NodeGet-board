@@ -20,7 +20,9 @@ const remove = ref(false);
 const runDefinedJsWorker = ref(false);
 const runRawJsWorker = ref(false);
 const hydrating = ref(false);
-const { isOpen, handleToggle } = usePermissionModuleOpen(() => props.modelValue);
+const { isOpen, handleToggle } = usePermissionModuleOpen(
+  () => props.modelValue,
+);
 
 const build = (): PermissionEntry[] => {
   const entries: PermissionEntry[] = [];
@@ -51,13 +53,19 @@ const build = (): PermissionEntry[] => {
 };
 
 const hydrate = (entries: PermissionEntry[]) => {
-  listAllJsWorker.value = entries.some((entry) => entry?.js_worker === "list_all_js_worker");
+  listAllJsWorker.value = entries.some(
+    (entry) => entry?.js_worker === "list_all_js_worker",
+  );
   create.value = entries.some((entry) => entry?.js_worker === "create");
   read.value = entries.some((entry) => entry?.js_worker === "read");
   write.value = entries.some((entry) => entry?.js_worker === "write");
   remove.value = entries.some((entry) => entry?.js_worker === "delete");
-  runDefinedJsWorker.value = entries.some((entry) => entry?.js_worker === "run_defined_js_worker");
-  runRawJsWorker.value = entries.some((entry) => entry?.js_worker === "run_raw_js_worker");
+  runDefinedJsWorker.value = entries.some(
+    (entry) => entry?.js_worker === "run_defined_js_worker",
+  );
+  runRawJsWorker.value = entries.some(
+    (entry) => entry?.js_worker === "run_raw_js_worker",
+  );
 };
 
 watch(
@@ -73,18 +81,33 @@ watch(
   { immediate: true, deep: true },
 );
 
-watch([listAllJsWorker, create, read, write, remove, runDefinedJsWorker, runRawJsWorker], () => {
-  if (hydrating.value) return;
-  const nextEntries = build();
-  if (arePermissionEntriesEqual(nextEntries, props.modelValue)) return;
-  emits("update:modelValue", nextEntries);
-});
+watch(
+  [
+    listAllJsWorker,
+    create,
+    read,
+    write,
+    remove,
+    runDefinedJsWorker,
+    runRawJsWorker,
+  ],
+  () => {
+    if (hydrating.value) return;
+    const nextEntries = build();
+    if (arePermissionEntriesEqual(nextEntries, props.modelValue)) return;
+    emits("update:modelValue", nextEntries);
+  },
+);
 </script>
 
 <template>
   <details class="rounded-md border p-3" :open="isOpen" @toggle="handleToggle">
-    <summary class="cursor-pointer text-sm font-medium select-none">
-      {{ t("dashboard.token.permissionsConfig.limitItem.permissionCard.jsWorker.title") }}
+    <summary class="cursor-pointer select-none text-sm font-medium">
+      {{
+        t(
+          "dashboard.token.permissionsConfig.limitItem.permissionCard.jsWorker.title",
+        )
+      }}
     </summary>
     <div class="mt-3 flex flex-wrap gap-2">
       <Button
@@ -94,7 +117,9 @@ watch([listAllJsWorker, create, read, write, remove, runDefinedJsWorker, runRawJ
         @click="listAllJsWorker = !listAllJsWorker"
       >
         {{
-          t("dashboard.token.permissionsConfig.limitItem.permissionCard.jsWorker.listAllJsWorker")
+          t(
+            "dashboard.token.permissionsConfig.limitItem.permissionCard.jsWorker.listAllJsWorker",
+          )
         }}
       </Button>
       <Button
@@ -103,10 +128,23 @@ watch([listAllJsWorker, create, read, write, remove, runDefinedJsWorker, runRawJ
         :variant="create ? 'default' : 'outline'"
         @click="create = !create"
       >
-        {{ t("dashboard.token.permissionsConfig.limitItem.permissionCard.jsWorker.create") }}
+        {{
+          t(
+            "dashboard.token.permissionsConfig.limitItem.permissionCard.jsWorker.create",
+          )
+        }}
       </Button>
-      <Button type="button" size="sm" :variant="read ? 'default' : 'outline'" @click="read = !read">
-        {{ t("dashboard.token.permissionsConfig.limitItem.permissionCard.jsWorker.read") }}
+      <Button
+        type="button"
+        size="sm"
+        :variant="read ? 'default' : 'outline'"
+        @click="read = !read"
+      >
+        {{
+          t(
+            "dashboard.token.permissionsConfig.limitItem.permissionCard.jsWorker.read",
+          )
+        }}
       </Button>
       <Button
         type="button"
@@ -114,7 +152,11 @@ watch([listAllJsWorker, create, read, write, remove, runDefinedJsWorker, runRawJ
         :variant="write ? 'default' : 'outline'"
         @click="write = !write"
       >
-        {{ t("dashboard.token.permissionsConfig.limitItem.permissionCard.jsWorker.write") }}
+        {{
+          t(
+            "dashboard.token.permissionsConfig.limitItem.permissionCard.jsWorker.write",
+          )
+        }}
       </Button>
       <Button
         type="button"
@@ -122,7 +164,11 @@ watch([listAllJsWorker, create, read, write, remove, runDefinedJsWorker, runRawJ
         :variant="remove ? 'default' : 'outline'"
         @click="remove = !remove"
       >
-        {{ t("dashboard.token.permissionsConfig.limitItem.permissionCard.jsWorker.delete") }}
+        {{
+          t(
+            "dashboard.token.permissionsConfig.limitItem.permissionCard.jsWorker.delete",
+          )
+        }}
       </Button>
       <Button
         type="button"
@@ -143,7 +189,9 @@ watch([listAllJsWorker, create, read, write, remove, runDefinedJsWorker, runRawJ
         @click="runRawJsWorker = !runRawJsWorker"
       >
         {{
-          t("dashboard.token.permissionsConfig.limitItem.permissionCard.jsWorker.runRawJsWorker")
+          t(
+            "dashboard.token.permissionsConfig.limitItem.permissionCard.jsWorker.runRawJsWorker",
+          )
         }}
       </Button>
     </div>

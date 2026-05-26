@@ -12,7 +12,15 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Pause, Play, Plus, RefreshCcw, Square, X } from "lucide-vue-next";
+import {
+  Loader2,
+  Pause,
+  Play,
+  Plus,
+  RefreshCcw,
+  Square,
+  X,
+} from "lucide-vue-next";
 import type {
   LogActionStatus,
   LogFilterRule,
@@ -66,7 +74,10 @@ const connectStatus = computed(() => props.status);
 const isConnecting = computed(() => props.actionStatus === "connecting");
 const isDisconnecting = computed(() => props.actionStatus === "disconnecting");
 const isReconnecting = computed(() => {
-  return props.actionStatus === "reconnecting" || props.actionStatus === "updatingFilters";
+  return (
+    props.actionStatus === "reconnecting" ||
+    props.actionStatus === "updatingFilters"
+  );
 });
 
 const addSearchParams = () => {
@@ -101,7 +112,9 @@ const removeSearchParam = (index: number) => {
 
 <template>
   <div class="space-y-4">
-    <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+    <div
+      class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"
+    >
       <div class="flex flex-1 flex-wrap items-center gap-2">
         <div class="w-[220px] max-w-full">
           <Select
@@ -109,12 +122,20 @@ const removeSearchParam = (index: number) => {
             :placeholder="t('dashboard.logsPanel.filters.select')"
           >
             <SelectTrigger class="w-full">
-              <SelectValue :placeholder="t('dashboard.logsPanel.filters.target')" />
+              <SelectValue
+                :placeholder="t('dashboard.logsPanel.filters.target')"
+              />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectLabel>{{ t("dashboard.logsPanel.filters.target") }}</SelectLabel>
-                <SelectItem v-for="target in targetOptions" :key="target" :value="target">
+                <SelectLabel>{{
+                  t("dashboard.logsPanel.filters.target")
+                }}</SelectLabel>
+                <SelectItem
+                  v-for="target in targetOptions"
+                  :key="target"
+                  :value="target"
+                >
                   {{ target }}
                 </SelectItem>
               </SelectGroup>
@@ -128,12 +149,20 @@ const removeSearchParam = (index: number) => {
             :placeholder="t('dashboard.logsPanel.filters.select')"
           >
             <SelectTrigger class="w-full">
-              <SelectValue :placeholder="t('dashboard.logsPanel.filters.level')" />
+              <SelectValue
+                :placeholder="t('dashboard.logsPanel.filters.level')"
+              />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectLabel>{{ t("dashboard.logsPanel.filters.level") }}</SelectLabel>
-                <SelectItem v-for="level in levelOptions" :key="level" :value="level">
+                <SelectLabel>{{
+                  t("dashboard.logsPanel.filters.level")
+                }}</SelectLabel>
+                <SelectItem
+                  v-for="level in levelOptions"
+                  :key="level"
+                  :value="level"
+                >
                   {{ level.toUpperCase() }}
                 </SelectItem>
               </SelectGroup>
@@ -142,7 +171,10 @@ const removeSearchParam = (index: number) => {
         </div>
         <div>
           <Button :disabled="isBusy" @click="addSearchParams">
-            <Loader2 v-if="actionStatus === 'updatingFilters'" class="h-4 w-4 animate-spin" />
+            <Loader2
+              v-if="actionStatus === 'updatingFilters'"
+              class="h-4 w-4 animate-spin"
+            />
             <Plus v-else />
             {{ t("dashboard.logsPanel.actions.addFilter") }}
           </Button>
@@ -163,17 +195,27 @@ const removeSearchParam = (index: number) => {
               : t("dashboard.logsPanel.actions.connect")
           }}
         </Button>
-        <Button v-show="connectStatus === 'connected'" :disabled="isBusy" @click="emit('pause')">
+        <Button
+          v-show="connectStatus === 'connected'"
+          :disabled="isBusy"
+          @click="emit('pause')"
+        >
           <Pause />
           {{ t("dashboard.logsPanel.actions.pause") }}
         </Button>
-        <Button v-show="connectStatus === 'paused'" :disabled="isBusy" @click="emit('resume')">
+        <Button
+          v-show="connectStatus === 'paused'"
+          :disabled="isBusy"
+          @click="emit('resume')"
+        >
           <Play />
           {{ t("dashboard.logsPanel.actions.resume") }}
         </Button>
         <Button
           v-show="
-            connectStatus === 'connected' || connectStatus === 'paused' || connectStatus === 'error'
+            connectStatus === 'connected' ||
+            connectStatus === 'paused' ||
+            connectStatus === 'error'
           "
           :disabled="isBusy"
           @click="emit('stop')"
@@ -188,7 +230,9 @@ const removeSearchParam = (index: number) => {
         </Button>
         <Button
           v-show="
-            connectStatus === 'connected' || connectStatus === 'paused' || connectStatus === 'error'
+            connectStatus === 'connected' ||
+            connectStatus === 'paused' ||
+            connectStatus === 'error'
           "
           :disabled="isBusy"
           @click="emit('reconnect')"

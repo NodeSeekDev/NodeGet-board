@@ -40,7 +40,10 @@ interface WsCallOptions {
 
 const generateId = (prefix = ""): string => {
   let id: string;
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     id = crypto.randomUUID();
   } else {
     id = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
@@ -172,7 +175,9 @@ class WsConnection {
     this.pending.delete(id);
 
     if (msg.error) {
-      req.reject(new Error(formatRpcError(msg.error) || `${req.method} rpc error`));
+      req.reject(
+        new Error(formatRpcError(msg.error) || `${req.method} rpc error`),
+      );
       return;
     }
 
@@ -185,7 +190,9 @@ class WsConnection {
       msg.result.error_message !== null
     ) {
       const r = msg.result as Record<string, unknown>;
-      req.reject(new Error(String(r.error_message || `${req.method} rpc error`)));
+      req.reject(
+        new Error(String(r.error_message || `${req.method} rpc error`)),
+      );
       return;
     }
 
@@ -269,12 +276,18 @@ export function releaseWsConnection(url: string) {
   }
 }
 
-export function makeRpcFunction(backendUrl: string = currentBackend.value?.url as string) {
+export function makeRpcFunction(
+  backendUrl: string = currentBackend.value?.url as string,
+) {
   if (typeof backendUrl !== "string") {
     throw "backendUrl can't be empty";
   }
 
-  const rpc = <T>(method: string, params: unknown, timeoutMs: number = 5000): Promise<T> =>
+  const rpc = <T>(
+    method: string,
+    params: unknown,
+    timeoutMs: number = 5000,
+  ): Promise<T> =>
     getWsConnection(backendUrl).call<T>(method, params, timeoutMs);
   return rpc;
 }

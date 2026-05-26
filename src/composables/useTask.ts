@@ -40,7 +40,11 @@ export function useTask(backend = useBackendStore().currentBackend) {
   const backendUrl = computed(() => backend.value?.url ?? "");
   const backendToken = computed(() => backend.value?.token ?? "");
 
-  const rpc = <T>(method: string, params: unknown, timeoutMs: number = 5000): Promise<T> =>
+  const rpc = <T>(
+    method: string,
+    params: unknown,
+    timeoutMs: number = 5000,
+  ): Promise<T> =>
     getWsConnection(backendUrl.value).call<T>(method, params, timeoutMs);
 
   /**
@@ -80,7 +84,9 @@ export function useTask(backend = useBackendStore().currentBackend) {
   /**
    * 查询任务执行记录
    */
-  const query = async (conditions: TaskQueryCondition[]): Promise<TaskRecord[]> => {
+  const query = async (
+    conditions: TaskQueryCondition[],
+  ): Promise<TaskRecord[]> => {
     return rpc<TaskRecord[]>("task_query", {
       token: backendToken.value,
       task_data_query: {
@@ -92,14 +98,20 @@ export function useTask(backend = useBackendStore().currentBackend) {
   /**
    * 查询指定 Agent 的任务记录
    */
-  const queryByUuid = async (uuid: string, limit: number = 100): Promise<TaskRecord[]> => {
+  const queryByUuid = async (
+    uuid: string,
+    limit: number = 100,
+  ): Promise<TaskRecord[]> => {
     return query([{ uuid }, { limit }]);
   };
 
   /**
    * 查询指定类型的任务记录
    */
-  const queryByType = async (type: string, limit: number = 100): Promise<TaskRecord[]> => {
+  const queryByType = async (
+    type: string,
+    limit: number = 100,
+  ): Promise<TaskRecord[]> => {
     return query([{ type }, { limit }]);
   };
 
@@ -113,7 +125,9 @@ export function useTask(backend = useBackendStore().currentBackend) {
   /**
    * 删除任务执行记录
    */
-  const deleteRecords = async (conditions: TaskQueryCondition[]): Promise<DeleteTaskResponse> => {
+  const deleteRecords = async (
+    conditions: TaskQueryCondition[],
+  ): Promise<DeleteTaskResponse> => {
     return rpc<DeleteTaskResponse>("task_delete", {
       token: backendToken.value,
       conditions,
@@ -137,7 +151,10 @@ export function useTask(backend = useBackendStore().currentBackend) {
   /**
    * 删除指定时间范围内的任务记录
    */
-  const deleteByTimeRange = async (from: number, to: number): Promise<DeleteTaskResponse> => {
+  const deleteByTimeRange = async (
+    from: number,
+    to: number,
+  ): Promise<DeleteTaskResponse> => {
     return deleteRecords([{ timestamp_from_to: [from, to] }]);
   };
 
@@ -147,7 +164,9 @@ export function useTask(backend = useBackendStore().currentBackend) {
     target: string,
     blocking: T = false as T,
     timeoutMs?: number,
-  ): Promise<T extends true ? CreateTaskBlockingResponse<PingResult> : CreateTaskResponse> => {
+  ): Promise<
+    T extends true ? CreateTaskBlockingResponse<PingResult> : CreateTaskResponse
+  > => {
     const taskType: PingTask = { ping: target };
     return (
       blocking
@@ -161,7 +180,11 @@ export function useTask(backend = useBackendStore().currentBackend) {
     target: string,
     blocking: T = false as T,
     timeoutMs?: number,
-  ): Promise<T extends true ? CreateTaskBlockingResponse<TcpPingResult> : CreateTaskResponse> => {
+  ): Promise<
+    T extends true
+      ? CreateTaskBlockingResponse<TcpPingResult>
+      : CreateTaskResponse
+  > => {
     const taskType: TcpPingTask = { tcp_ping: target };
     return (
       blocking
@@ -175,7 +198,11 @@ export function useTask(backend = useBackendStore().currentBackend) {
     url: string,
     blocking: T = false as T,
     timeoutMs?: number,
-  ): Promise<T extends true ? CreateTaskBlockingResponse<HttpPingResult> : CreateTaskResponse> => {
+  ): Promise<
+    T extends true
+      ? CreateTaskBlockingResponse<HttpPingResult>
+      : CreateTaskResponse
+  > => {
     const taskType: HttpPingTask = { http_ping: url };
     return (
       blocking
@@ -197,7 +224,9 @@ export function useTask(backend = useBackendStore().currentBackend) {
     blocking: T = false as T,
     timeoutMs?: number,
   ): Promise<
-    T extends true ? CreateTaskBlockingResponse<HttpRequestResult> : CreateTaskResponse
+    T extends true
+      ? CreateTaskBlockingResponse<HttpRequestResult>
+      : CreateTaskResponse
   > => {
     const taskType: HttpRequestTask = { http_request: config };
     return (
@@ -213,7 +242,9 @@ export function useTask(backend = useBackendStore().currentBackend) {
     blocking: T = false as T,
     timeoutMs?: number,
   ): Promise<
-    T extends true ? CreateTaskBlockingResponse<SelfUpdateResult> : CreateTaskResponse
+    T extends true
+      ? CreateTaskBlockingResponse<SelfUpdateResult>
+      : CreateTaskResponse
   > => {
     const taskType: SelfUpdateTask = { self_update: version };
     return (
@@ -229,7 +260,11 @@ export function useTask(backend = useBackendStore().currentBackend) {
     args: string[] = [],
     blocking: T = false as T,
     timeoutMs?: number,
-  ): Promise<T extends true ? CreateTaskBlockingResponse<ExecuteResult> : CreateTaskResponse> => {
+  ): Promise<
+    T extends true
+      ? CreateTaskBlockingResponse<ExecuteResult>
+      : CreateTaskResponse
+  > => {
     const taskType: ExecuteTask = { execute: { cmd, args } };
     return (
       blocking
@@ -254,7 +289,9 @@ export function useTask(backend = useBackendStore().currentBackend) {
     blocking: T = false as T,
     timeoutMs?: number,
   ): Promise<
-    T extends true ? CreateTaskBlockingResponse<ReadConfigResult> : CreateTaskResponse
+    T extends true
+      ? CreateTaskBlockingResponse<ReadConfigResult>
+      : CreateTaskResponse
   > => {
     const taskType: ReadConfigTask = "read_config";
     return (
@@ -270,7 +307,9 @@ export function useTask(backend = useBackendStore().currentBackend) {
     blocking: T = false as T,
     timeoutMs?: number,
   ): Promise<
-    T extends true ? CreateTaskBlockingResponse<EditConfigResult> : CreateTaskResponse
+    T extends true
+      ? CreateTaskBlockingResponse<EditConfigResult>
+      : CreateTaskResponse
   > => {
     const taskType: EditConfigTask = { edit_config: configContent };
     return (
@@ -284,7 +323,9 @@ export function useTask(backend = useBackendStore().currentBackend) {
     targetUuid: string,
     blocking: T = false as T,
     timeoutMs?: number,
-  ): Promise<T extends true ? CreateTaskBlockingResponse<IpResult> : CreateTaskResponse> => {
+  ): Promise<
+    T extends true ? CreateTaskBlockingResponse<IpResult> : CreateTaskResponse
+  > => {
     const taskType: IpTask = "ip";
     return (
       blocking
@@ -297,7 +338,11 @@ export function useTask(backend = useBackendStore().currentBackend) {
     targetUuid: string,
     blocking: T,
     timeoutMs?: number,
-  ): Promise<T extends true ? CreateTaskBlockingResponse<VersionResult> : CreateTaskResponse> => {
+  ): Promise<
+    T extends true
+      ? CreateTaskBlockingResponse<VersionResult>
+      : CreateTaskResponse
+  > => {
     const taskType: VersionTask = "version";
     return (
       blocking

@@ -33,15 +33,15 @@ const editorExtensions = computed(() => [
 ]);
 </script>
 <template>
-  <div class="relative overflow-hidden rounded-md border">
+  <div class="rounded-md border overflow-hidden relative">
     <Button
       type="button"
       @click="copyInstallScript"
-      class="bg-background/80 hover:bg-background border-border/50 hover:border-border absolute top-2 right-2 z-10 rounded-md border p-1.5 transition-colors"
+      class="absolute top-2 right-2 z-10 p-1.5 rounded-md bg-background/80 hover:bg-background border border-border/50 hover:border-border transition-colors"
       :title="isCopied ? 'Copied!' : 'Copy to clipboard'"
     >
       <Check v-if="isCopied" class="h-4 w-4 text-green-500" />
-      <Copy v-else class="text-muted-foreground h-4 w-4" />
+      <Copy v-else class="h-4 w-4 text-muted-foreground" />
     </Button>
     <Codemirror
       :model-value="code"

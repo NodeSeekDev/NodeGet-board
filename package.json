@@ -5,13 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "run-p type-check \"build-only {@}\" --",
+    "build": "run-s generate:typed-router \"build:app {@}\" --",
+    "build:app": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
-    "format": "prettier --write src/",
+    "format": "prettier --write .",
     "test": "node --test --experimental-strip-types tests/*.test.ts",
-    "prepare": "husky"
+    "prepare": "husky",
+    "generate:typed-router": "vite build --config scripts/typed-router.d.ts/config.ts"
   },
   "dependencies": {
     "@codemirror/lang-javascript": "^6.2.5",
@@ -23,6 +25,7 @@
     "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/vue-table": "^8.21.3",
+    "@vue/devtools-api": "6.6.4",
     "@types/qrcode": "^1.5.6",
     "@vueuse/core": "^14.2.0",
     "@xterm/addon-fit": "^0.11.0",

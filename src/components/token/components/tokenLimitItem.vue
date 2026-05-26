@@ -5,7 +5,11 @@ import { type TokenLimitEntry } from "../type";
 import { detectScopeTab, type ScopeTabValue } from "../scopeUi";
 import { ChevronDown, Trash2 } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { PopConfirm } from "@/components/ui/pop-confirm";
 import limitScopeConfig from "./limitScopeConfig.vue";
 import permissionsCard from "./permissions/permissionsCard.vue";
@@ -69,14 +73,22 @@ const handleDeleteLimit = () => {
       <PopConfirm
         v-if="props.limitLength > 1"
         :title="t('dashboard.token.permissionsConfig.limitItem.deleteTitle')"
-        :description="t('dashboard.token.permissionsConfig.limitItem.deleteDescription')"
-        :confirm-text="t('dashboard.token.permissionsConfig.limitItem.deleteConfirm')"
-        :cancel-text="t('dashboard.token.permissionsConfig.limitItem.deleteCancel')"
+        :description="
+          t('dashboard.token.permissionsConfig.limitItem.deleteDescription')
+        "
+        :confirm-text="
+          t('dashboard.token.permissionsConfig.limitItem.deleteConfirm')
+        "
+        :cancel-text="
+          t('dashboard.token.permissionsConfig.limitItem.deleteCancel')
+        "
         @confirm="handleDeleteLimit"
       >
         <Button variant="ghost" size="icon" class="size-8 text-red-500">
           <Trash2 />
-          <span class="sr-only">{{ t("dashboard.token.permissionsConfig.deleteAriaLabel") }}</span>
+          <span class="sr-only">{{
+            t("dashboard.token.permissionsConfig.deleteAriaLabel")
+          }}</span>
         </Button>
       </PopConfirm>
       <CollapsibleTrigger as-child>
@@ -85,7 +97,9 @@ const handleDeleteLimit = () => {
             class="h-4 w-4 transition-transform duration-200"
             :class="{ 'rotate-180': isOpen }"
           />
-          <span class="sr-only">{{ t("dashboard.token.permissionsConfig.toggleAriaLabel") }}</span>
+          <span class="sr-only">{{
+            t("dashboard.token.permissionsConfig.toggleAriaLabel")
+          }}</span>
         </Button>
       </CollapsibleTrigger>
     </div>

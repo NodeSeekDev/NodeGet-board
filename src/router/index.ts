@@ -1,9 +1,13 @@
 import { createRouter, createWebHashHistory } from "vue-router";
 import { routes } from "vue-router/auto-routes";
+import {
+  preparePrefetchableRoutes,
+  setupRoutePrefetchRouter,
+} from "./prefetchPlugin";
 
 const router = createRouter({
   history: createWebHashHistory(),
-  routes,
+  routes: preparePrefetchableRoutes(routes),
 });
 
-export default router;
+export default setupRoutePrefetchRouter(router);

@@ -7,12 +7,14 @@ import { Button } from "@/components/ui/button";
 import { useBackendStore } from "@/composables/useBackendStore";
 import { getWsConnection } from "@/composables/useWsConnection";
 import { formatBytes } from "@/utils/format";
-import TrafficBarChart, { type TrafficBucket } from "@/components/node/traffic/TrafficBarChart.vue";
+import TrafficBarChart, {
+  type TrafficBucket,
+} from "@/components/node/traffic/TrafficBarChart.vue";
 
 definePage({ meta: { title: "router.node.traffic" } });
 
-const route = useRoute();
-const uuid = computed(() => (route.params as { uuid: string }).uuid);
+const route = useRoute("/dashboard/node/[uuid]/traffic");
+const uuid = computed(() => route.params.uuid);
 const { currentBackend } = useBackendStore();
 
 type SummaryPoint = {
@@ -28,13 +30,16 @@ async function querySummary(
   from: number,
   to: number,
 ): Promise<SummaryPoint[]> {
-  return getWsConnection(url).call<SummaryPoint[]>("agent_query_dynamic_summary", [
-    token,
-    {
-      fields: ["total_received", "total_transmitted"],
-      condition: [{ uuid }, { timestamp_from_to: [from, to] }, { limit: 5 }],
-    },
-  ]);
+  return getWsConnection(url).call<SummaryPoint[]>(
+    "agent_query_dynamic_summary",
+    [
+      token,
+      {
+        fields: ["total_received", "total_transmitted"],
+        condition: [{ uuid }, { timestamp_from_to: [from, to] }, { limit: 5 }],
+      },
+    ],
+  );
 }
 
 type ScopeKey = "minute" | "hour" | "day" | "week";
@@ -83,7 +88,9 @@ const INTERVALS = [
 ] as const;
 
 const scopeKey = ref<ScopeKey>("hour");
-const scope = computed(() => SCOPES.find((s) => s.key === scopeKey.value) ?? SCOPES[0]!);
+const scope = computed(
+  () => SCOPES.find((s) => s.key === scopeKey.value) ?? SCOPES[0]!,
+);
 const refreshInterval = ref(60_000);
 
 const buckets = ref<TrafficBucket[]>([]);
@@ -146,7 +153,8 @@ const fetchData = async () => {
             if (!Array.isArray(arr) || arr.length === 0) return null;
             let best = arr[0]!;
             for (const r of arr) {
-              if (Math.abs(r.timestamp - t) < Math.abs(best.timestamp - t)) best = r;
+              if (Math.abs(r.timestamp - t) < Math.abs(best.timestamp - t))
+                best = r;
             }
             return best;
           } catch {
@@ -164,13 +172,21 @@ const fetchData = async () => {
           next.push({ label: labelOf(ts, s.key), rx: 0, tx: 0, total: 0 });
           continue;
         }
-        const rx = Math.max(0, (end.total_received ?? 0) - (start.total_received ?? 0));
-        const tx = Math.max(0, (end.total_transmitted ?? 0) - (start.total_transmitted ?? 0));
+        const rx = Math.max(
+          0,
+          (end.total_received ?? 0) - (start.total_received ?? 0),
+        );
+        const tx = Math.max(
+          0,
+          (end.total_transmitted ?? 0) - (start.total_transmitted ?? 0),
+        );
         next.push({ label: labelOf(ts, s.key), rx, tx, total: rx + tx });
       }
       buckets.value = next;
     } catch (e) {
-      toast.error(`流量查询失败：${e instanceof Error ? e.message : String(e)}`);
+      toast.error(
+        `流量查询失败：${e instanceof Error ? e.message : String(e)}`,
+      );
     } finally {
       loading.value = false;
     }
@@ -224,22 +240,26 @@ const SERIES = [
     <div class="flex flex-col gap-4">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
-          <span class="text-muted-foreground inline-flex items-center gap-1 text-xs">
+          <span
+            class="inline-flex items-center gap-1 text-xs text-muted-foreground"
+          >
             粒度
             <select
               v-model="scopeKey"
-              class="bg-card text-foreground hover:bg-muted cursor-pointer rounded border px-1.5 py-0.5 text-xs transition-colors outline-none"
+              class="cursor-pointer rounded border bg-card px-1.5 py-0.5 text-xs text-foreground transition-colors outline-none hover:bg-muted"
             >
               <option v-for="s in SCOPES" :key="s.key" :value="s.key">
                 {{ s.label }}
               </option>
             </select>
           </span>
-          <span class="text-muted-foreground inline-flex items-center gap-1 text-xs">
+          <span
+            class="inline-flex items-center gap-1 text-xs text-muted-foreground"
+          >
             每
             <select
               v-model="refreshInterval"
-              class="bg-card text-foreground hover:bg-muted cursor-pointer rounded border px-1.5 py-0.5 text-xs transition-colors outline-none"
+              class="cursor-pointer rounded border bg-card px-1.5 py-0.5 text-xs text-foreground transition-colors outline-none hover:bg-muted"
             >
               <option v-for="i in INTERVALS" :key="i.value" :value="i.value">
                 {{ i.label }}
@@ -260,20 +280,20 @@ const SERIES = [
         </Button>
       </div>
 
-      <div class="bg-card rounded-lg border">
+      <div class="rounded-lg border bg-card">
         <div class="flex items-center justify-between border-b px-4 py-3">
           <span class="text-sm font-semibold">{{ scope.label }}</span>
         </div>
         <div class="relative h-[280px]">
           <div
             v-if="loading && !buckets.length"
-            class="text-muted-foreground absolute inset-0 flex items-center justify-center text-sm"
+            class="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground"
           >
             加载中...
           </div>
           <div
             v-else-if="!loading && !buckets.length"
-            class="text-muted-foreground absolute inset-0 flex items-center justify-center text-sm"
+            class="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground"
           >
             暂无流量数据
           </div>
@@ -285,14 +305,14 @@ const SERIES = [
           />
           <div
             v-if="loading && buckets.length"
-            class="bg-primary absolute top-2 right-2 h-1.5 w-1.5 animate-pulse rounded-full"
+            class="absolute top-2 right-2 h-1.5 w-1.5 animate-pulse rounded-full bg-primary"
           />
         </div>
         <div v-if="buckets.length" class="border-t px-2 py-2">
           <div
             v-for="s in SERIES"
             :key="s.key"
-            class="hover:bg-muted flex cursor-pointer items-center justify-between rounded-md px-2 py-1.5 text-xs transition-all select-none"
+            class="flex cursor-pointer items-center justify-between rounded-md px-2 py-1.5 text-xs transition-all select-none hover:bg-muted"
             :class="!visibleSeries[s.key] ? 'opacity-35' : 'opacity-100'"
             @mouseenter="hovered = visibleSeries[s.key] ? s.key : null"
             @mouseleave="hovered = null"
@@ -306,7 +326,7 @@ const SERIES = [
               />
               <span class="text-foreground">{{ s.name }}</span>
             </span>
-            <span class="text-foreground text-right tabular-nums">
+            <span class="text-right text-foreground tabular-nums">
               {{ formatBytes(totals[s.key]) }}
             </span>
           </div>

@@ -9,7 +9,14 @@ import { xml } from "@codemirror/legacy-modes/mode/xml";
 import type { Extension as CMExtension } from "@codemirror/state";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { useThemeStore } from "@/stores/theme";
-import { Upload, Save, Loader2, AlertCircle, ArrowLeft, Archive } from "lucide-vue-next";
+import {
+  Upload,
+  Save,
+  Loader2,
+  AlertCircle,
+  ArrowLeft,
+  Archive,
+} from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import type { BucketFile } from "@/composables/useStaticBucketFile";
 import StaticBucketTreeNode from "./StaticBucketTreeNode.vue";
@@ -177,54 +184,62 @@ provide("dragging", isDraggingAny);
 </script>
 
 <template>
-  <div class="flex h-full flex-col space-y-3">
+  <div class="h-full flex flex-col space-y-3">
     <div class="flex items-center gap-2">
       <Button variant="outline" size="sm" @click="emit('back')">
-        <ArrowLeft class="mr-1 h-4 w-4" />
+        <ArrowLeft class="h-4 w-4 mr-1" />
         返回
       </Button>
-      <span class="text-muted-foreground text-sm">
+      <span class="text-sm text-muted-foreground">
         Bucket
-        <span class="text-foreground font-mono font-medium">{{ bucketName }}</span>
+        <span class="font-mono font-medium text-foreground">{{
+          bucketName
+        }}</span>
         · {{ files.length }} 个文件
       </span>
       <div class="flex-1" />
       <Button variant="outline" size="sm" @click="emit('downloadZip')">
-        <Archive class="mr-1 h-4 w-4" />
+        <Archive class="h-4 w-4 mr-1" />
         下载压缩包
       </Button>
       <Button variant="outline" size="sm" @click="emit('uploadDir')">
-        <Upload class="mr-1 h-4 w-4" />
+        <Upload class="h-4 w-4 mr-1" />
         上传本地目录
       </Button>
       <Button size="sm" @click="emit('uploadFile')">
-        <Upload class="mr-1 h-4 w-4" />
+        <Upload class="h-4 w-4 mr-1" />
         上传本地文件
       </Button>
     </div>
 
-    <div class="grid min-h-0 flex-1 grid-cols-3 gap-3">
-      <div class="col-span-1 flex min-h-0 flex-col rounded-lg border p-3">
-        <p class="text-muted-foreground mb-2 shrink-0 text-xs font-medium">文件树</p>
+    <div class="flex-1 grid grid-cols-3 gap-3 min-h-0">
+      <div class="col-span-1 rounded-lg border p-3 flex flex-col min-h-0">
+        <p class="text-xs font-medium text-muted-foreground mb-2 shrink-0">
+          文件树
+        </p>
         <div
           v-if="loading && files.length === 0"
-          class="text-muted-foreground py-4 text-center text-xs"
+          class="text-xs text-muted-foreground text-center py-4"
         >
           加载中...
         </div>
         <div
           v-else-if="!loading && files.length === 0"
-          class="text-muted-foreground py-4 text-center text-xs italic"
+          class="text-xs text-muted-foreground italic text-center py-4"
         >
           暂无文件
         </div>
         <div
           v-else
-          class="flex min-h-0 flex-1 flex-col overflow-y-auto"
+          class="flex-1 overflow-y-auto flex flex-col min-h-0"
           @dragover.prevent
           @drop="handleRootDrop"
         >
-          <TransitionGroup name="tree-item" tag="div" class="relative flex flex-col gap-0.5">
+          <TransitionGroup
+            name="tree-item"
+            tag="div"
+            class="flex flex-col gap-0.5 relative"
+          >
             <StaticBucketTreeNode
               v-for="node in fileTree"
               :key="node.path"
@@ -240,18 +255,26 @@ provide("dragging", isDraggingAny);
         </div>
       </div>
 
-      <div class="col-span-2 flex min-h-0 flex-col rounded-lg border p-3">
-        <div class="mb-2 flex shrink-0 items-center justify-between">
-          <p class="text-muted-foreground text-xs font-medium">文件内容</p>
-          <div v-if="selectedPath && !fileLoading && !fileError" class="flex gap-1">
-            <input ref="fileUploadRef" type="file" class="hidden" @change="handleReplaceFile" />
+      <div class="col-span-2 rounded-lg border p-3 flex flex-col min-h-0">
+        <div class="flex items-center justify-between mb-2 shrink-0">
+          <p class="text-xs font-medium text-muted-foreground">文件内容</p>
+          <div
+            v-if="selectedPath && !fileLoading && !fileError"
+            class="flex gap-1"
+          >
+            <input
+              ref="fileUploadRef"
+              type="file"
+              class="hidden"
+              @change="handleReplaceFile"
+            />
             <Button
               variant="ghost"
               size="sm"
               class="h-6 px-2 text-xs"
               @click="fileUploadRef?.click()"
             >
-              <Upload class="mr-1 h-3 w-3" />上传替换
+              <Upload class="h-3 w-3 mr-1" />上传替换
             </Button>
             <Button
               variant="ghost"
@@ -260,32 +283,38 @@ provide("dragging", isDraggingAny);
               :disabled="!isDirty || savingFile"
               @click="handleSave"
             >
-              <Loader2 v-if="savingFile" class="mr-1 h-3 w-3 animate-spin" />
-              <Save v-else class="mr-1 h-3 w-3" />
+              <Loader2 v-if="savingFile" class="h-3 w-3 mr-1 animate-spin" />
+              <Save v-else class="h-3 w-3 mr-1" />
               保存
             </Button>
           </div>
         </div>
 
-        <div v-if="!selectedPath" class="text-muted-foreground py-8 text-center text-xs italic">
+        <div
+          v-if="!selectedPath"
+          class="text-xs text-muted-foreground italic text-center py-8"
+        >
           点击左侧文件查看内容
         </div>
         <div
           v-else-if="fileUnsupported"
-          class="text-muted-foreground flex items-center justify-center gap-1 py-8 text-xs italic"
+          class="flex items-center justify-center gap-1 text-xs text-muted-foreground italic py-8"
         >
           <AlertCircle class="h-3 w-3" />不支持预览此类型文件
         </div>
         <div
           v-else-if="fileLoading"
-          class="text-muted-foreground flex items-center gap-2 py-4 text-xs"
+          class="flex items-center gap-2 text-xs text-muted-foreground py-4"
         >
           <Loader2 class="h-3 w-3 animate-spin" />加载中...
         </div>
-        <div v-else-if="fileError" class="text-destructive flex items-center gap-1 py-4 text-xs">
+        <div
+          v-else-if="fileError"
+          class="flex items-center gap-1 text-xs text-destructive py-4"
+        >
           <AlertCircle class="h-3 w-3" />{{ fileError }}
         </div>
-        <div v-else class="min-h-0 flex-1 overflow-hidden rounded border">
+        <div v-else class="flex-1 min-h-0 rounded overflow-hidden border">
           <Codemirror v-model="editedContent" :extensions="editorExtensions" />
         </div>
       </div>

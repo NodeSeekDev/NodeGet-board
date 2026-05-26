@@ -134,54 +134,70 @@ watch(() => [rows.value, themeStore.isDark], renderChart);
 <template>
   <div class="space-y-4">
     <div class="flex items-center justify-between">
-      <div class="text-muted-foreground flex items-center gap-2 text-sm">
+      <div class="flex items-center gap-2 text-sm text-muted-foreground">
         <Database class="h-4 w-4" />
         {{ t("dashboard.servers.detail.storageTotal") }}:
-        <span class="text-foreground font-mono">
+        <span class="font-mono text-foreground">
           {{ data ? formatBytes(data.total) : "--" }}
         </span>
       </div>
-      <Button size="sm" variant="outline" :disabled="loading" @click="emit('refresh')">
+      <Button
+        size="sm"
+        variant="outline"
+        :disabled="loading"
+        @click="emit('refresh')"
+      >
         <RefreshCw v-if="!loading" class="h-3.5 w-3.5" />
         <Loader2 v-else class="h-3.5 w-3.5 animate-spin" />
         {{ t("dashboard.servers.detail.storageRefresh") }}
       </Button>
     </div>
 
-    <div class="grid gap-4 md:grid-cols-2">
-      <div ref="chartRef" class="bg-card h-[280px] rounded-md border" />
-      <div class="bg-card overflow-hidden rounded-md border">
+    <div class="grid md:grid-cols-2 gap-4">
+      <div ref="chartRef" class="h-[280px] rounded-md border bg-card" />
+      <div class="rounded-md border bg-card overflow-hidden">
         <Table>
           <TableHeader class="bg-muted/30">
             <TableRow class="hover:bg-transparent">
-              <TableHead>{{ t("dashboard.servers.detail.storageTableName") }}</TableHead>
+              <TableHead>{{
+                t("dashboard.servers.detail.storageTableName")
+              }}</TableHead>
               <TableHead class="text-right">{{
                 t("dashboard.servers.detail.storageSize")
               }}</TableHead>
-              <TableHead class="pr-4 text-right">{{
+              <TableHead class="text-right pr-4">{{
                 t("dashboard.servers.detail.storagePercent")
               }}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             <TableRow v-if="!rows.length">
-              <TableCell colspan="3" class="text-muted-foreground h-32 text-center text-sm">
-                <Loader2 v-if="loading" class="mx-auto h-5 w-5 animate-spin" />
-                <span v-else>{{ t("dashboard.servers.detail.storageEmpty") }}</span>
+              <TableCell
+                colspan="3"
+                class="h-32 text-center text-sm text-muted-foreground"
+              >
+                <Loader2 v-if="loading" class="h-5 w-5 animate-spin mx-auto" />
+                <span v-else>{{
+                  t("dashboard.servers.detail.storageEmpty")
+                }}</span>
               </TableCell>
             </TableRow>
-            <TableRow v-for="(row, idx) in rows" :key="row.name" class="hover:bg-muted/40">
+            <TableRow
+              v-for="(row, idx) in rows"
+              :key="row.name"
+              class="hover:bg-muted/40"
+            >
               <TableCell class="font-mono text-xs">
                 <span
-                  class="mr-2 inline-block h-2.5 w-2.5 rounded-sm align-middle"
+                  class="inline-block h-2.5 w-2.5 rounded-sm mr-2 align-middle"
                   :style="{ backgroundColor: PALETTE[idx % PALETTE.length] }"
                 />
                 {{ row.name }}
               </TableCell>
-              <TableCell class="text-right font-mono text-xs">
+              <TableCell class="font-mono text-xs text-right">
                 {{ formatBytes(row.size) }}
               </TableCell>
-              <TableCell class="pr-4 text-right font-mono text-xs">
+              <TableCell class="font-mono text-xs text-right pr-4">
                 {{ row.percent.toFixed(1) }}%
               </TableCell>
             </TableRow>

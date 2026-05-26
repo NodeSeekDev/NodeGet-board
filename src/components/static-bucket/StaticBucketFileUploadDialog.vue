@@ -69,27 +69,34 @@ const handleUpload = () => {
         <div class="space-y-1.5">
           <Label>选择文件 <span class="text-destructive">*</span></Label>
           <div
-            class="hover:border-primary/50 cursor-pointer rounded-md border-2 border-dashed p-6 text-center transition-colors"
+            class="border-2 border-dashed rounded-md p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
             @click="fileInput?.click()"
           >
-            <Upload class="text-muted-foreground mx-auto mb-2 h-8 w-8" />
-            <p class="text-muted-foreground text-sm">
+            <Upload class="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+            <p class="text-sm text-muted-foreground">
               {{ selectedFile ? selectedFile.name : "点击选择文件" }}
             </p>
-            <p v-if="selectedFile" class="text-muted-foreground mt-1 text-xs">
+            <p v-if="selectedFile" class="text-xs text-muted-foreground mt-1">
               {{ (selectedFile.size / 1024).toFixed(1) }} KB
             </p>
           </div>
-          <input ref="fileInput" type="file" class="hidden" @change="onFileChange" />
+          <input
+            ref="fileInput"
+            type="file"
+            class="hidden"
+            @change="onFileChange"
+          />
         </div>
 
-        <p v-if="error" class="text-destructive text-sm">{{ error }}</p>
+        <p v-if="error" class="text-sm text-destructive">{{ error }}</p>
       </div>
 
       <DialogFooter>
-        <Button variant="outline" @click="emit('update:open', false)">取消</Button>
+        <Button variant="outline" @click="emit('update:open', false)"
+          >取消</Button
+        >
         <Button :disabled="loading || !canUpload" @click="handleUpload">
-          <Loader2 v-if="loading" class="mr-1 h-4 w-4 animate-spin" />
+          <Loader2 v-if="loading" class="h-4 w-4 mr-1 animate-spin" />
           上传
         </Button>
       </DialogFooter>

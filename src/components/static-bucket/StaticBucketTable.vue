@@ -62,7 +62,12 @@ function getPrevieLink(bucket: StaticBucket): string {
 <template>
   <div class="space-y-4">
     <div class="flex items-center justify-end gap-2">
-      <Button variant="outline" size="sm" :disabled="loading" @click="emit('refresh')">
+      <Button
+        variant="outline"
+        size="sm"
+        :disabled="loading"
+        @click="emit('refresh')"
+      >
         <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': loading }" />
       </Button>
       <Button variant="outline" size="sm" @click="emit('uploadDir')">
@@ -75,8 +80,13 @@ function getPrevieLink(bucket: StaticBucket): string {
       </Button>
     </div>
 
-    <div v-if="loading" class="text-muted-foreground py-10 text-center">加载中...</div>
-    <div v-else-if="buckets.length === 0" class="text-muted-foreground py-10 text-center">
+    <div v-if="loading" class="py-10 text-center text-muted-foreground">
+      加载中...
+    </div>
+    <div
+      v-else-if="buckets.length === 0"
+      class="py-10 text-center text-muted-foreground"
+    >
       暂无 Bucket
     </div>
     <Table v-else>
@@ -94,11 +104,13 @@ function getPrevieLink(bucket: StaticBucket): string {
         <TableRow v-for="bucket in buckets" :key="bucket.name">
           <TableCell>
             <button
-              class="group text-primary flex cursor-pointer items-center gap-1.5 text-left font-mono text-sm"
+              class="group flex cursor-pointer items-center gap-1.5 text-left font-mono text-sm text-primary"
               @click="emit('select', bucket.name)"
             >
               <FolderOpen class="h-4 w-4 shrink-0" />
-              <span class="underline-offset-2 group-hover:underline">{{ bucket.name }}</span>
+              <span class="underline-offset-2 group-hover:underline">{{
+                bucket.name
+              }}</span>
             </button>
           </TableCell>
           <TableCell>
@@ -111,7 +123,9 @@ function getPrevieLink(bucket: StaticBucket): string {
                 :model-value="bucket.enable"
                 @update:model-value="emit('toggleEnable', bucket)"
               />
-              <span v-if="bucket.enable" class="text-muted-foreground text-xs">启用</span>
+              <span v-if="bucket.enable" class="text-xs text-muted-foreground"
+                >启用</span
+              >
             </div>
           </TableCell>
           <!-- CORS -->
@@ -122,7 +136,9 @@ function getPrevieLink(bucket: StaticBucket): string {
                 :model-value="bucket.cors"
                 @update:model-value="emit('toggleCORS', bucket)"
               />
-              <span v-if="bucket.cors" class="text-muted-foreground text-xs">启用</span>
+              <span v-if="bucket.cors" class="text-xs text-muted-foreground"
+                >启用</span
+              >
             </div>
           </TableCell>
           <!-- HTTP 根路由 -->
@@ -133,13 +149,22 @@ function getPrevieLink(bucket: StaticBucket): string {
                 :model-value="bucket.is_http_root"
                 @update:model-value="emit('toggleHttpRoot', bucket)"
               />
-              <span v-if="bucket.is_http_root" class="text-muted-foreground text-xs">启用</span>
+              <span
+                v-if="bucket.is_http_root"
+                class="text-xs text-muted-foreground"
+                >启用</span
+              >
             </div>
           </TableCell>
           <TableCell class="text-right">
             <div class="flex justify-end gap-1">
               <a target="_blank" :href="getPrevieLink(bucket)">
-                <Button variant="ghost" size="sm" class="h-7 w-7 p-0" title="预览">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  class="h-7 w-7 p-0"
+                  title="预览"
+                >
                   <ArrowUpRight class="h-3.5 w-3.5" />
                 </Button>
               </a>
@@ -174,7 +199,7 @@ function getPrevieLink(bucket: StaticBucket): string {
                 <Button
                   variant="ghost"
                   size="sm"
-                  class="text-destructive hover:text-destructive h-7 w-7 p-0"
+                  class="h-7 w-7 p-0 text-destructive hover:text-destructive"
                 >
                   <Trash2 class="h-3.5 w-3.5" />
                 </Button>
@@ -184,7 +209,7 @@ function getPrevieLink(bucket: StaticBucket): string {
                 variant="ghost"
                 size="sm"
                 disabled
-                class="text-destructive h-7 w-7 p-0"
+                class="h-7 w-7 p-0 text-destructive"
               >
                 <Loader2 class="h-3.5 w-3.5 animate-spin" />
               </Button>

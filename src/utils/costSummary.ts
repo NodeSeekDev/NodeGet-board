@@ -110,7 +110,11 @@ export function currencySymbol(currency: BaseCurrency): string {
   return CURRENCY_TO_SYMBOL[currency];
 }
 
-function replaceTemplateTokens(template: string, base: string, targets: string): string {
+function replaceTemplateTokens(
+  template: string,
+  base: string,
+  targets: string,
+): string {
   return template.split("{base}").join(base).split("{targets}").join(targets);
 }
 
@@ -122,12 +126,18 @@ export function supportedCurrenciesForNodes(
     new Set(
       nodes
         .map((node) => currencyFromPriceUnit(node.priceUnit))
-        .filter((currency): currency is BaseCurrency => Boolean(currency) && currency !== base),
+        .filter(
+          (currency): currency is BaseCurrency =>
+            Boolean(currency) && currency !== base,
+        ),
     ),
   ).sort();
 }
 
-export function buildFrankfurterUrl(base: BaseCurrency, targets: BaseCurrency[]): string {
+export function buildFrankfurterUrl(
+  base: BaseCurrency,
+  targets: BaseCurrency[],
+): string {
   if (targets.length === 0) {
     return `https://api.frankfurter.dev/v1/latest?from=${base}`;
   }
@@ -153,7 +163,9 @@ export function buildCustomFxUrl(
   targets: BaseCurrency[],
 ): string {
   if (!isValidCustomFxUrlTemplate(template)) {
-    throw new Error("自定义汇率模板无效，必须是 http/https URL，且至少包含 {base} 占位符。");
+    throw new Error(
+      "自定义汇率模板无效，必须是 http/https URL，且至少包含 {base} 占位符。",
+    );
   }
 
   return replaceTemplateTokens(
@@ -177,7 +189,11 @@ export function buildFxUrl(
 export function fxProviderLabel(providerTemplate: string | null): string {
   if (!providerTemplate) return FX_PROVIDER;
   try {
-    const resolved = replaceTemplateTokens(providerTemplate.trim(), "USD", "EUR,GBP");
+    const resolved = replaceTemplateTokens(
+      providerTemplate.trim(),
+      "USD",
+      "EUR,GBP",
+    );
     const url = new URL(resolved);
     return `custom:${url.host}`;
   } catch {
@@ -189,8 +205,10 @@ export function parseFxSnapshot(raw: unknown): FxSnapshot | null {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const candidate = raw as Record<string, unknown>;
   const base = normalizeBaseCurrency(candidate.base);
-  const fetchedAt = typeof candidate.fetched_at === "string" ? candidate.fetched_at : "";
-  const provider = typeof candidate.provider === "string" ? candidate.provider : "";
+  const fetchedAt =
+    typeof candidate.fetched_at === "string" ? candidate.fetched_at : "";
+  const provider =
+    typeof candidate.provider === "string" ? candidate.provider : "";
   if (!base || !fetchedAt || !provider) return null;
 
   const parsed = new Date(fetchedAt);
@@ -200,7 +218,11 @@ export function parseFxSnapshot(raw: unknown): FxSnapshot | null {
   const rates: Partial<Record<BaseCurrency, number>> = {};
   if (ratesRaw && typeof ratesRaw === "object" && !Array.isArray(ratesRaw)) {
     for (const [key, value] of Object.entries(ratesRaw)) {
-      if (!isBaseCurrency(key) || typeof value !== "number" || !Number.isFinite(value)) {
+      if (
+        !isBaseCurrency(key) ||
+        typeof value !== "number" ||
+        !Number.isFinite(value)
+      ) {
         continue;
       }
       rates[key] = value;
@@ -215,11 +237,17 @@ export function parseFxSnapshot(raw: unknown): FxSnapshot | null {
   };
 }
 
-export function fxSnapshotAgeMs(snapshot: FxSnapshot, now = Date.now()): number {
+export function fxSnapshotAgeMs(
+  snapshot: FxSnapshot,
+  now = Date.now(),
+): number {
   return Math.max(0, now - new Date(snapshot.fetched_at).getTime());
 }
 
-export function isFxSnapshotFresh(snapshot: FxSnapshot, now = Date.now()): boolean {
+export function isFxSnapshotFresh(
+  snapshot: FxSnapshot,
+  now = Date.now(),
+): boolean {
   return fxSnapshotAgeMs(snapshot, now) <= FX_CACHE_TTL_MS;
 }
 
@@ -261,7 +289,11 @@ function parseDateOnly(value: string): Date | null {
   const month = Number(match[2]);
   const day = Number(match[3]);
   const date = new Date(year, month - 1, day);
-  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
     return null;
   }
   date.setHours(0, 0, 0, 0);
@@ -281,7 +313,10 @@ function startOfDay(date: Date): Date {
   return copy;
 }
 
-export function getRemainingDays(expireTime: string, today = new Date()): number | null {
+export function getRemainingDays(
+  expireTime: string,
+  today = new Date(),
+): number | null {
   const expire = parseDateOnly(expireTime);
   if (!expire) return null;
   const normalizedToday = startOfDay(today);
@@ -335,12 +370,17 @@ function monthlyOriginalCost(node: CostNodeRecord): number {
 }
 
 export function isExactMonthlyBaseDisplay(
-  node: Pick<EvaluatedCostNode, "monthlyCostBase" | "currencyCode" | "priceCycle">,
+  node: Pick<
+    EvaluatedCostNode,
+    "monthlyCostBase" | "currencyCode" | "priceCycle"
+  >,
   base: BaseCurrency,
 ): boolean {
   if (node.monthlyCostBase === null) return false;
   if (node.monthlyCostBase === 0) return true;
-  return node.currencyCode === base && normalizeCycleDays(node.priceCycle) === 30;
+  return (
+    node.currencyCode === base && normalizeCycleDays(node.priceCycle) === 30
+  );
 }
 
 export function isExactRemainingBaseDisplay(
@@ -387,7 +427,11 @@ export function aggregateCosts(
     } else if (!currencyCode) {
       excludedReason = "unsupported_currency";
       unsupportedNodeNames.push(node.customName);
-    } else if (snapshot === null || monthlyCostBase === null || remainingValueBase === null) {
+    } else if (
+      snapshot === null ||
+      monthlyCostBase === null ||
+      remainingValueBase === null
+    ) {
       excludedReason = "missing_fx";
       if (snapshot !== null) {
         missingRateNodeNames.push(node.customName);
@@ -395,7 +439,9 @@ export function aggregateCosts(
     }
 
     const groupKey = currencyCode ?? node.priceUnit ?? "UNKNOWN";
-    const groupSymbol = currencyCode ? currencySymbol(currencyCode) : node.priceUnit || "?";
+    const groupSymbol = currencyCode
+      ? currencySymbol(currencyCode)
+      : node.priceUnit || "?";
     const existing = grouped.get(groupKey) ?? {
       currency: groupKey,
       symbol: groupSymbol,
@@ -423,29 +469,40 @@ export function aggregateCosts(
   }
 
   const convertibleNodes = evaluatedNodes.filter(
-    (node) => !node.expired && node.monthlyCostBase !== null && node.remainingValueBase !== null,
+    (node) =>
+      !node.expired &&
+      node.monthlyCostBase !== null &&
+      node.remainingValueBase !== null,
   );
   const unified = snapshot !== null;
   const totalMonthlyCost = unified
-    ? convertibleNodes.reduce((sum, node) => sum + (node.monthlyCostBase ?? 0), 0)
+    ? convertibleNodes.reduce(
+        (sum, node) => sum + (node.monthlyCostBase ?? 0),
+        0,
+      )
     : 0;
   const totalRemainingValue = unified
-    ? convertibleNodes.reduce((sum, node) => sum + (node.remainingValueBase ?? 0), 0)
+    ? convertibleNodes.reduce(
+        (sum, node) => sum + (node.remainingValueBase ?? 0),
+        0,
+      )
     : 0;
   const expiringSoon = nodes.filter((node) => {
     const days = getRemainingDays(node.expireTime, today);
     return days !== null && days >= 0 && days <= 30;
   }).length;
 
-  const groupedMonthlyTotals = Array.from(grouped.values()).sort((left, right) =>
-    left.currency.localeCompare(right.currency),
+  const groupedMonthlyTotals = Array.from(grouped.values()).sort(
+    (left, right) => left.currency.localeCompare(right.currency),
   );
 
   return {
     unified,
     totalMonthlyCost,
     avgMonthlyCost:
-      unified && convertibleNodes.length ? totalMonthlyCost / convertibleNodes.length : 0,
+      unified && convertibleNodes.length
+        ? totalMonthlyCost / convertibleNodes.length
+        : 0,
     totalRemainingValue,
     expiringSoon,
     groupedMonthlyTotals,

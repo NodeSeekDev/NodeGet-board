@@ -24,10 +24,10 @@ const templates = computed(() => TOKEN_TEMPLATES);
               {{ t(template.nameKey) }}
             </div>
           </TableCell>
-          <TableCell class="text-muted-foreground align-top text-sm">
+          <TableCell class="align-top text-sm text-muted-foreground">
             {{ t(template.descriptionKey) }}
           </TableCell>
-          <TableCell class="w-[1%] text-right align-middle whitespace-nowrap">
+          <TableCell class="w-[1%] whitespace-nowrap text-right align-middle">
             <Button type="button" @click="emits('select', template)">
               {{ t("dashboard.token.create.templates.useTemplate") }}
             </Button>

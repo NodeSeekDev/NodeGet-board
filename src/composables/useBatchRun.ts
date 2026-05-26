@@ -7,7 +7,11 @@ export const useBatchRun = () => {
   const runStatus = ref(false);
   const result = ref<TaskResult[]>([]);
 
-  const run = async (cmd: string = "bash", code: string, selectedNodes: { uuid: string }[]) => {
+  const run = async (
+    cmd: string = "bash",
+    code: string,
+    selectedNodes: { uuid: string }[],
+  ) => {
     if (!code) return toast.error("please input code");
     if (!selectedNodes.length) return toast.error("please select node");
     if (runStatus.value) return;

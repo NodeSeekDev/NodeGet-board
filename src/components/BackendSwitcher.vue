@@ -62,7 +62,8 @@ const isOpen = computed({
   set: (val) => emit("update:open", val),
 });
 
-const { backends, currentBackend, addBackend, removeBackend, selectBackend } = useBackendStore();
+const { backends, currentBackend, addBackend, removeBackend, selectBackend } =
+  useBackendStore();
 const { serverInfo, refreshAll } = useBackendExtra();
 
 const newName = ref(props.initForm.newName);
@@ -206,13 +207,16 @@ watch(
         </DialogDescription>
       </DialogHeader>
 
-      <div class="grid gap-4 py-4" :class="{ 'pointer-events-none opacity-50': isLoading }">
+      <div
+        class="grid gap-4 py-4"
+        :class="{ 'pointer-events-none opacity-50': isLoading }"
+      >
         <!-- 主控列表：仅在 showList !== false 时显示 -->
         <template v-if="showList !== false">
           <div class="flex max-h-[300px] flex-col gap-2 overflow-y-auto">
             <div
               v-if="backends.length === 0"
-              class="text-muted-foreground py-4 text-center text-sm"
+              class="py-4 text-center text-sm text-muted-foreground"
             >
               No backends added. Add one below :D
             </div>
@@ -222,7 +226,8 @@ watch(
               class="flex items-center justify-between rounded-md border p-3"
               :class="{
                 'border-primary bg-primary/5':
-                  currentBackend?.url === backend.url && currentBackend?.token === backend.token,
+                  currentBackend?.url === backend.url &&
+                  currentBackend?.token === backend.token,
               }"
             >
               <div class="mr-4 flex min-w-0 flex-1 flex-col">
@@ -230,22 +235,26 @@ watch(
                   <span class="truncate font-medium">{{ backend.name }}</span>
                   <span
                     v-if="
-                      currentBackend?.url === backend.url && currentBackend?.token === backend.token
+                      currentBackend?.url === backend.url &&
+                      currentBackend?.token === backend.token
                     "
-                    class="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-xs"
+                    class="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary"
                     >Active</span
                   >
                 </div>
-                <span class="text-muted-foreground truncate text-xs" :title="backend.url">{{
-                  backend.url
-                }}</span>
+                <span
+                  class="truncate text-xs text-muted-foreground"
+                  :title="backend.url"
+                  >{{ backend.url }}</span
+                >
               </div>
 
               <div class="flex items-center gap-2">
                 <Button
                   v-if="
                     !(
-                      currentBackend?.url === backend.url && currentBackend?.token === backend.token
+                      currentBackend?.url === backend.url &&
+                      currentBackend?.token === backend.token
                     )
                   "
                   size="sm"
@@ -257,7 +266,7 @@ watch(
                   size="icon"
                   variant="ghost"
                   :disabled="backend.name === 'Dev'"
-                  class="text-destructive hover:text-destructive/90 h-8 w-8"
+                  class="h-8 w-8 text-destructive hover:text-destructive/90"
                   @click="handleRemove(backend)"
                 >
                   <Trash2 class="h-4 w-4" />
@@ -270,7 +279,9 @@ watch(
 
         <!-- 添加表单 -->
         <div class="grid gap-4">
-          <span class="text-sm font-medium">{{ t("dashboard.servers.addServer") }}</span>
+          <span class="text-sm font-medium">{{
+            t("dashboard.servers.addServer")
+          }}</span>
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-2">
               <Label for="name">{{ t("dashboard.servers.fieldName") }}</Label>
@@ -288,22 +299,32 @@ watch(
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-2">
-              <Label for="protocol">{{ t("dashboard.servers.fieldProtocol") }}</Label>
+              <Label for="protocol">{{
+                t("dashboard.servers.fieldProtocol")
+              }}</Label>
               <!-- <Input id="protocol" v-model="newProtocol" placeholder="wss" /> -->
               <Select v-model="newProtocol">
                 <SelectTrigger class="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem v-for="item in protocolList" :value="item + ':'">{{
-                    item
-                  }}</SelectItem>
+                  <SelectItem
+                    v-for="item in protocolList"
+                    :value="item + ':'"
+                    >{{ item }}</SelectItem
+                  >
                 </SelectContent>
               </Select>
             </div>
             <div class="space-y-2">
-              <Label for="pathname">{{ t("dashboard.servers.fieldPathname") }}</Label>
-              <Input id="pathname" v-model="newPathname" placeholder="/nodeget/rpc" />
+              <Label for="pathname">{{
+                t("dashboard.servers.fieldPathname")
+              }}</Label>
+              <Input
+                id="pathname"
+                v-model="newPathname"
+                placeholder="/nodeget/rpc"
+              />
             </div>
           </div>
           <div class="space-y-2">
@@ -330,7 +351,9 @@ watch(
             <Loader2 v-if="isLoading" class="mr-2 h-4 w-4 animate-spin" />
             <Plus v-else class="mr-2 h-4 w-4" />
             {{
-              isLoading ? t("dashboard.servers.addServerLoading") : t("dashboard.servers.addServer")
+              isLoading
+                ? t("dashboard.servers.addServerLoading")
+                : t("dashboard.servers.addServer")
             }}
           </RainbowButton>
           <Button v-else disabled variant="outline" class="h-11 rounded-xl">

@@ -8,7 +8,11 @@ export const normalizeRollTargetToken = (value: string | null | undefined) => {
   return normalized.slice(0, separatorIndex).trim();
 };
 
-export type PasswordChangeValidationError = "" | "required" | "tooShort" | "mismatch";
+export type PasswordChangeValidationError =
+  | ""
+  | "required"
+  | "tooShort"
+  | "mismatch";
 
 export const getPasswordChangeValidationError = (
   password: string,

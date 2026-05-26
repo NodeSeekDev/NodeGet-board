@@ -90,7 +90,9 @@ const patchAndSaveConfigJson = async (
 };
 
 const overviewEntries = computed(() =>
-  Object.entries(themeJson.value).filter(([k]) => k !== "user_preferences_form"),
+  Object.entries(themeJson.value).filter(
+    ([k]) => k !== "user_preferences_form",
+  ),
 );
 
 const userPrefFormItems = computed<UserPrefFormItem[]>(() => {
@@ -236,7 +238,9 @@ const removeAuthRow = (index: number) => {
 };
 
 const addPreset = (preset: TokenPreset) => {
-  const exists = authEntries.value.some((e) => e.name === preset.name && e.token === preset.token);
+  const exists = authEntries.value.some(
+    (e) => e.name === preset.name && e.token === preset.token,
+  );
   if (!exists) {
     authEntries.value.push({ ...preset });
   }
@@ -267,16 +271,22 @@ watch(
   },
 );
 
-const jsonExtensions = computed(() => [json(), ...(themeStore.isDark ? [oneDark] : [])]);
+const jsonExtensions = computed(() => [
+  json(),
+  ...(themeStore.isDark ? [oneDark] : []),
+]);
 const cssExtensions = computed(() => [
   StreamLanguage.define(css),
   ...(themeStore.isDark ? [oneDark] : []),
 ]);
-const jsExtensions = computed(() => [javascript(), ...(themeStore.isDark ? [oneDark] : [])]);
+const jsExtensions = computed(() => [
+  javascript(),
+  ...(themeStore.isDark ? [oneDark] : []),
+]);
 </script>
 
 <template>
-  <div class="bg-background mt-2 rounded-lg border p-4">
+  <div class="mt-2 border rounded-lg p-4 bg-background">
     <Tabs v-model="activeTab">
       <TabsList class="mb-4">
         <TabsTrigger value="overview">概览</TabsTrigger>
@@ -289,17 +299,22 @@ const jsExtensions = computed(() => [javascript(), ...(themeStore.isDark ? [oneD
       <TabsContent value="overview">
         <div
           v-if="overviewLoading"
-          class="text-muted-foreground flex items-center gap-2 py-4 text-sm"
+          class="flex items-center gap-2 py-4 text-muted-foreground text-sm"
         >
           <Loader2 class="h-4 w-4 animate-spin" />
           加载中...
         </div>
-        <div v-else-if="!overviewEntries.length" class="text-muted-foreground py-4 text-sm">
+        <div
+          v-else-if="!overviewEntries.length"
+          class="py-4 text-muted-foreground text-sm"
+        >
           未找到 nodeget-theme.json
         </div>
         <div v-else class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
           <template v-for="[key, value] in overviewEntries" :key="key">
-            <span class="text-muted-foreground shrink-0 font-medium">{{ key }}</span>
+            <span class="text-muted-foreground font-medium shrink-0">{{
+              key
+            }}</span>
             <span class="break-all">{{
               typeof value === "object" ? JSON.stringify(value) : String(value)
             }}</span>
@@ -310,41 +325,60 @@ const jsExtensions = computed(() => [javascript(), ...(themeStore.isDark ? [oneD
       <TabsContent value="user-prefs">
         <div
           v-if="overviewLoading"
-          class="text-muted-foreground flex items-center gap-2 py-4 text-sm"
+          class="flex items-center gap-2 py-4 text-muted-foreground text-sm"
         >
           <Loader2 class="h-4 w-4 animate-spin" />
           加载中...
         </div>
         <div v-else>
           <div v-if="userPrefFormItems.length" class="space-y-3">
-            <template v-for="field in userPrefFormItems" :key="field.key ?? field.name">
-              <p v-if="field.type === 'title'" class="text-foreground mt-2 text-sm font-medium">
+            <template
+              v-for="field in userPrefFormItems"
+              :key="field.key ?? field.name"
+            >
+              <p
+                v-if="field.type === 'title'"
+                class="font-medium text-sm mt-2 text-foreground"
+              >
                 {{ field.name }}
               </p>
-              <div v-else-if="field.key" class="grid grid-cols-[180px_1fr] items-center gap-4">
+              <div
+                v-else-if="field.key"
+                class="grid grid-cols-[180px_1fr] items-center gap-4"
+              >
                 <Label class="text-right">{{ field.name }}</Label>
                 <div>
                   <Input
                     v-if="field.type === 'string'"
-                    :model-value="String(userPrefValues[field.key] ?? field.default ?? '')"
+                    :model-value="
+                      String(userPrefValues[field.key] ?? field.default ?? '')
+                    "
                     :placeholder="field.help ?? ''"
                     @update:model-value="userPrefValues[field.key!] = $event"
                   />
                   <Input
                     v-else-if="field.type === 'number'"
                     type="number"
-                    :model-value="String(userPrefValues[field.key] ?? field.default ?? 0)"
+                    :model-value="
+                      String(userPrefValues[field.key] ?? field.default ?? 0)
+                    "
                     :placeholder="field.help ?? ''"
-                    @update:model-value="userPrefValues[field.key!] = Number($event)"
+                    @update:model-value="
+                      userPrefValues[field.key!] = Number($event)
+                    "
                   />
                   <button
                     v-else-if="field.type === 'switch'"
                     class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
                     :class="
-                      (userPrefValues[field.key] ?? field.default) ? 'bg-primary' : 'bg-input'
+                      (userPrefValues[field.key] ?? field.default)
+                        ? 'bg-primary'
+                        : 'bg-input'
                     "
                     @click="
-                      userPrefValues[field.key!] = !(userPrefValues[field.key] ?? field.default)
+                      userPrefValues[field.key!] = !(
+                        userPrefValues[field.key] ?? field.default
+                      )
                     "
                   >
                     <span
@@ -358,7 +392,9 @@ const jsExtensions = computed(() => [javascript(), ...(themeStore.isDark ? [oneD
                   </button>
                   <Select
                     v-else-if="field.type === 'select'"
-                    :model-value="String(userPrefValues[field.key] ?? field.default ?? '')"
+                    :model-value="
+                      String(userPrefValues[field.key] ?? field.default ?? '')
+                    "
                     @update:model-value="userPrefValues[field.key!] = $event"
                   >
                     <SelectTrigger>
@@ -376,7 +412,7 @@ const jsExtensions = computed(() => [javascript(), ...(themeStore.isDark ? [oneD
                   </Select>
                   <p
                     v-if="field.help && field.type !== 'switch'"
-                    class="text-muted-foreground mt-1 text-xs"
+                    class="text-xs text-muted-foreground mt-1"
                   >
                     {{ field.help }}
                   </p>
@@ -386,7 +422,7 @@ const jsExtensions = computed(() => [javascript(), ...(themeStore.isDark ? [oneD
           </div>
 
           <div v-else class="space-y-2">
-            <p class="text-muted-foreground text-xs">
+            <p class="text-xs text-muted-foreground">
               该主题未定义 user_preferences_form，可直接编辑 JSON
             </p>
             <Codemirror
@@ -396,10 +432,13 @@ const jsExtensions = computed(() => [javascript(), ...(themeStore.isDark ? [oneD
             />
           </div>
 
-          <div class="mt-4 flex justify-end">
+          <div class="flex justify-end mt-4">
             <Button :disabled="userPrefSaving" @click="saveUserPrefs">
-              <Loader2 v-if="userPrefSaving" class="mr-1 h-4 w-4 animate-spin" />
-              <Check v-else class="mr-1 h-4 w-4" />
+              <Loader2
+                v-if="userPrefSaving"
+                class="h-4 w-4 animate-spin mr-1"
+              />
+              <Check v-else class="h-4 w-4 mr-1" />
               保存
             </Button>
           </div>
@@ -407,7 +446,10 @@ const jsExtensions = computed(() => [javascript(), ...(themeStore.isDark ? [oneD
       </TabsContent>
 
       <TabsContent value="custom-css">
-        <div v-if="cssLoading" class="text-muted-foreground flex items-center gap-2 py-4 text-sm">
+        <div
+          v-if="cssLoading"
+          class="flex items-center gap-2 py-4 text-muted-foreground text-sm"
+        >
           <Loader2 class="h-4 w-4 animate-spin" />
           加载中...
         </div>
@@ -419,8 +461,8 @@ const jsExtensions = computed(() => [javascript(), ...(themeStore.isDark ? [oneD
           />
           <div class="flex justify-end">
             <Button :disabled="cssSaving" @click="saveCss">
-              <Loader2 v-if="cssSaving" class="mr-1 h-4 w-4 animate-spin" />
-              <Check v-else class="mr-1 h-4 w-4" />
+              <Loader2 v-if="cssSaving" class="h-4 w-4 animate-spin mr-1" />
+              <Check v-else class="h-4 w-4 mr-1" />
               保存
             </Button>
           </div>
@@ -428,7 +470,10 @@ const jsExtensions = computed(() => [javascript(), ...(themeStore.isDark ? [oneD
       </TabsContent>
 
       <TabsContent value="custom-js">
-        <div v-if="jsLoading" class="text-muted-foreground flex items-center gap-2 py-4 text-sm">
+        <div
+          v-if="jsLoading"
+          class="flex items-center gap-2 py-4 text-muted-foreground text-sm"
+        >
           <Loader2 class="h-4 w-4 animate-spin" />
           加载中...
         </div>
@@ -440,8 +485,8 @@ const jsExtensions = computed(() => [javascript(), ...(themeStore.isDark ? [oneD
           />
           <div class="flex justify-end">
             <Button :disabled="jsSaving" @click="saveJs">
-              <Loader2 v-if="jsSaving" class="mr-1 h-4 w-4 animate-spin" />
-              <Check v-else class="mr-1 h-4 w-4" />
+              <Loader2 v-if="jsSaving" class="h-4 w-4 animate-spin mr-1" />
+              <Check v-else class="h-4 w-4 mr-1" />
               保存
             </Button>
           </div>
@@ -451,7 +496,7 @@ const jsExtensions = computed(() => [javascript(), ...(themeStore.isDark ? [oneD
       <TabsContent value="token-auth">
         <div
           v-if="overviewLoading"
-          class="text-muted-foreground flex items-center gap-2 py-4 text-sm"
+          class="flex items-center gap-2 py-4 text-muted-foreground text-sm"
         >
           <Loader2 class="h-4 w-4 animate-spin" />
           加载中...
@@ -459,7 +504,7 @@ const jsExtensions = computed(() => [javascript(), ...(themeStore.isDark ? [oneD
         <div v-else class="space-y-3">
           <div
             v-if="authEntries.length"
-            class="text-muted-foreground grid grid-cols-[1fr_1fr_1fr_auto] gap-2 px-1 text-xs"
+            class="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 text-xs text-muted-foreground px-1"
           >
             <span>名称</span>
             <span>后端 URL</span>
@@ -470,23 +515,31 @@ const jsExtensions = computed(() => [javascript(), ...(themeStore.isDark ? [oneD
           <div
             v-for="(entry, i) in authEntries"
             :key="i"
-            class="grid grid-cols-[1fr_1fr_1fr_auto] items-center gap-2"
+            class="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 items-center"
           >
             <Input v-model="entry.name" placeholder="名称" />
             <Input v-model="entry.backend_url" placeholder="https://..." />
             <Input v-model="entry.token" placeholder="token" />
-            <Button variant="ghost" size="icon" class="shrink-0" @click="removeAuthRow(i)">
+            <Button
+              variant="ghost"
+              size="icon"
+              class="shrink-0"
+              @click="removeAuthRow(i)"
+            >
               <Trash2 class="h-4 w-4" />
             </Button>
           </div>
 
-          <div v-if="!authEntries.length" class="text-muted-foreground py-3 text-center text-sm">
+          <div
+            v-if="!authEntries.length"
+            class="text-center text-muted-foreground text-sm py-3"
+          >
             暂无授权配置
           </div>
 
           <div class="flex flex-wrap items-center gap-2 pt-1">
             <Button variant="outline" size="sm" @click="addAuthRow">
-              <Plus class="mr-1 h-4 w-4" />
+              <Plus class="h-4 w-4 mr-1" />
               添加空白
             </Button>
             <template v-if="tokenPresets.length">
@@ -497,7 +550,7 @@ const jsExtensions = computed(() => [javascript(), ...(themeStore.isDark ? [oneD
                 size="sm"
                 @click="addPreset(preset)"
               >
-                <Plus class="mr-1 h-4 w-4" />
+                <Plus class="h-4 w-4 mr-1" />
                 {{ preset.name }}
               </Button>
             </template>
@@ -509,13 +562,13 @@ const jsExtensions = computed(() => [javascript(), ...(themeStore.isDark ? [oneD
                 loadTokenPresets();
               "
             >
-              <RotateCcw class="mr-1 h-4 w-4" />
+              <RotateCcw class="h-4 w-4 mr-1" />
               刷新
             </Button>
             <div class="flex-1" />
             <Button :disabled="authSaving" @click="saveAuth">
-              <Loader2 v-if="authSaving" class="mr-1 h-4 w-4 animate-spin" />
-              <Check v-else class="mr-1 h-4 w-4" />
+              <Loader2 v-if="authSaving" class="h-4 w-4 animate-spin mr-1" />
+              <Check v-else class="h-4 w-4 mr-1" />
               确定
             </Button>
           </div>

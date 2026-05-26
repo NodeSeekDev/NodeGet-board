@@ -35,7 +35,10 @@ export function useThemeTokenPresets() {
   const kv = useKv();
   const backendStore = useBackendStore();
 
-  const buildTokenPayload = (username: string, permissions: PermissionEntry[]) =>
+  const buildTokenPayload = (
+    username: string,
+    permissions: PermissionEntry[],
+  ) =>
     serializeTokenPayload({
       ...createDefaultToken(),
       username,
@@ -83,9 +86,16 @@ export function useThemeTokenPresets() {
 
     const settle = async (username: string, permissions: PermissionEntry[]) => {
       try {
-        return await createTokenOnBackend(backend.url, backend.token, username, permissions);
+        return await createTokenOnBackend(
+          backend.url,
+          backend.token,
+          username,
+          permissions,
+        );
       } catch (e: unknown) {
-        toast.warning(`${username}: ${e instanceof Error ? e.message : String(e)}`);
+        toast.warning(
+          `${username}: ${e instanceof Error ? e.message : String(e)}`,
+        );
         return "";
       }
     };
@@ -105,7 +115,9 @@ export function useThemeTokenPresets() {
   const loadOrInitPresets = async (): Promise<TokenPreset[]> => {
     kv.namespace.value = KV_NAMESPACE;
     const raw = await kv.getValue(KV_KEY);
-    const saved: TokenPreset[] = Array.isArray(raw) ? (raw as TokenPreset[]) : [];
+    const saved: TokenPreset[] = Array.isArray(raw)
+      ? (raw as TokenPreset[])
+      : [];
     if (saved.length === 0 && backendStore.currentBackend.value) {
       const initialized = await initDefaultPresets();
       kv.namespace.value = KV_NAMESPACE;

@@ -2,7 +2,11 @@
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import { Loader2 } from "lucide-vue-next";
-import type { LogActionStatus, LogEntry, LogStatus } from "@/composables/useLogs";
+import type {
+  LogActionStatus,
+  LogEntry,
+  LogStatus,
+} from "@/composables/useLogs";
 import LogsItem from "./logsItem.vue";
 
 interface LogsListProps {
@@ -35,11 +39,13 @@ const loadingText = computed(() => {
 </script>
 
 <template>
-  <div class="bg-background/30 mt-4 max-h-[60vh] overflow-y-auto rounded-md border p-2">
+  <div
+    class="mt-4 max-h-[60vh] overflow-y-auto rounded-md border bg-background/30 p-2"
+  >
     <div class="space-y-2">
       <div
         v-if="isBusy"
-        class="bg-muted/40 text-muted-foreground flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs"
+        class="flex items-center gap-2 rounded-md border bg-muted/40 px-2.5 py-1.5 text-xs text-muted-foreground"
       >
         <Loader2 class="h-3.5 w-3.5 animate-spin" />
         <span>{{ loadingText }}</span>
@@ -47,14 +53,14 @@ const loadingText = computed(() => {
 
       <div
         v-if="error"
-        class="border-destructive/40 bg-destructive/10 text-destructive rounded-md border px-2.5 py-1.5 text-xs"
+        class="rounded-md border border-destructive/40 bg-destructive/10 px-2.5 py-1.5 text-xs text-destructive"
       >
         {{ error }}
       </div>
 
       <div
         v-if="logs.length === 0"
-        class="text-muted-foreground rounded-md border border-dashed px-3 py-6 text-center text-xs"
+        class="rounded-md border border-dashed px-3 py-6 text-center text-xs text-muted-foreground"
       >
         <span v-if="status === 'connecting'">
           {{ t("dashboard.logsPanel.empty.connecting") }}

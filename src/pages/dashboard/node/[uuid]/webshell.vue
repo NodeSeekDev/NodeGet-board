@@ -11,13 +11,15 @@ definePage({
   },
 });
 
-const route = useRoute();
-const uuid = (route.params as { uuid: string }).uuid;
+const route = useRoute("/dashboard/node/[uuid]/webshell");
+const uuid = route.params.uuid;
 
 const { currentBackend } = useBackendStore();
 
 const webshellReady = computed(() => {
-  return Boolean(currentBackend.value?.url && currentBackend.value?.token && uuid);
+  return Boolean(
+    currentBackend.value?.url && currentBackend.value?.token && uuid,
+  );
 });
 </script>
 
@@ -32,8 +34,9 @@ const webshellReady = computed(() => {
         class="h-full"
       />
       <Card v-else>
-        <CardContent class="text-muted-foreground py-6 text-sm">
-          Current backend config is incomplete, unable to create a WebShell task.
+        <CardContent class="py-6 text-sm text-muted-foreground">
+          Current backend config is incomplete, unable to create a WebShell
+          task.
         </CardContent>
       </Card>
     </div>

@@ -63,14 +63,16 @@ function syncFromConfig(config: splitConfig) {
   logLevel.value = basicConfig.log_level || "info";
   ipProvider.value = basicConfig.ip_provider || "ipinfo";
   dynamicReportInterval.value = basicConfig.dynamic_report_interval_ms || 1000;
-  dynamicSummaryReportInterval.value = basicConfig.dynamic_summary_report_interval_ms || 1000;
+  dynamicSummaryReportInterval.value =
+    basicConfig.dynamic_summary_report_interval_ms || 1000;
   staticReportInterval.value = basicConfig.static_report_interval_ms || 300000;
   terminalShell.value = basicConfig.terminal_shell || "bash";
   execMaxCharacter.value = basicConfig.exec_max_character;
   connectTimeout.value = basicConfig.connect_timeout_ms;
   dynamic_summary_select_network_interface.value =
     basicConfig.dynamic_summary_select_network_interface || [];
-  dynamic_summary_select_disk.value = basicConfig.dynamic_summary_select_disk || [];
+  dynamic_summary_select_disk.value =
+    basicConfig.dynamic_summary_select_disk || [];
 
   // 从 server 配置中提取第一个 server 的 allow_* 属性
   if (currentUpstream) {
@@ -104,7 +106,8 @@ function buildConfig(): AgentConfig {
   config.log_level = logLevel.value;
   config.ip_provider = ipProvider.value;
   config.dynamic_report_interval_ms = dynamicReportInterval.value;
-  config.dynamic_summary_report_interval_ms = dynamicSummaryReportInterval.value;
+  config.dynamic_summary_report_interval_ms =
+    dynamicSummaryReportInterval.value;
   config.static_report_interval_ms = staticReportInterval.value;
   config.terminal_shell = terminalShell.value;
 
@@ -150,7 +153,9 @@ onMounted(async () => {
     // todo: find current backend, watch
     syncFromConfig(config);
   } catch (e: unknown) {
-    toast.error(e instanceof Error ? e.message : t("dashboard.node.config.loadFailed"));
+    toast.error(
+      e instanceof Error ? e.message : t("dashboard.node.config.loadFailed"),
+    );
   } finally {
     loading.value = false;
   }
@@ -163,13 +168,17 @@ onMounted(async () => {
     if (!latest) {
       return;
     }
-    if (Array.isArray(latest.network?.interfaces) && latest.network.interfaces.length > 0) {
-      dynamic_summary_select_network_interface_list.value = latest.network.interfaces.map(
-        (i) => i.interface_name,
-      );
+    if (
+      Array.isArray(latest.network?.interfaces) &&
+      latest.network.interfaces.length > 0
+    ) {
+      dynamic_summary_select_network_interface_list.value =
+        latest.network.interfaces.map((i) => i.interface_name);
     }
     if (Array.isArray(latest.disk) && latest.disk.length > 0) {
-      dynamic_summary_select_disk_list.value = latest.disk.map((d) => d.mount_point);
+      dynamic_summary_select_disk_list.value = latest.disk.map(
+        (d) => d.mount_point,
+      );
     }
   });
 });
@@ -191,7 +200,9 @@ async function handleSave() {
       toast.error(t("dashboard.saveFailed"));
     }
   } catch (e: unknown) {
-    toast.error(e instanceof Error ? e.message : t("dashboard.node.config.saveFailed"));
+    toast.error(
+      e instanceof Error ? e.message : t("dashboard.node.config.saveFailed"),
+    );
   } finally {
     saveLoading.value = false;
   }
@@ -200,7 +211,10 @@ async function handleSave() {
 
 <template>
   <div class="max-w-lg space-y-5">
-    <div v-if="loading" class="text-muted-foreground flex items-center gap-2 py-4 text-sm">
+    <div
+      v-if="loading"
+      class="flex items-center gap-2 py-4 text-sm text-muted-foreground"
+    >
       <Loader2 class="h-4 w-4 animate-spin" />
       {{ $t("common.loading") }}
     </div>
@@ -240,10 +254,16 @@ async function handleSave() {
 
         <!-- 动态监控上报间隔 (ms) -->
         <div class="space-y-1.5">
-          <Label>{{ $t("dashboard.node.config.dynamicSummaryReportInterval") }}</Label>
+          <Label>{{
+            $t("dashboard.node.config.dynamicSummaryReportInterval")
+          }}</Label>
           <div class="flex items-center gap-2">
-            <NumberField v-model="dynamicSummaryReportInterval" :min="1000" class="w-40" />
-            <span class="text-muted-foreground text-sm">
+            <NumberField
+              v-model="dynamicSummaryReportInterval"
+              :min="1000"
+              class="w-40"
+            />
+            <span class="text-sm text-muted-foreground">
               {{ $t("dashboard.node.config.msUnit") }}
             </span>
           </div>
@@ -253,8 +273,12 @@ async function handleSave() {
         <div class="space-y-1.5">
           <Label>{{ $t("dashboard.node.config.dynamicReportInterval") }}</Label>
           <div class="flex items-center gap-2">
-            <NumberField v-model="dynamicReportInterval" :min="1000" class="w-40" />
-            <span class="text-muted-foreground text-sm">
+            <NumberField
+              v-model="dynamicReportInterval"
+              :min="1000"
+              class="w-40"
+            />
+            <span class="text-sm text-muted-foreground">
               {{ $t("dashboard.node.config.msUnit") }}
             </span>
           </div>
@@ -264,8 +288,12 @@ async function handleSave() {
         <div class="space-y-1.5">
           <Label>{{ $t("dashboard.node.config.staticReportInterval") }}</Label>
           <div class="flex items-center gap-2">
-            <NumberField v-model="staticReportInterval" :min="1000" class="w-40" />
-            <span class="text-muted-foreground text-sm">
+            <NumberField
+              v-model="staticReportInterval"
+              :min="1000"
+              class="w-40"
+            />
+            <span class="text-sm text-muted-foreground">
               {{ $t("dashboard.node.config.msUnit") }}
             </span>
           </div>
@@ -281,7 +309,7 @@ async function handleSave() {
               class="w-40"
               @update:model-value="connectTimeout = $event"
             />
-            <span class="text-muted-foreground text-sm">
+            <span class="text-sm text-muted-foreground">
               {{ $t("dashboard.node.config.msUnit") }}
             </span>
           </div>
@@ -323,7 +351,9 @@ async function handleSave() {
             <SelectTrigger class="w-48">
               <SelectValue
                 :placeholder="
-                  dynamic_summary_select_disk_list.length === 0 ? '无可选磁盘' : '请选择磁盘'
+                  dynamic_summary_select_disk_list.length === 0
+                    ? '无可选磁盘'
+                    : '请选择磁盘'
                 "
               />
             </SelectTrigger>
@@ -344,7 +374,9 @@ async function handleSave() {
           <Select
             v-model="dynamic_summary_select_network_interface"
             multiple
-            :disabled="dynamic_summary_select_network_interface_list.length === 0"
+            :disabled="
+              dynamic_summary_select_network_interface_list.length === 0
+            "
           >
             <SelectTrigger class="w-48">
               <SelectValue
@@ -376,32 +408,45 @@ async function handleSave() {
         <template v-if="allowTaskType.size > 0">
           <div class="space-y-2 pt-2">
             <div class="flex items-center justify-between">
-              <span class="text-sm">{{ $t("dashboard.node.config.featureIcmpPing") }}</span>
+              <span class="text-sm">{{
+                $t("dashboard.node.config.featureIcmpPing")
+              }}</span>
               <Switch
                 :modelValue="allowTaskType.has('ping')"
                 @update:model-value="
-                  (v) => (v ? allowTaskType.add('ping') : allowTaskType.delete('ping'))
+                  (v) =>
+                    v ? allowTaskType.add('ping') : allowTaskType.delete('ping')
                 "
                 :disabled="!allowTaskType.has('edit_config')"
               />
             </div>
             <div class="flex items-center justify-between">
-              <span class="text-sm">{{ $t("dashboard.node.config.featureTcpPing") }}</span>
+              <span class="text-sm">{{
+                $t("dashboard.node.config.featureTcpPing")
+              }}</span>
               <Switch
                 :modelValue="allowTaskType.has('tcp_ping')"
                 @update:model-value="
-                  (v) => (v ? allowTaskType.add('tcp_ping') : allowTaskType.delete('tcp_ping'))
+                  (v) =>
+                    v
+                      ? allowTaskType.add('tcp_ping')
+                      : allowTaskType.delete('tcp_ping')
                 "
                 :disabled="!allowTaskType.has('edit_config')"
               />
             </div>
             <div class="flex items-center justify-between">
-              <span class="text-sm">{{ $t("dashboard.node.config.featureHttpPing") }}</span>
+              <span class="text-sm">{{
+                $t("dashboard.node.config.featureHttpPing")
+              }}</span>
               <Switch
                 :modelValue="allowTaskType.has('http_ping')"
                 :disabled="!allowTaskType.has('edit_config')"
                 @update:model-value="
-                  (v) => (v ? allowTaskType.add('http_ping') : allowTaskType.delete('http_ping'))
+                  (v) =>
+                    v
+                      ? allowTaskType.add('http_ping')
+                      : allowTaskType.delete('http_ping')
                 "
               />
             </div>
@@ -410,90 +455,127 @@ async function handleSave() {
               <Switch
                 :modelValue="allowTaskType.has('dns')"
                 @update:model-value="
-                  (v) => (v ? allowTaskType.add('dns') : allowTaskType.delete('dns'))
+                  (v) =>
+                    v ? allowTaskType.add('dns') : allowTaskType.delete('dns')
                 "
                 :disabled="!allowTaskType.has('edit_config')"
               />
             </div>
             <div class="flex items-center justify-between">
-              <span class="text-sm">{{ $t("dashboard.node.config.featureHttpRequest") }}</span>
+              <span class="text-sm">{{
+                $t("dashboard.node.config.featureHttpRequest")
+              }}</span>
               <Switch
                 :modelValue="allowTaskType.has('http_request')"
                 @update:model-value="
                   (v) =>
-                    v ? allowTaskType.add('http_request') : allowTaskType.delete('http_request')
+                    v
+                      ? allowTaskType.add('http_request')
+                      : allowTaskType.delete('http_request')
                 "
                 :disabled="!allowTaskType.has('edit_config')"
               />
             </div>
             <div class="flex items-center justify-between">
-              <span class="text-sm">{{ $t("dashboard.node.config.featureSelfUpdate") }}</span>
+              <span class="text-sm">{{
+                $t("dashboard.node.config.featureSelfUpdate")
+              }}</span>
               <Switch
                 :modelValue="allowTaskType.has('self_update')"
                 @update:model-value="
                   (v) =>
-                    v ? allowTaskType.add('self_update') : allowTaskType.delete('self_update')
+                    v
+                      ? allowTaskType.add('self_update')
+                      : allowTaskType.delete('self_update')
                 "
                 :disabled="!allowTaskType.has('edit_config')"
               />
             </div>
             <div class="flex items-center justify-between">
-              <span class="text-sm">{{ $t("dashboard.node.config.featureWebShell") }}</span>
+              <span class="text-sm">{{
+                $t("dashboard.node.config.featureWebShell")
+              }}</span>
               <Switch
                 :modelValue="allowTaskType.has('web_shell')"
                 @update:model-value="
-                  (v) => (v ? allowTaskType.add('web_shell') : allowTaskType.delete('web_shell'))
+                  (v) =>
+                    v
+                      ? allowTaskType.add('web_shell')
+                      : allowTaskType.delete('web_shell')
                 "
                 :disabled="!allowTaskType.has('edit_config')"
               />
             </div>
             <div class="flex items-center justify-between">
-              <span class="text-sm">{{ $t("dashboard.node.config.featureExecute") }}</span>
+              <span class="text-sm">{{
+                $t("dashboard.node.config.featureExecute")
+              }}</span>
               <Switch
                 :modelValue="allowTaskType.has('execute')"
                 @update:model-value="
-                  (v) => (v ? allowTaskType.add('execute') : allowTaskType.delete('execute'))
+                  (v) =>
+                    v
+                      ? allowTaskType.add('execute')
+                      : allowTaskType.delete('execute')
                 "
                 :disabled="!allowTaskType.has('edit_config')"
               />
             </div>
             <div class="flex items-center justify-between gap-4">
-              <span class="text-sm">{{ $t("dashboard.node.config.featureIp") }}</span>
+              <span class="text-sm">{{
+                $t("dashboard.node.config.featureIp")
+              }}</span>
               <Switch
                 :modelValue="allowTaskType.has('ip')"
                 @update:model-value="
-                  (v) => (v ? allowTaskType.add('ip') : allowTaskType.delete('ip'))
+                  (v) =>
+                    v ? allowTaskType.add('ip') : allowTaskType.delete('ip')
                 "
                 :disabled="!allowTaskType.has('edit_config')"
               />
             </div>
             <div class="flex items-center justify-between">
-              <span class="text-sm">{{ $t("dashboard.node.config.featureVersion") }}</span>
+              <span class="text-sm">{{
+                $t("dashboard.node.config.featureVersion")
+              }}</span>
               <Switch
                 :modelValue="allowTaskType.has('version')"
                 @update:model-value="
-                  (v) => (v ? allowTaskType.add('version') : allowTaskType.delete('version'))
+                  (v) =>
+                    v
+                      ? allowTaskType.add('version')
+                      : allowTaskType.delete('version')
                 "
                 :disabled="!allowTaskType.has('edit_config')"
               />
             </div>
             <div class="flex items-center justify-between">
-              <span class="text-sm">{{ $t("dashboard.node.config.featureReadConfig") }}</span>
+              <span class="text-sm">{{
+                $t("dashboard.node.config.featureReadConfig")
+              }}</span>
               <Switch
                 :modelValue="allowTaskType.has('read_config')"
                 @update:model-value="
                   (v) =>
-                    v ? allowTaskType.add('read_config') : allowTaskType.delete('read_config')
+                    v
+                      ? allowTaskType.add('read_config')
+                      : allowTaskType.delete('read_config')
                 "
                 :disabled="!allowTaskType.has('edit_config')"
               />
             </div>
             <div class="flex items-center justify-between">
-              <span class="text-sm">{{ $t("dashboard.node.config.featureEditConfig") }}</span>
+              <span class="text-sm">{{
+                $t("dashboard.node.config.featureEditConfig")
+              }}</span>
               <PopConfirm
-                :title="$t('dashboard.node.config.featureEditConfigConfirmTitle')"
+                :title="
+                  $t('dashboard.node.config.featureEditConfigConfirmTitle')
+                "
                 v-if="allowTaskType.has('edit_config')"
-                :description="$t('dashboard.node.config.featureEditConfigConfirmDesc')"
+                :description="
+                  $t('dashboard.node.config.featureEditConfigConfirmDesc')
+                "
                 @confirm="allowTaskType.delete('edit_config')"
               >
                 <div>

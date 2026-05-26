@@ -23,11 +23,22 @@ export const LOG_TARGET_OPTIONS = [
   "terminal",
 ] as const;
 
-export const LOG_LEVEL_OPTIONS = ["trace", "debug", "info", "warn", "error"] as const;
+export const LOG_LEVEL_OPTIONS = [
+  "trace",
+  "debug",
+  "info",
+  "warn",
+  "error",
+] as const;
 
 export type LogTarget = (typeof LOG_TARGET_OPTIONS)[number];
 export type LogLevel = (typeof LOG_LEVEL_OPTIONS)[number];
-export type LogStatus = "connecting" | "connected" | "disconnected" | "paused" | "error";
+export type LogStatus =
+  | "connecting"
+  | "connected"
+  | "disconnected"
+  | "paused"
+  | "error";
 export type LogActionStatus =
   | "idle"
   | "connecting"
@@ -99,7 +110,10 @@ const formatRpcError = (error: unknown): string => {
 };
 
 const createRequestId = (): string => {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return crypto.randomUUID();
   }
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -131,7 +145,10 @@ const normalizeLogEvent = (raw: unknown): StreamLogEvent | null => {
   };
 };
 
-export const buildLogFilter = (filters: LogFilterRule[], defaultLevel: LogLevel): string => {
+export const buildLogFilter = (
+  filters: LogFilterRule[],
+  defaultLevel: LogLevel,
+): string => {
   const entries = filters
     .filter((item) => isLogTarget(item.target) && isLogLevel(item.level))
     .map((item) => `${item.target}=${item.level}`);
@@ -212,7 +229,11 @@ class LogWsClient {
     return this.connectPromise;
   }
 
-  async request<T>(method: string, params: unknown, timeoutMs = REQUEST_TIMEOUT_MS): Promise<T> {
+  async request<T>(
+    method: string,
+    params: unknown,
+    timeoutMs = REQUEST_TIMEOUT_MS,
+  ): Promise<T> {
     if (!this.url) throw new Error("WebSocket 尚未初始化");
     await this.connect(this.url);
     return new Promise<T>((resolve, reject) => {
@@ -274,7 +295,9 @@ class LogWsClient {
     this.pending.delete(id);
 
     if (msg.error) {
-      pending.reject(new Error(formatRpcError(msg.error) || `${pending.method} rpc error`));
+      pending.reject(
+        new Error(formatRpcError(msg.error) || `${pending.method} rpc error`),
+      );
       return;
     }
 
@@ -285,7 +308,11 @@ class LogWsClient {
       "error_message" in msg.result
     ) {
       const result = msg.result as Record<string, unknown>;
-      pending.reject(new Error(String(result.error_message || `${pending.method} rpc error`)));
+      pending.reject(
+        new Error(
+          String(result.error_message || `${pending.method} rpc error`),
+        ),
+      );
       return;
     }
 
@@ -346,7 +373,10 @@ const setFilters = async (nextFilters: LogFilterRule[]) => {
     clearLogs();
   }
 
-  if (previousFilter !== nextFilter && (subscriptionId.value || status.value === "connecting")) {
+  if (
+    previousFilter !== nextFilter &&
+    (subscriptionId.value || status.value === "connecting")
+  ) {
     actionStatus.value = "updatingFilters";
     await reconnect();
   }

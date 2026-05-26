@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h1 class="mb-2 text-2xl font-bold">
+    <h1 class="text-2xl font-bold mb-2">
       {{ route.meta.title ? $t(route.meta.title as string) : "" }}
     </h1>
 

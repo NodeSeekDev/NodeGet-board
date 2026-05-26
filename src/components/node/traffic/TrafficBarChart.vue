@@ -2,13 +2,23 @@
 import { shallowRef, watch, onMounted, onUnmounted } from "vue";
 import * as echarts from "echarts/core";
 import { BarChart } from "echarts/charts";
-import { GridComponent, TooltipComponent, AxisPointerComponent } from "echarts/components";
+import {
+  GridComponent,
+  TooltipComponent,
+  AxisPointerComponent,
+} from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
 import type { EChartsType } from "echarts/core";
 import { useThemeStore } from "@/stores/theme";
 import { formatBytes } from "@/utils/format";
 
-echarts.use([BarChart, GridComponent, TooltipComponent, AxisPointerComponent, CanvasRenderer]);
+echarts.use([
+  BarChart,
+  GridComponent,
+  TooltipComponent,
+  AxisPointerComponent,
+  CanvasRenderer,
+]);
 
 export type TrafficBucket = {
   label: string;
@@ -34,9 +44,13 @@ let resizeObserver: ResizeObserver | null = null;
 const renderChart = () => {
   if (!chartInstance.value) return;
   const text = themeStore.isDark ? "#e5e7eb" : "#374151";
-  const grid = themeStore.isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)";
+  const grid = themeStore.isDark
+    ? "rgba(255,255,255,0.06)"
+    : "rgba(0,0,0,0.06)";
 
-  const visibleKeys = (["rx", "tx", "total"] as const).filter((k) => props.visibleSeries[k]);
+  const visibleKeys = (["rx", "tx", "total"] as const).filter(
+    (k) => props.visibleSeries[k],
+  );
 
   chartInstance.value.setOption(
     {
@@ -52,7 +66,9 @@ const renderChart = () => {
             value: number;
           }[],
         ) => {
-          const lines = params.map((p) => `${p.marker} ${p.seriesName}: ${formatBytes(p.value)}`);
+          const lines = params.map(
+            (p) => `${p.marker} ${p.seriesName}: ${formatBytes(p.value)}`,
+          );
           return [params[0]?.axisValue, ...lines].join("<br/>");
         },
       },
@@ -104,5 +120,5 @@ watch(() => [props.data, props.visibleSeries, themeStore.isDark], renderChart, {
 </script>
 
 <template>
-  <div ref="chartRef" class="h-full w-full" />
+  <div ref="chartRef" class="w-full h-full" />
 </template>

@@ -59,8 +59,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { useJsRuntime, type JsWorker, type JsResult } from "@/composables/useJsRuntime";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  useJsRuntime,
+  type JsWorker,
+  type JsResult,
+} from "@/composables/useJsRuntime";
 import { useThemeStore } from "@/stores/theme";
 import { cn } from "@/lib/utils";
 import MarkdownIt from "markdown-it";
@@ -107,7 +115,12 @@ const isActionPending = computed(
 );
 
 const parsedHttpResult = computed(() => {
-  if (!runResult.value || activeRunMode.value !== "http" || !runResult.value.result) return null;
+  if (
+    !runResult.value ||
+    activeRunMode.value !== "http" ||
+    !runResult.value.result
+  )
+    return null;
   let res = runResult.value.result;
 
   // Unwrap nested backend response if needed
@@ -128,7 +141,9 @@ const parsedHttpResult = computed(() => {
 
     headersText = list.map((h: any) => `${h.name}: ${h.value}`).join("\n");
 
-    const ctHeader = list.find((h: any) => h.name?.toLowerCase() === "content-type")?.value;
+    const ctHeader = list.find(
+      (h: any) => h.name?.toLowerCase() === "content-type",
+    )?.value;
     if (ctHeader) contentType = String(ctHeader).toLowerCase();
   }
 
@@ -139,7 +154,11 @@ const parsedHttpResult = computed(() => {
     rawBody = base64ToBytes(res.body_base64);
   } else {
     rawBody =
-      res.body_bytes !== undefined ? res.body_bytes : res.body !== undefined ? res.body : res.data;
+      res.body_bytes !== undefined
+        ? res.body_bytes
+        : res.body !== undefined
+          ? res.body
+          : res.data;
   }
 
   // 3. Process Body based on content type
@@ -152,7 +171,8 @@ const parsedHttpResult = computed(() => {
   if (rawBody === undefined) {
     body = { isText: true, content: "" };
   } else if (Array.isArray(rawBody) || rawBody instanceof Uint8Array) {
-    const uint8Body = rawBody instanceof Uint8Array ? rawBody : new Uint8Array(rawBody);
+    const uint8Body =
+      rawBody instanceof Uint8Array ? rawBody : new Uint8Array(rawBody);
 
     if (isImage) {
       try {
@@ -188,7 +208,8 @@ const parsedHttpResult = computed(() => {
       }
     }
   } else {
-    const content = typeof rawBody === "string" ? rawBody : JSON.stringify(rawBody, null, 2);
+    const content =
+      typeof rawBody === "string" ? rawBody : JSON.stringify(rawBody, null, 2);
     if (isHtml) {
       body = { isHtml: true, content };
     } else {
@@ -308,7 +329,9 @@ const logs = computed(() => {
   return allLogs.value.slice(start, start + pageSize.value);
 });
 
-const totalPages = computed(() => Math.ceil(allLogs.value.length / pageSize.value));
+const totalPages = computed(() =>
+  Math.ceil(allLogs.value.length / pageSize.value),
+);
 
 const logFilter = ref({
   id: "",
@@ -371,7 +394,8 @@ const resetLogsFilterFun = () => {
 };
 
 const deleteLogFun = async (id: number) => {
-  if (!confirm(t("dashboard.jsRuntime.logs.deleteConfirm", "Delete this log?"))) return;
+  if (!confirm(t("dashboard.jsRuntime.logs.deleteConfirm", "Delete this log?")))
+    return;
   try {
     await runtime.deleteWorkerLog(id);
     toast.success(t("dashboard.jsRuntime.logs.deleteSuccess", "Log deleted"));
@@ -387,9 +411,15 @@ watch(activeTab, (val) => {
   }
 });
 
-const extensions = computed(() => [javascript(), ...(themeStore.isDark ? [oneDark] : [])]);
+const extensions = computed(() => [
+  javascript(),
+  ...(themeStore.isDark ? [oneDark] : []),
+]);
 
-const jsonExtensions = computed(() => [json(), ...(themeStore.isDark ? [oneDark] : [])]);
+const jsonExtensions = computed(() => [
+  json(),
+  ...(themeStore.isDark ? [oneDark] : []),
+]);
 
 const getWorkerFun = async () => {
   loading.value = true;
@@ -399,7 +429,8 @@ const getWorkerFun = async () => {
       worker.value = data;
       content.value = data.content;
       workerRoute.value = data.route || "";
-      cleanTime.value = data.runtime_clean_time != null ? String(data.runtime_clean_time) : "";
+      cleanTime.value =
+        data.runtime_clean_time != null ? String(data.runtime_clean_time) : "";
 
       max_run_time.value = data.max_run_time;
       max_stack_size.value = data.max_stack_size;
@@ -409,10 +440,12 @@ const getWorkerFun = async () => {
         key,
         value: String(value),
       }));
-      tempEnvVars.value = Object.entries(data.env || {}).map(([key, value]) => ({
-        key,
-        value: String(value),
-      }));
+      tempEnvVars.value = Object.entries(data.env || {}).map(
+        ([key, value]) => ({
+          key,
+          value: String(value),
+        }),
+      );
       // Always keep one empty row for new env var
       ensureEmptyEnvRow();
       ensureEmptyTempEnvRow();
@@ -455,7 +488,10 @@ const syncLatestWorkerState = async (): Promise<JsWorker> => {
   return data;
 };
 
-const updateWorkerContentFun = async (withEnv = false, loadingRef = saveOnlyLoading) => {
+const updateWorkerContentFun = async (
+  withEnv = false,
+  loadingRef = saveOnlyLoading,
+) => {
   if (!worker.value) return;
   loadingRef.value = true;
   try {
@@ -561,10 +597,15 @@ const runWorkerFun = async (saveFirst = false) => {
         if (!handleJsonParseError("Invalid Env JSON")) return;
       }
 
-      const result = await runtime.runWorker(worker.value.name, mode, paramsObj, {
-        env: envObj,
-        compile_mode: "source",
-      });
+      const result = await runtime.runWorker(
+        worker.value.name,
+        mode,
+        paramsObj,
+        {
+          env: envObj,
+          compile_mode: "source",
+        },
+      );
       runResult.value = result;
       await pollResult(result);
     } else if (mode === "http") {
@@ -575,7 +616,9 @@ const runWorkerFun = async (saveFirst = false) => {
 
       let body_bytes: number[] = [];
       if (httpSimulation.value.body) {
-        body_bytes = Array.from(new TextEncoder().encode(httpSimulation.value.body));
+        body_bytes = Array.from(
+          new TextEncoder().encode(httpSimulation.value.body),
+        );
       }
 
       const suffix = httpSimulation.value.suffix
@@ -721,43 +764,69 @@ const formatTime = (ts: number | null) => {
 <template>
   <div class="flex h-[calc(100vh-100px)] flex-col space-y-4">
     <div class="flex items-center gap-4">
-      <Button variant="ghost" size="icon" @click="router.push('/dashboard/js-runtime')">
+      <Button
+        variant="ghost"
+        size="icon"
+        @click="router.push('/dashboard/js-runtime')"
+      >
         <ChevronLeft class="h-5 w-5" />
       </Button>
       <div>
         <h1 class="flex items-center gap-2 text-2xl font-semibold">
           {{ worker?.name || "Loading..." }}
-          <span v-if="loading" class="inline-block animate-spin"><Loader2 class="h-4 w-4" /></span>
+          <span v-if="loading" class="inline-block animate-spin"
+            ><Loader2 class="h-4 w-4"
+          /></span>
         </h1>
-        <p class="text-muted-foreground font-mono text-xs">{{ workerId }}</p>
+        <p class="font-mono text-xs text-muted-foreground">{{ workerId }}</p>
       </div>
     </div>
 
     <Tabs v-model="activeTab" class="flex min-h-0 flex-1 flex-col">
       <TabsList class="w-fit">
-        <TabsTrigger value="overview">{{ t("dashboard.jsRuntime.tabs.overview") }}</TabsTrigger>
-        <TabsTrigger value="content">{{ t("dashboard.jsRuntime.tabs.content") }}</TabsTrigger>
-        <TabsTrigger value="logs">{{ t("dashboard.jsRuntime.tabs.logs") }}</TabsTrigger>
-        <TabsTrigger value="settings">{{ t("dashboard.jsRuntime.tabs.settings") }}</TabsTrigger>
+        <TabsTrigger value="overview">{{
+          t("dashboard.jsRuntime.tabs.overview")
+        }}</TabsTrigger>
+        <TabsTrigger value="content">{{
+          t("dashboard.jsRuntime.tabs.content")
+        }}</TabsTrigger>
+        <TabsTrigger value="logs">{{
+          t("dashboard.jsRuntime.tabs.logs")
+        }}</TabsTrigger>
+        <TabsTrigger value="settings">{{
+          t("dashboard.jsRuntime.tabs.settings")
+        }}</TabsTrigger>
       </TabsList>
 
       <div class="mt-4 min-h-0 flex-1 overflow-auto">
         <TabsContent value="overview" class="m-0">
           <div class="px-1 py-1">
             <div
-              class="text-muted-foreground/60 flex flex-wrap items-center gap-x-6 gap-y-2 font-mono text-xs"
+              class="flex flex-wrap items-center gap-x-6 gap-y-2 font-mono text-xs text-muted-foreground/60"
             >
               <div class="flex items-center gap-1.5">
-                <span class="shrink-0">{{ t("dashboard.jsRuntime.overview.createdAt") }}:</span>
-                <span class="">{{ formatTime(worker?.created_at || null) }}</span>
+                <span class="shrink-0"
+                  >{{ t("dashboard.jsRuntime.overview.createdAt") }}:</span
+                >
+                <span class="">{{
+                  formatTime(worker?.created_at || null)
+                }}</span>
               </div>
               <div class="flex items-center gap-1.5">
-                <span class="shrink-0">{{ t("dashboard.jsRuntime.overview.updatedAt") }}:</span>
-                <span class="">{{ formatTime(worker?.updated_at || null) }}</span>
+                <span class="shrink-0"
+                  >{{ t("dashboard.jsRuntime.overview.updatedAt") }}:</span
+                >
+                <span class="">{{
+                  formatTime(worker?.updated_at || null)
+                }}</span>
               </div>
               <div class="flex items-center gap-1.5">
-                <span class="shrink-0">{{ t("dashboard.jsRuntime.overview.route") }}:</span>
-                <span class="break-all">{{ worker?.route || t("common.none") }}</span>
+                <span class="shrink-0"
+                  >{{ t("dashboard.jsRuntime.overview.route") }}:</span
+                >
+                <span class="break-all">{{
+                  worker?.route || t("common.none")
+                }}</span>
               </div>
             </div>
           </div>
@@ -765,10 +834,14 @@ const formatTime = (ts: number | null) => {
           <Card class="mt-4 gap-0">
             <CardHeader class="flex flex-row items-center justify-between pb-2">
               <CardTitle
-                class="text-muted-foreground/50 text-[13px] font-medium tracking-wider uppercase"
+                class="text-[13px] font-medium tracking-wider text-muted-foreground/50 uppercase"
                 >README</CardTitle
               >
-              <Button size="sm" variant="outline" @click="openDescriptionEditFun">
+              <Button
+                size="sm"
+                variant="outline"
+                @click="openDescriptionEditFun"
+              >
                 <FileText class="mr-2 h-4 w-4" />
                 编辑描述
               </Button>
@@ -776,12 +849,12 @@ const formatTime = (ts: number | null) => {
             <CardContent class="pt-2 pb-4">
               <div
                 v-if="worker?.description"
-                class="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed"
+                class="prose prose-sm max-w-none text-sm leading-relaxed dark:prose-invert"
                 v-html="renderedDescription"
               ></div>
               <div
                 v-else
-                class="bg-muted/20 text-muted-foreground flex flex-col items-center justify-center rounded-lg border border-dashed py-10 text-sm"
+                class="flex flex-col items-center justify-center rounded-lg border border-dashed bg-muted/20 py-10 text-sm text-muted-foreground"
               >
                 <FileText class="mb-2 h-8 w-8 opacity-50" />
                 <span>无脚本描述</span>
@@ -790,15 +863,20 @@ const formatTime = (ts: number | null) => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="content" class="relative m-0 flex h-full min-h-0 flex-col">
+        <TabsContent
+          value="content"
+          class="relative m-0 flex h-full min-h-0 flex-col"
+        >
           <div
             v-if="activeTab === 'content' && isActionPending"
-            class="bg-background/5 absolute inset-0 z-[100] cursor-wait"
+            class="absolute inset-0 z-[100] cursor-wait bg-background/5"
           ></div>
 
           <div class="grid h-full min-h-0 grid-cols-1 gap-4 lg:grid-cols-2">
             <!-- Left: Editor -->
-            <div class="bg-card flex min-h-0 flex-col overflow-hidden rounded-lg border">
+            <div
+              class="flex min-h-0 flex-col overflow-hidden rounded-lg border bg-card"
+            >
               <div class="min-h-0 flex-1 overflow-hidden">
                 <Codemirror
                   v-model="content"
@@ -838,7 +916,10 @@ const formatTime = (ts: number | null) => {
                     @click="updateWorkerContentFun(true)"
                     :disabled="isActionPending"
                   >
-                    <Loader2 v-if="saveOnlyLoading" class="mr-2 h-3 w-3 animate-spin" />
+                    <Loader2
+                      v-if="saveOnlyLoading"
+                      class="mr-2 h-3 w-3 animate-spin"
+                    />
                     <Save v-else class="mr-2 h-3 w-3" />
                     {{ t("dashboard.jsRuntime.editor.save") }}
                   </Button>
@@ -846,9 +927,13 @@ const formatTime = (ts: number | null) => {
               </div>
 
               <!-- Content Area based on activeRunMode -->
-              <div class="flex min-h-0 flex-1 flex-col gap-4 overflow-auto pr-1">
+              <div
+                class="flex min-h-0 flex-1 flex-col gap-4 overflow-auto pr-1"
+              >
                 <!-- Call / Cron Mode UI -->
-                <template v-if="activeRunMode === 'call' || activeRunMode === 'cron'">
+                <template
+                  v-if="activeRunMode === 'call' || activeRunMode === 'cron'"
+                >
                   <Collapsible v-model:open="isConfigOpen">
                     <Tabs v-model="activeEditorTab" class="space-y-4">
                       <div class="group flex items-center justify-between">
@@ -868,7 +953,11 @@ const formatTime = (ts: number | null) => {
                           </TabsList>
                         </div>
                         <CollapsibleTrigger as-child>
-                          <Button variant="ghost" size="icon" class="ml-2 h-8 w-8 shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            class="ml-2 h-8 w-8 shrink-0"
+                          >
                             <ChevronDown
                               class="h-4 w-4 transition-transform duration-200"
                               :class="{ 'rotate-180': isConfigOpen }"
@@ -880,7 +969,7 @@ const formatTime = (ts: number | null) => {
                       <CollapsibleContent class="space-y-4">
                         <TabsContent
                           value="params"
-                          class="bg-card m-0 h-32 overflow-hidden rounded-md border"
+                          class="m-0 h-32 overflow-hidden rounded-md border bg-card"
                         >
                           <Codemirror
                             v-model="runParams"
@@ -891,7 +980,7 @@ const formatTime = (ts: number | null) => {
                         </TabsContent>
                         <TabsContent
                           value="env"
-                          class="bg-card m-0 flex min-h-32 flex-col overflow-hidden rounded-md border"
+                          class="m-0 flex min-h-32 flex-col overflow-hidden rounded-md border bg-card"
                         >
                           <div class="flex-1 overflow-auto p-2">
                             <Table>
@@ -931,7 +1020,7 @@ const formatTime = (ts: number | null) => {
                                       v-if="index !== tempEnvVars.length - 1"
                                       variant="ghost"
                                       size="icon"
-                                      class="text-destructive h-7 w-7"
+                                      class="h-7 w-7 text-destructive"
                                       @click="tempEnvVars.splice(index, 1)"
                                     >
                                       <Trash2 class="h-3.5 w-3.5" />
@@ -952,22 +1041,32 @@ const formatTime = (ts: number | null) => {
                   <div class="space-y-2">
                     <!-- URL Display -->
                     <div
-                      class="bg-muted/40 flex items-center gap-2 overflow-hidden rounded-lg p-2 font-mono text-[13px]"
+                      class="flex items-center gap-2 overflow-hidden rounded-lg bg-muted/40 p-2 font-mono text-[13px]"
                     >
                       <Select v-model="httpSimulation.method">
                         <SelectTrigger
-                          class="border-muted bg-background h-6 w-auto shrink-0 gap-0.5 px-1.5 py-0 font-mono text-[10px] [&>svg]:ml-0 [&>svg]:h-3 [&>svg]:w-3"
+                          class="h-6 w-auto shrink-0 gap-0.5 border-muted bg-background px-1.5 py-0 font-mono text-[10px] [&>svg]:ml-0 [&>svg]:h-3 [&>svg]:w-3"
                         >
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="GET" class="text-[10px]">GET</SelectItem>
-                          <SelectItem value="POST" class="text-[10px]">POST</SelectItem>
-                          <SelectItem value="PUT" class="text-[10px]">PUT</SelectItem>
-                          <SelectItem value="DELETE" class="text-[10px]">DELETE</SelectItem>
+                          <SelectItem value="GET" class="text-[10px]"
+                            >GET</SelectItem
+                          >
+                          <SelectItem value="POST" class="text-[10px]"
+                            >POST</SelectItem
+                          >
+                          <SelectItem value="PUT" class="text-[10px]"
+                            >PUT</SelectItem
+                          >
+                          <SelectItem value="DELETE" class="text-[10px]"
+                            >DELETE</SelectItem
+                          >
                         </SelectContent>
                       </Select>
-                      <div class="text-muted-foreground mx-1 flex min-w-0 flex-1 overflow-hidden">
+                      <div
+                        class="mx-1 flex min-w-0 flex-1 overflow-hidden text-muted-foreground"
+                      >
                         <span class="min-w-[40px] shrink truncate opacity-70">{{
                           httpBaseUrl
                         }}</span>
@@ -981,11 +1080,16 @@ const formatTime = (ts: number | null) => {
                         class="h-7 w-[130px] shrink-0 px-2 font-mono text-[12px]"
                       />
                     </div>
-                    <p v-if="!worker?.route" class="px-1 text-xs text-orange-500">
+                    <p
+                      v-if="!worker?.route"
+                      class="px-1 text-xs text-orange-500"
+                    >
                       {{ t("dashboard.jsRuntime.editor.noRoute") }}
                     </p>
 
-                    <div class="bg-card mt-0 w-full space-y-3 rounded-md border p-3 shadow-sm">
+                    <div
+                      class="mt-0 w-full space-y-3 rounded-md border bg-card p-3 shadow-sm"
+                    >
                       <!-- Headers Section -->
                       <div class="space-y-2">
                         <div class="flex items-center gap-4">
@@ -995,7 +1099,7 @@ const formatTime = (ts: number | null) => {
                           <Button
                             variant="link"
                             size="sm"
-                            class="text-primary h-6 p-0 text-xs"
+                            class="h-6 p-0 text-xs text-primary"
                             @click="addHttpHeaderFun"
                           >
                             <Plus class="mr-1 h-3 w-3" />
@@ -1007,12 +1111,20 @@ const formatTime = (ts: number | null) => {
                           :key="i"
                           class="flex items-center gap-2"
                         >
-                          <Input v-model="h.key" placeholder="Header" class="h-7 text-xs" />
-                          <Input v-model="h.value" placeholder="Value" class="h-7 text-xs" />
+                          <Input
+                            v-model="h.key"
+                            placeholder="Header"
+                            class="h-7 text-xs"
+                          />
+                          <Input
+                            v-model="h.value"
+                            placeholder="Value"
+                            class="h-7 text-xs"
+                          />
                           <Button
                             variant="ghost"
                             size="icon"
-                            class="text-muted-foreground hover:text-destructive h-7 w-7 shrink-0"
+                            class="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
                             @click="removeHttpHeaderFun(i)"
                           >
                             <Trash2 class="h-3 w-3" />
@@ -1025,7 +1137,9 @@ const formatTime = (ts: number | null) => {
                         <div class="text-[13px] font-semibold">
                           {{ t("dashboard.jsRuntime.editor.body") }}
                         </div>
-                        <div class="bg-background h-32 overflow-hidden rounded-md border">
+                        <div
+                          class="h-32 overflow-hidden rounded-md border bg-background"
+                        >
                           <Codemirror
                             v-model="httpSimulation.body"
                             :extensions="jsonExtensions"
@@ -1042,11 +1156,17 @@ const formatTime = (ts: number | null) => {
                 <template v-else-if="activeRunMode === 'preview'">
                   <div class="flex h-full min-h-0 flex-col space-y-4">
                     <div
-                      class="bg-muted/40 flex items-center gap-2 overflow-auto rounded-lg p-3 font-mono text-[13px]"
+                      class="flex items-center gap-2 overflow-auto rounded-lg bg-muted/40 p-3 font-mono text-[13px]"
                     >
-                      <Globe class="text-muted-foreground h-3.5 w-3.5 shrink-0" />
-                      <div class="text-muted-foreground mx-1 flex min-w-0 flex-1 overflow-hidden">
-                        <span class="min-w-[40px] shrink truncate opacity-70">{{ wsBaseUrl }}</span>
+                      <Globe
+                        class="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+                      />
+                      <div
+                        class="mx-1 flex min-w-0 flex-1 overflow-hidden text-muted-foreground"
+                      >
+                        <span class="min-w-[40px] shrink truncate opacity-70">{{
+                          wsBaseUrl
+                        }}</span>
                         <span class="shrink-0"
                           >/worker-route/{{ worker?.route || "{ROUTE}" }}/</span
                         >
@@ -1070,8 +1190,15 @@ const formatTime = (ts: number | null) => {
                     <div class="mt-2 flex items-center justify-between px-1">
                       <h3 class="text-sm font-semibold">预览 (Preview)</h3>
                       <div class="flex shrink-0 items-center gap-2">
-                        <Button size="sm" @click="runWorkerFun(false)" :disabled="isActionPending">
-                          <Loader2 v-if="runLoading" class="mr-2 h-3 w-3 animate-spin" />
+                        <Button
+                          size="sm"
+                          @click="runWorkerFun(false)"
+                          :disabled="isActionPending"
+                        >
+                          <Loader2
+                            v-if="runLoading"
+                            class="mr-2 h-3 w-3 animate-spin"
+                          />
                           <Eye v-else class="mr-2 h-3 w-3" />
                           {{ t("dashboard.jsRuntime.editor.preview") }}
                         </Button>
@@ -1081,7 +1208,10 @@ const formatTime = (ts: number | null) => {
                           @click="runWorkerFun(true)"
                           :disabled="isActionPending"
                         >
-                          <Loader2 v-if="saveAndRunLoading" class="mr-2 h-3 w-3 animate-spin" />
+                          <Loader2
+                            v-if="saveAndRunLoading"
+                            class="mr-2 h-3 w-3 animate-spin"
+                          />
                           <Save v-else class="mr-2 h-3 w-3" />
                           {{ t("dashboard.jsRuntime.editor.saveAndPreview") }}
                         </Button>
@@ -1093,7 +1223,7 @@ const formatTime = (ts: number | null) => {
                     >
                       <div
                         v-if="!worker?.route"
-                        class="text-muted-foreground flex h-full items-center justify-center text-sm"
+                        class="flex h-full items-center justify-center text-sm text-muted-foreground"
                       >
                         {{ t("dashboard.jsRuntime.editor.noRoute") }}
                       </div>
@@ -1109,7 +1239,10 @@ const formatTime = (ts: number | null) => {
                 </template>
 
                 <!-- Common Result Area (for all modes except preview which has iframe) -->
-                <div v-if="activeRunMode !== 'preview'" class="flex shrink-0 flex-col gap-2">
+                <div
+                  v-if="activeRunMode !== 'preview'"
+                  class="flex shrink-0 flex-col gap-2"
+                >
                   <div class="flex items-center justify-between px-1">
                     <h3 class="text-sm font-semibold">
                       {{ t("dashboard.jsRuntime.editor.result") }}
@@ -1130,7 +1263,10 @@ const formatTime = (ts: number | null) => {
                         @click="runWorkerFun(false)"
                         :disabled="isActionPending"
                       >
-                        <Loader2 v-if="runLoading" class="mr-2 h-3 w-3 animate-spin" />
+                        <Loader2
+                          v-if="runLoading"
+                          class="mr-2 h-3 w-3 animate-spin"
+                        />
                         <Play v-else class="mr-2 h-3 w-3" />
                         {{ t("dashboard.jsRuntime.editor.run") }}
                       </Button>
@@ -1140,19 +1276,26 @@ const formatTime = (ts: number | null) => {
                         @click="runWorkerFun(true)"
                         :disabled="isActionPending"
                       >
-                        <Loader2 v-if="saveAndRunLoading" class="mr-2 h-3 w-3 animate-spin" />
+                        <Loader2
+                          v-if="saveAndRunLoading"
+                          class="mr-2 h-3 w-3 animate-spin"
+                        />
                         <Save v-else class="mr-2 h-3 w-3" />
                         {{ t("dashboard.jsRuntime.editor.saveAndRun") }}
                       </Button>
                     </div>
                   </div>
 
-                  <div class="bg-card relative overflow-hidden rounded-lg border">
+                  <div
+                    class="relative overflow-hidden rounded-lg border bg-card"
+                  >
                     <div
                       v-if="runLoading"
-                      class="bg-background/40 absolute inset-0 z-10 flex items-center justify-center backdrop-blur-[1px]"
+                      class="absolute inset-0 z-10 flex items-center justify-center bg-background/40 backdrop-blur-[1px]"
                     >
-                      <Loader2 class="text-muted-foreground h-6 w-6 animate-spin" />
+                      <Loader2
+                        class="h-6 w-6 animate-spin text-muted-foreground"
+                      />
                     </div>
 
                     <Collapsible v-model:open="httpResultOpen">
@@ -1162,11 +1305,14 @@ const formatTime = (ts: number | null) => {
                       >
                         <template v-if="parsedHttpResult">
                           <!-- Part 1: Status Code -->
-                          <div class="bg-muted/5 flex items-center gap-2 border-b px-3 py-2">
+                          <div
+                            class="flex items-center gap-2 border-b bg-muted/5 px-3 py-2"
+                          >
                             <div
                               :class="[
                                 'h-2 w-2 rounded-full',
-                                parsedHttpResult.status >= 200 && parsedHttpResult.status < 300
+                                parsedHttpResult.status >= 200 &&
+                                parsedHttpResult.status < 300
                                   ? 'bg-green-500'
                                   : 'bg-orange-500',
                               ]"
@@ -1180,9 +1326,11 @@ const formatTime = (ts: number | null) => {
                           <div class="border-b">
                             <button
                               @click="httpHeadersOpen = !httpHeadersOpen"
-                              class="text-muted-foreground hover:bg-muted/30 flex w-full items-center justify-between px-3 py-1.5 text-[10px] font-bold tracking-tight uppercase transition-colors"
+                              class="flex w-full items-center justify-between px-3 py-1.5 text-[10px] font-bold tracking-tight text-muted-foreground uppercase transition-colors hover:bg-muted/30"
                             >
-                              <span>{{ t("dashboard.jsRuntime.editor.responseHeaders") }}</span>
+                              <span>{{
+                                t("dashboard.jsRuntime.editor.responseHeaders")
+                              }}</span>
                               <ChevronDown
                                 :class="[
                                   'h-3 w-3 transition-transform duration-200',
@@ -1192,10 +1340,10 @@ const formatTime = (ts: number | null) => {
                             </button>
                             <div
                               v-show="httpHeadersOpen"
-                              class="bg-muted/10 border-t border-dashed px-3 py-2"
+                              class="border-t border-dashed bg-muted/10 px-3 py-2"
                             >
                               <pre
-                                class="text-foreground/80 font-mono text-[11px] leading-relaxed break-all whitespace-pre-wrap"
+                                class="font-mono text-[11px] leading-relaxed break-all whitespace-pre-wrap text-foreground/80"
                                 >{{ parsedHttpResult.headersText }}</pre
                               >
                             </div>
@@ -1205,14 +1353,15 @@ const formatTime = (ts: number | null) => {
                           <div
                             class="relative overflow-hidden p-1"
                             :class="
-                              parsedHttpResult.body.isImage || parsedHttpResult.body.isHtml
+                              parsedHttpResult.body.isImage ||
+                              parsedHttpResult.body.isHtml
                                 ? 'h-[300px]'
                                 : 'min-h-[100px]'
                             "
                           >
                             <div
                               v-if="parsedHttpResult.body.isImage"
-                              class="bg-muted/20 flex h-full w-full items-center justify-center overflow-hidden rounded-sm border"
+                              class="flex h-full w-full items-center justify-center overflow-hidden rounded-sm border bg-muted/20"
                             >
                               <img
                                 :src="parsedHttpResult.body.url"
@@ -1236,8 +1385,14 @@ const formatTime = (ts: number | null) => {
                         </template>
                         <div v-else class="h-[200px] p-1">
                           <Codemirror
-                            :model-value="runResult ? JSON.stringify(runResult, null, 2) : ''"
-                            :placeholder="t('dashboard.jsRuntime.logs.detailTitle')"
+                            :model-value="
+                              runResult
+                                ? JSON.stringify(runResult, null, 2)
+                                : ''
+                            "
+                            :placeholder="
+                              t('dashboard.jsRuntime.logs.detailTitle')
+                            "
                             :extensions="jsonExtensions"
                             class="h-full text-[12px]"
                             :style="{ height: '100%' }"
@@ -1249,7 +1404,7 @@ const formatTime = (ts: number | null) => {
 
                     <div
                       v-if="!runResult && !runLoading"
-                      class="bg-muted/10 text-muted-foreground flex h-[200px] flex-col items-center justify-center opacity-60"
+                      class="flex h-[200px] flex-col items-center justify-center bg-muted/10 text-muted-foreground opacity-60"
                     >
                       <Inbox class="mb-2 h-10 w-10 opacity-20" />
                       <p class="text-xs">未执行，请先执行后查看结果</p>
@@ -1260,15 +1415,22 @@ const formatTime = (ts: number | null) => {
             </div>
           </div>
         </TabsContent>
-        <TabsContent value="logs" class="m-0 flex h-full min-h-0 flex-col space-y-4 pt-1">
-          <div class="bg-card shrink-0 rounded-xl border p-4 shadow-sm transition-all">
+        <TabsContent
+          value="logs"
+          class="m-0 flex h-full min-h-0 flex-col space-y-4 pt-1"
+        >
+          <div
+            class="shrink-0 rounded-xl border bg-card p-4 shadow-sm transition-all"
+          >
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div class="space-y-1.5">
-                <label class="text-foreground/80 text-sm font-medium">{{
+                <label class="text-sm font-medium text-foreground/80">{{
                   t("dashboard.jsRuntime.logs.runType")
                 }}</label>
                 <Select v-model="logFilter.runType">
-                  <SelectTrigger class="bg-background/50 h-9 w-full"><SelectValue /></SelectTrigger>
+                  <SelectTrigger class="h-9 w-full bg-background/50"
+                    ><SelectValue
+                  /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="call">Call</SelectItem>
                     <SelectItem value="cron">Cron</SelectItem>
@@ -1277,11 +1439,13 @@ const formatTime = (ts: number | null) => {
                 </Select>
               </div>
               <div class="space-y-1.5">
-                <label class="text-foreground/80 text-sm font-medium">{{
+                <label class="text-sm font-medium text-foreground/80">{{
                   t("dashboard.jsRuntime.logs.status", "Status")
                 }}</label>
                 <Select v-model="logFilter.status">
-                  <SelectTrigger class="bg-background/50 h-9 w-full"><SelectValue /></SelectTrigger>
+                  <SelectTrigger class="h-9 w-full bg-background/50"
+                    ><SelectValue
+                  /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all"
                       ><span class="flex items-center gap-2">{{
@@ -1302,7 +1466,7 @@ const formatTime = (ts: number | null) => {
                 </Select>
               </div>
               <div class="space-y-1.5">
-                <label class="text-foreground/80 text-sm font-medium">{{
+                <label class="text-sm font-medium text-foreground/80">{{
                   t("dashboard.jsRuntime.logs.limit", "Return Limit")
                 }}</label>
                 <Input
@@ -1310,40 +1474,58 @@ const formatTime = (ts: number | null) => {
                   type="number"
                   min="1"
                   max="500"
-                  class="bg-background/50 h-9"
-                  @update:model-value="logFilter.limit = Math.max(1, Number($event) || 20)"
+                  class="h-9 bg-background/50"
+                  @update:model-value="
+                    logFilter.limit = Math.max(1, Number($event) || 20)
+                  "
                 />
               </div>
               <div class="space-y-1.5">
-                <label class="text-foreground/80 text-sm font-medium">{{
+                <label class="text-sm font-medium text-foreground/80">{{
                   t("dashboard.jsRuntime.logs.latestOnly", "Latest Only")
                 }}</label>
                 <Select
                   :model-value="logFilter.latestOnly ? 'yes' : 'no'"
                   @update:model-value="logFilter.latestOnly = $event === 'yes'"
                 >
-                  <SelectTrigger class="bg-background/50 h-9 w-full"><SelectValue /></SelectTrigger>
+                  <SelectTrigger class="h-9 w-full bg-background/50"
+                    ><SelectValue
+                  /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="no">{{ t("common.disable", "Disabled") }}</SelectItem>
-                    <SelectItem value="yes">{{ t("common.enable", "Enabled") }}</SelectItem>
+                    <SelectItem value="no">{{
+                      t("common.disable", "Disabled")
+                    }}</SelectItem>
+                    <SelectItem value="yes">{{
+                      t("common.enable", "Enabled")
+                    }}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div class="space-y-1.5">
-                <label class="text-foreground/80 text-sm font-medium">{{
+                <label class="text-sm font-medium text-foreground/80">{{
                   t("dashboard.jsRuntime.logs.recordId", "Record ID")
                 }}</label>
-                <Input v-model="logFilter.id" type="number" min="1" class="bg-background/50 h-9" />
+                <Input
+                  v-model="logFilter.id"
+                  type="number"
+                  min="1"
+                  class="h-9 bg-background/50"
+                />
               </div>
 
-              <div class="flex w-full items-end justify-end gap-3 sm:col-span-2 lg:col-span-4">
+              <div
+                class="flex w-full items-end justify-end gap-3 sm:col-span-2 lg:col-span-4"
+              >
                 <Button
                   :disabled="logsLoading"
                   @click="resetLogsFilterFun"
                   variant="outline"
-                  class="hover:bg-muted h-9 px-4"
+                  class="h-9 px-4 hover:bg-muted"
                 >
-                  <RotateCcw class="mr-2 h-4 w-4" :class="{ 'animate-spin': logsLoading }" />
+                  <RotateCcw
+                    class="mr-2 h-4 w-4"
+                    :class="{ 'animate-spin': logsLoading }"
+                  />
                   {{ t("common.reset", "Reset") }}
                 </Button>
                 <Button
@@ -1360,21 +1542,33 @@ const formatTime = (ts: number | null) => {
           </div>
 
           <div
-            class="bg-card text-card-foreground relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border shadow-sm"
+            class="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border bg-card text-card-foreground shadow-sm"
           >
             <div class="min-h-0 flex-1 overflow-auto">
               <Table>
                 <TableHeader class="bg-muted/30">
                   <TableRow class="hover:bg-transparent">
-                    <TableHead class="w-[100px] font-medium whitespace-nowrap">{{
-                      t("dashboard.jsRuntime.logs.recordId", "Record ID")
-                    }}</TableHead>
-                    <TableHead class="w-[170px] font-medium whitespace-nowrap">{{
-                      t("dashboard.jsRuntime.logs.startTime", "Execution Time")
-                    }}</TableHead>
-                    <TableHead class="w-[100px] font-medium whitespace-nowrap">{{
-                      t("dashboard.jsRuntime.logs.status", "Status")
-                    }}</TableHead>
+                    <TableHead
+                      class="w-[100px] font-medium whitespace-nowrap"
+                      >{{
+                        t("dashboard.jsRuntime.logs.recordId", "Record ID")
+                      }}</TableHead
+                    >
+                    <TableHead
+                      class="w-[170px] font-medium whitespace-nowrap"
+                      >{{
+                        t(
+                          "dashboard.jsRuntime.logs.startTime",
+                          "Execution Time",
+                        )
+                      }}</TableHead
+                    >
+                    <TableHead
+                      class="w-[100px] font-medium whitespace-nowrap"
+                      >{{
+                        t("dashboard.jsRuntime.logs.status", "Status")
+                      }}</TableHead
+                    >
                     <TableHead class="font-medium whitespace-nowrap">{{
                       t("dashboard.jsRuntime.logs.message", "Message")
                     }}</TableHead>
@@ -1386,21 +1580,27 @@ const formatTime = (ts: number | null) => {
                 <TableBody>
                   <TableRow v-if="logsLoading && logs.length === 0">
                     <TableCell colspan="5" class="h-[300px] text-center">
-                      <div class="flex flex-col items-center justify-center space-y-3">
-                        <Loader2 class="text-muted-foreground/50 h-6 w-6 animate-spin" />
-                        <span class="text-sm font-medium">{{ t("common.loading") }}</span>
+                      <div
+                        class="flex flex-col items-center justify-center space-y-3"
+                      >
+                        <Loader2
+                          class="h-6 w-6 animate-spin text-muted-foreground/50"
+                        />
+                        <span class="text-sm font-medium">{{
+                          t("common.loading")
+                        }}</span>
                       </div>
                     </TableCell>
                   </TableRow>
                   <TableRow v-else-if="logs.length === 0">
                     <TableCell colspan="5" class="h-[300px] text-center">
                       <div
-                        class="text-muted-foreground flex flex-col items-center justify-center space-y-3"
+                        class="flex flex-col items-center justify-center space-y-3 text-muted-foreground"
                       >
                         <div
-                          class="bg-muted/50 flex h-12 w-12 items-center justify-center rounded-full"
+                          class="flex h-12 w-12 items-center justify-center rounded-full bg-muted/50"
                         >
-                          <Inbox class="text-muted-foreground/60 h-6 w-6" />
+                          <Inbox class="h-6 w-6 text-muted-foreground/60" />
                         </div>
                         <p class="text-sm">
                           {{ t("common.noData", "No Data") }}
@@ -1409,16 +1609,23 @@ const formatTime = (ts: number | null) => {
                     </TableCell>
                   </TableRow>
                   <TableRow v-for="log in logs" :key="log.id">
-                    <TableCell class="text-foreground/80 py-3 font-mono text-xs">{{
-                      log.id
-                    }}</TableCell>
+                    <TableCell
+                      class="py-3 font-mono text-xs text-foreground/80"
+                      >{{ log.id }}</TableCell
+                    >
                     <TableCell class="py-3 whitespace-nowrap">
-                      <div class="text-foreground/90 flex items-center gap-2 text-sm">
-                        <span class="font-mono">{{ formatTime(log.start_time) }}</span>
+                      <div
+                        class="flex items-center gap-2 text-sm text-foreground/90"
+                      >
+                        <span class="font-mono">{{
+                          formatTime(log.start_time)
+                        }}</span>
                       </div>
                     </TableCell>
                     <TableCell class="py-3">
-                      <Badge :variant="log.error_message ? 'destructive' : 'default'">
+                      <Badge
+                        :variant="log.error_message ? 'destructive' : 'default'"
+                      >
                         {{
                           log.error_message
                             ? t("dashboard.jsRuntime.logs.error", "Error")
@@ -1428,12 +1635,16 @@ const formatTime = (ts: number | null) => {
                     </TableCell>
                     <TableCell class="py-3">
                       <p
-                        class="text-foreground/80 max-w-[200px] truncate text-sm md:max-w-[400px]"
+                        class="max-w-[200px] truncate text-sm text-foreground/80 md:max-w-[400px]"
                         :title="
-                          log.error_message || t('dashboard.jsRuntime.logs.success', 'Success')
+                          log.error_message ||
+                          t('dashboard.jsRuntime.logs.success', 'Success')
                         "
                       >
-                        {{ log.error_message || t("dashboard.jsRuntime.logs.success", "Success") }}
+                        {{
+                          log.error_message ||
+                          t("dashboard.jsRuntime.logs.success", "Success")
+                        }}
                       </p>
                     </TableCell>
                     <TableCell class="py-3 pr-6 text-right">
@@ -1467,11 +1678,15 @@ const formatTime = (ts: number | null) => {
 
             <div
               v-if="totalPages > 1 || allLogs.length > 0"
-              class="bg-muted/10 flex flex-col gap-3 border-t px-4 py-3 md:flex-row md:items-center md:justify-between"
+              class="flex flex-col gap-3 border-t bg-muted/10 px-4 py-3 md:flex-row md:items-center md:justify-between"
             >
-              <div class="text-muted-foreground flex items-center gap-3 text-sm">
+              <div
+                class="flex items-center gap-3 text-sm text-muted-foreground"
+              >
                 <div class="flex items-center gap-2">
-                  <span>{{ t("dashboard.jsRuntime.logs.limit", "Return Limit") }}</span>
+                  <span>{{
+                    t("dashboard.jsRuntime.logs.limit", "Return Limit")
+                  }}</span>
                   <Select
                     :model-value="String(pageSize)"
                     @update:model-value="
@@ -1481,7 +1696,7 @@ const formatTime = (ts: number | null) => {
                       }
                     "
                   >
-                    <SelectTrigger class="bg-background h-8 w-[88px]"
+                    <SelectTrigger class="h-8 w-[88px] bg-background"
                       ><SelectValue
                     /></SelectTrigger>
                     <SelectContent>
@@ -1494,13 +1709,16 @@ const formatTime = (ts: number | null) => {
                     </SelectContent>
                   </Select>
                 </div>
-                <span>{{ totalPages > 0 ? currentPage : 0 }} / {{ totalPages }}</span>
+                <span
+                  >{{ totalPages > 0 ? currentPage : 0 }} /
+                  {{ totalPages }}</span
+                >
               </div>
               <div class="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  class="bg-background hover:bg-muted h-8 px-3 shadow-sm transition-colors"
+                  class="h-8 bg-background px-3 shadow-sm transition-colors hover:bg-muted"
                   :disabled="currentPage <= 1 || logsLoading"
                   @click="currentPage--"
                 >
@@ -1510,7 +1728,7 @@ const formatTime = (ts: number | null) => {
                 <Button
                   variant="outline"
                   size="sm"
-                  class="bg-background hover:bg-muted h-8 px-3 shadow-sm transition-colors"
+                  class="h-8 bg-background px-3 shadow-sm transition-colors hover:bg-muted"
                   :disabled="currentPage >= totalPages || logsLoading"
                   @click="currentPage++"
                 >
@@ -1526,10 +1744,16 @@ const formatTime = (ts: number | null) => {
           <div class="max-w-3xl space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>{{ t("dashboard.jsRuntime.settings.envVars") }}</CardTitle>
+                <CardTitle>{{
+                  t("dashboard.jsRuntime.settings.envVars")
+                }}</CardTitle>
               </CardHeader>
               <CardContent class="space-y-4">
-                <div v-for="(item, index) in envVars" :key="index" class="flex items-center gap-4">
+                <div
+                  v-for="(item, index) in envVars"
+                  :key="index"
+                  class="flex items-center gap-4"
+                >
                   <Input
                     v-model="item.key"
                     :placeholder="t('dashboard.jsRuntime.settings.key')"
@@ -1543,7 +1767,7 @@ const formatTime = (ts: number | null) => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    class="text-destructive h-8 w-8"
+                    class="h-8 w-8 text-destructive"
                     @click="envVars.splice(index, 1)"
                     v-if="index < envVars.length - 1"
                   >
@@ -1556,7 +1780,9 @@ const formatTime = (ts: number | null) => {
 
             <Card>
               <CardHeader>
-                <CardTitle>{{ t("dashboard.jsRuntime.settings.route") }}</CardTitle>
+                <CardTitle>{{
+                  t("dashboard.jsRuntime.settings.route")
+                }}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div class="flex items-center gap-4">
@@ -1571,7 +1797,9 @@ const formatTime = (ts: number | null) => {
 
             <Card>
               <CardHeader>
-                <CardTitle>{{ t("dashboard.jsRuntime.settings.cleanTime") }}</CardTitle>
+                <CardTitle>{{
+                  t("dashboard.jsRuntime.settings.cleanTime")
+                }}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div class="flex items-center gap-4">
@@ -1633,8 +1861,14 @@ const formatTime = (ts: number | null) => {
             </Card>
 
             <div class="flex justify-end">
-              <Button @click="updateWorkerSettingsFun" :disabled="isActionPending">
-                <Loader2 v-if="settingsLoading" class="mr-2 h-4 w-4 animate-spin" />
+              <Button
+                @click="updateWorkerSettingsFun"
+                :disabled="isActionPending"
+              >
+                <Loader2
+                  v-if="settingsLoading"
+                  class="mr-2 h-4 w-4 animate-spin"
+                />
                 {{ t("dashboard.jsRuntime.settings.confirm") }}
               </Button>
             </div>
@@ -1646,7 +1880,9 @@ const formatTime = (ts: number | null) => {
     <Dialog v-model:open="logDetailOpen">
       <DialogContent class="flex max-h-[80vh] max-w-3xl flex-col">
         <DialogHeader>
-          <DialogTitle>{{ t("dashboard.jsRuntime.logs.detailTitle", "Log Detail") }}</DialogTitle>
+          <DialogTitle>{{
+            t("dashboard.jsRuntime.logs.detailTitle", "Log Detail")
+          }}</DialogTitle>
           <DialogDescription> ID: {{ currentLog?.id }} </DialogDescription>
         </DialogHeader>
         <div class="min-h-0 flex-1 overflow-auto rounded-md border p-4">
@@ -1656,7 +1892,9 @@ const formatTime = (ts: number | null) => {
               <div class="h-48">
                 <Codemirror
                   :model-value="
-                    currentLog?.param ? JSON.stringify(currentLog.param, null, 2) : '{}'
+                    currentLog?.param
+                      ? JSON.stringify(currentLog.param, null, 2)
+                      : '{}'
                   "
                   :extensions="jsonExtensions"
                   class="h-full rounded border text-[12px]"
@@ -1670,7 +1908,9 @@ const formatTime = (ts: number | null) => {
               <div class="h-48">
                 <Codemirror
                   :model-value="
-                    currentLog?.result ? JSON.stringify(currentLog.result, null, 2) : 'null'
+                    currentLog?.result
+                      ? JSON.stringify(currentLog.result, null, 2)
+                      : 'null'
                   "
                   :extensions="jsonExtensions"
                   class="h-full rounded border text-[12px]"
@@ -1680,9 +1920,9 @@ const formatTime = (ts: number | null) => {
               </div>
             </div>
             <div v-if="currentLog?.error_message">
-              <h4 class="text-destructive mb-2 font-medium">Error</h4>
+              <h4 class="mb-2 font-medium text-destructive">Error</h4>
               <pre
-                class="border-destructive/20 bg-destructive/10 text-destructive overflow-auto rounded border p-2 text-sm"
+                class="overflow-auto rounded border border-destructive/20 bg-destructive/10 p-2 text-sm text-destructive"
                 >{{ currentLog.error_message }}</pre
               >
             </div>
@@ -1697,12 +1937,13 @@ const formatTime = (ts: number | null) => {
       <DialogHeader>
         <DialogTitle>编辑脚本描述</DialogTitle>
         <DialogDescription
-          >支持 Markdown 语法，不支持 HTML 标签嵌入，留空则显示无描述。</DialogDescription
+          >支持 Markdown 语法，不支持 HTML
+          标签嵌入，留空则显示无描述。</DialogDescription
         >
       </DialogHeader>
 
       <div class="space-y-4 py-4">
-        <div class="bg-card flex min-h-0 flex-col rounded-lg border">
+        <div class="flex min-h-0 flex-col rounded-lg border bg-card">
           <Codemirror
             v-model="descriptionEditText"
             :extensions="[]"
@@ -1712,9 +1953,17 @@ const formatTime = (ts: number | null) => {
       </div>
 
       <div class="mt-2 flex justify-end gap-3 border-t pt-4">
-        <Button variant="outline" @click="descriptionEditOpen = false">取消</Button>
-        <Button @click="updateWorkerDescriptionFun" :disabled="descriptionLoading">
-          <Loader2 v-if="descriptionLoading" class="mr-2 h-4 w-4 animate-spin" />
+        <Button variant="outline" @click="descriptionEditOpen = false"
+          >取消</Button
+        >
+        <Button
+          @click="updateWorkerDescriptionFun"
+          :disabled="descriptionLoading"
+        >
+          <Loader2
+            v-if="descriptionLoading"
+            class="mr-2 h-4 w-4 animate-spin"
+          />
           保存描述
         </Button>
       </div>

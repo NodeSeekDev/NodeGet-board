@@ -7,14 +7,22 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 const props = defineProps<{
   permissionsItem: PermissionEntry;
   configItem: PermissionItemConfig;
 }>();
 const emits = defineEmits<{
-  (e: "update:permissionsItem", permissionsItem: PermissionEntry, permissionsName: string): void;
+  (
+    e: "update:permissionsItem",
+    permissionsItem: PermissionEntry,
+    permissionsName: string,
+  ): void;
 }>();
 
 const localPermissions = ref<PermissionEntry>(props.permissionsItem);
@@ -92,7 +100,7 @@ const getChildKeys = (item: string) => {
         v-for="item in Object.keys(props.configItem.value)"
         :key="item"
         v-show="item === currentActiveButton"
-        class="flex flex-wrap gap-2"
+        class="flex gap-2 flex-wrap"
       >
         <Button variant="outline" v-for="(info, index) in getChildKeys(item)">
           {{ info }}

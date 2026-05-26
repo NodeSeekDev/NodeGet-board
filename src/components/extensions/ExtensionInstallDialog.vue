@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { diffLines } from "diff";
-import { FolderOpen, Upload, CheckCircle, AlertCircle, Loader2 } from "lucide-vue-next";
+import {
+  FolderOpen,
+  Upload,
+  CheckCircle,
+  AlertCircle,
+  Loader2,
+} from "lucide-vue-next";
 import {
   Dialog,
   DialogContent,
@@ -43,7 +49,8 @@ const tokenAgreed = ref(false);
 const fileInputRef = ref<HTMLInputElement | null>(null);
 const zipInputRef = ref<HTMLInputElement | null>(null);
 
-const routeTypeLabel = (type: string) => (type === "global" ? "全局路由" : "节点路由");
+const routeTypeLabel = (type: string) =>
+  type === "global" ? "全局路由" : "节点路由";
 const routeTypeBadgeVariant = (type: string) =>
   type === "global" ? ("default" as const) : ("secondary" as const);
 
@@ -63,19 +70,33 @@ const normalizeJson = (val: unknown): unknown => {
 
 const limitsChanged = computed(() => {
   if (!isReinstall.value || !props.reinstallTarget) return true;
-  const oldLimits = JSON.stringify(normalizeJson(props.reinstallTarget.app.limits ?? []));
-  const newLimits = JSON.stringify(normalizeJson(parsedApp.value?.limits ?? []));
+  const oldLimits = JSON.stringify(
+    normalizeJson(props.reinstallTarget.app.limits ?? []),
+  );
+  const newLimits = JSON.stringify(
+    normalizeJson(parsedApp.value?.limits ?? []),
+  );
   return oldLimits !== newLimits;
 });
 
-const needsTokenConfirm = computed(() => !isReinstall.value || limitsChanged.value);
+const needsTokenConfirm = computed(
+  () => !isReinstall.value || limitsChanged.value,
+);
 
 type DiffLine = { text: string; added: boolean; removed: boolean };
 
 const limitsDiff = computed((): DiffLine[] | null => {
   if (!isReinstall.value || !props.reinstallTarget) return null;
-  const oldStr = JSON.stringify(normalizeJson(props.reinstallTarget.app.limits ?? []), null, 2);
-  const newStr = JSON.stringify(normalizeJson(parsedApp.value?.limits ?? []), null, 2);
+  const oldStr = JSON.stringify(
+    normalizeJson(props.reinstallTarget.app.limits ?? []),
+    null,
+    2,
+  );
+  const newStr = JSON.stringify(
+    normalizeJson(parsedApp.value?.limits ?? []),
+    null,
+    2,
+  );
   return diffLines(oldStr, newStr).flatMap((part) => {
     const prefix = part.added ? "+" : part.removed ? "-" : " ";
     const lines = part.value.split("\n");
@@ -190,7 +211,9 @@ defineExpose({ onProgress, onInstallDone, onInstallError });
     <DialogContent class="max-w-lg">
       <DialogHeader>
         <DialogTitle>{{
-          isReinstall ? `重装「${props.reinstallTarget?.app.name}」` : "安装扩展"
+          isReinstall
+            ? `重装「${props.reinstallTarget?.app.name}」`
+            : "安装扩展"
         }}</DialogTitle>
         <DialogDescription>
           {{
@@ -204,25 +227,32 @@ defineExpose({ onProgress, onInstallDone, onInstallError });
       <!-- 步骤：选择文件 -->
       <template v-if="step === 'select'">
         <div class="flex flex-col items-center gap-4 py-6">
-          <div class="grid w-full grid-cols-2 gap-3">
+          <div class="grid grid-cols-2 gap-3 w-full">
             <div
-              class="border-muted-foreground/30 hover:border-muted-foreground/60 flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed p-6 transition-colors"
+              class="border-2 border-dashed border-muted-foreground/30 rounded-lg p-6 flex flex-col items-center gap-2 cursor-pointer hover:border-muted-foreground/60 transition-colors"
               @click="openFolderPicker"
             >
-              <FolderOpen class="text-muted-foreground h-8 w-8" />
-              <p class="text-muted-foreground text-center text-xs">打开文件夹</p>
+              <FolderOpen class="h-8 w-8 text-muted-foreground" />
+              <p class="text-xs text-muted-foreground text-center">
+                打开文件夹
+              </p>
             </div>
             <div
-              class="border-muted-foreground/30 hover:border-muted-foreground/60 flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed p-6 transition-colors"
+              class="border-2 border-dashed border-muted-foreground/30 rounded-lg p-6 flex flex-col items-center gap-2 cursor-pointer hover:border-muted-foreground/60 transition-colors"
               @click="openZipPicker"
             >
-              <Upload class="text-muted-foreground h-8 w-8" />
-              <p class="text-muted-foreground text-center text-xs">打开 ZIP</p>
+              <Upload class="h-8 w-8 text-muted-foreground" />
+              <p class="text-xs text-muted-foreground text-center">打开 ZIP</p>
             </div>
           </div>
-          <p class="text-muted-foreground text-xs">需包含 app.json 和 resources/ 目录</p>
+          <p class="text-xs text-muted-foreground">
+            需包含 app.json 和 resources/ 目录
+          </p>
 
-          <p v-if="parseError" class="text-destructive flex items-center gap-1 text-sm">
+          <p
+            v-if="parseError"
+            class="text-sm text-destructive flex items-center gap-1"
+          >
             <AlertCircle class="h-4 w-4 flex-shrink-0" />{{ parseError }}
           </p>
 
@@ -254,7 +284,7 @@ defineExpose({ onProgress, onInstallDone, onInstallError });
             <!-- 基本信息 -->
             <div class="space-y-2">
               <h4 class="text-sm font-medium">扩展信息</h4>
-              <div class="space-y-1 rounded-md border p-3 text-sm">
+              <div class="rounded-md border p-3 space-y-1 text-sm">
                 <div class="flex justify-between">
                   <span class="text-muted-foreground">名称</span>
                   <span class="font-medium">{{ parsedApp?.name || "—" }}</span>
@@ -265,7 +295,7 @@ defineExpose({ onProgress, onInstallDone, onInstallError });
                 </div>
                 <div class="flex justify-between">
                   <span class="text-muted-foreground">描述</span>
-                  <span class="max-w-48 truncate text-right">{{
+                  <span class="text-right max-w-48 truncate">{{
                     parsedApp?.description || "—"
                   }}</span>
                 </div>
@@ -278,7 +308,9 @@ defineExpose({ onProgress, onInstallDone, onInstallError });
 
             <!-- 路由信息 -->
             <div v-if="parsedApp?.routes?.length" class="space-y-2">
-              <h4 class="text-sm font-medium">注册路由 ({{ parsedApp.routes.length }})</h4>
+              <h4 class="text-sm font-medium">
+                注册路由 ({{ parsedApp.routes.length }})
+              </h4>
               <div class="space-y-1">
                 <div
                   v-for="route in parsedApp.routes"
@@ -286,7 +318,10 @@ defineExpose({ onProgress, onInstallDone, onInstallError });
                   class="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
                 >
                   <span class="font-mono text-xs">{{ route.name }}</span>
-                  <Badge :variant="routeTypeBadgeVariant(route.type)" class="text-xs">
+                  <Badge
+                    :variant="routeTypeBadgeVariant(route.type)"
+                    class="text-xs"
+                  >
                     {{ routeTypeLabel(route.type) }}
                   </Badge>
                 </div>
@@ -300,8 +335,10 @@ defineExpose({ onProgress, onInstallDone, onInstallError });
               </h4>
 
               <!-- 重装且权限有变化：显示 diff -->
-              <div v-if="limitsDiff" class="overflow-hidden rounded-md border">
-                <pre class="max-h-48 overflow-x-auto p-3 font-mono text-xs leading-5"><span
+              <div v-if="limitsDiff" class="rounded-md border overflow-hidden">
+                <pre
+                  class="p-3 text-xs font-mono overflow-x-auto max-h-48 leading-5"
+                ><span
                   v-for="(line, i) in limitsDiff"
                   :key="i"
                   :class="[
@@ -315,27 +352,45 @@ defineExpose({ onProgress, onInstallDone, onInstallError });
 
               <!-- 新安装：显示完整 JSON -->
               <template v-else>
-                <div v-if="limitsCount > 0" class="overflow-hidden rounded-md border">
+                <div
+                  v-if="limitsCount > 0"
+                  class="rounded-md border overflow-hidden"
+                >
                   <pre
-                    class="bg-muted/30 max-h-32 overflow-x-auto p-3 font-mono text-xs break-all whitespace-pre-wrap"
-                    >{{ JSON.stringify(normalizeJson(parsedApp?.limits ?? []), null, 2) }}</pre
+                    class="p-3 text-xs font-mono bg-muted/30 overflow-x-auto whitespace-pre-wrap break-all max-h-32"
+                    >{{
+                      JSON.stringify(
+                        normalizeJson(parsedApp?.limits ?? []),
+                        null,
+                        2,
+                      )
+                    }}</pre
                   >
                 </div>
                 <div
                   v-else
-                  class="text-muted-foreground bg-muted/30 rounded-md border p-3 font-mono text-xs"
+                  class="rounded-md border p-3 text-xs text-muted-foreground font-mono bg-muted/30"
                 >
                   默认只读监控权限（cpu、system）
                 </div>
               </template>
-              <label class="flex cursor-pointer items-center gap-2 text-sm select-none">
-                <input v-model="tokenAgreed" type="checkbox" class="h-4 w-4 rounded" />
+              <label
+                class="flex items-center gap-2 cursor-pointer select-none text-sm"
+              >
+                <input
+                  v-model="tokenAgreed"
+                  type="checkbox"
+                  class="h-4 w-4 rounded"
+                />
                 我同意为此扩展创建上述权限的 Token
               </label>
             </div>
 
             <!-- 安装错误提示 -->
-            <p v-if="installError" class="text-destructive flex items-center gap-1 text-sm">
+            <p
+              v-if="installError"
+              class="text-sm text-destructive flex items-center gap-1"
+            >
               <AlertCircle class="h-4 w-4 flex-shrink-0" />
               {{ installError }}
             </p>
@@ -344,8 +399,11 @@ defineExpose({ onProgress, onInstallDone, onInstallError });
 
         <DialogFooter class="mt-4">
           <Button variant="outline" @click="step = 'select'">返回</Button>
-          <Button :disabled="needsTokenConfirm && !tokenAgreed" @click="handleInstall">
-            <Upload class="mr-2 h-4 w-4" />
+          <Button
+            :disabled="needsTokenConfirm && !tokenAgreed"
+            @click="handleInstall"
+          >
+            <Upload class="h-4 w-4 mr-2" />
             {{ isReinstall ? "确认重装" : "创建 Token 并安装" }}
           </Button>
         </DialogFooter>
@@ -353,13 +411,13 @@ defineExpose({ onProgress, onInstallDone, onInstallError });
 
       <!-- 步骤：安装中 -->
       <template v-else-if="step === 'installing'">
-        <div class="space-y-4 py-4">
-          <div class="text-muted-foreground flex items-center gap-2 text-sm">
+        <div class="py-4 space-y-4">
+          <div class="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 class="h-4 w-4 animate-spin" />
             正在安装扩展，请稍候...
           </div>
-          <div class="bg-muted/30 h-40 overflow-y-auto rounded-md border p-2">
-            <div class="text-muted-foreground space-y-1 font-mono text-xs">
+          <div class="h-40 overflow-y-auto rounded-md border bg-muted/30 p-2">
+            <div class="space-y-1 font-mono text-xs text-muted-foreground">
               <p v-for="(msg, i) in progressMessages" :key="i">{{ msg }}</p>
             </div>
           </div>
@@ -368,10 +426,12 @@ defineExpose({ onProgress, onInstallDone, onInstallError });
 
       <!-- 步骤：完成 -->
       <template v-else-if="step === 'done'">
-        <div class="flex flex-col items-center gap-3 py-6">
+        <div class="py-6 flex flex-col items-center gap-3">
           <CheckCircle class="h-10 w-10 text-green-500" />
           <p class="text-sm font-medium">扩展安装成功！</p>
-          <p class="text-muted-foreground font-mono text-xs">ID: {{ installedId }}</p>
+          <p class="text-xs text-muted-foreground font-mono">
+            ID: {{ installedId }}
+          </p>
         </div>
 
         <DialogFooter>

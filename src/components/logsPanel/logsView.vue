@@ -63,7 +63,8 @@ const {
 
 const localFilters = ref<LogFilterRule[]>([]);
 
-const cloneFilters = (value: LogFilterRule[] = []) => value.map((item) => ({ ...item }));
+const cloneFilters = (value: LogFilterRule[] = []) =>
+  value.map((item) => ({ ...item }));
 const serializeFilters = (value: LogFilterRule[] = []) => JSON.stringify(value);
 
 const syncFilters = async (nextFilters: LogFilterRule[] = []) => {

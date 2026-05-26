@@ -27,15 +27,18 @@ export type WindowOption = (typeof WINDOWS)[number];
 export type RefreshOption = (typeof REFRESH_INTERVALS)[number];
 
 // Detail sections: window <= 5min allows 1s refresh; > 5min enforces minimum 10s
-export const detailMinRefresh = (windowMs: number) => (windowMs > 5 * 60 * 1000 ? 10_000 : 1_000);
+export const detailMinRefresh = (windowMs: number) =>
+  windowMs > 5 * 60 * 1000 ? 10_000 : 1_000;
 
 export const detailRefreshOptions = (windowMs: number) => {
   const min = detailMinRefresh(windowMs);
   return REFRESH_INTERVALS.filter((r) => r.value >= min);
 };
 
-export const effectiveDetailRefresh = (windowMs: number, refreshInterval: number) =>
-  Math.max(refreshInterval, detailMinRefresh(windowMs));
+export const effectiveDetailRefresh = (
+  windowMs: number,
+  refreshInterval: number,
+) => Math.max(refreshInterval, detailMinRefresh(windowMs));
 
 // Default agent KV limits if absent
 export const DEFAULT_DYNAMIC_LIMIT = 21_600_000; // 6h

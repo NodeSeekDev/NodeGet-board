@@ -21,7 +21,9 @@ const { t } = useI18n();
 const readTargets = ref<string[]>([]);
 const deleteTargets = ref<string[]>([]);
 const hydrating = ref(false);
-const { isOpen, handleToggle } = usePermissionModuleOpen(() => props.modelValue);
+const { isOpen, handleToggle } = usePermissionModuleOpen(
+  () => props.modelValue,
+);
 
 type JsResultKind = "read" | "delete";
 
@@ -92,7 +94,9 @@ const getTargetsRef = (kind: JsResultKind) => {
 };
 
 const normalizeTargets = (targets: AcceptableInputValue[]) => {
-  return targets.filter((target): target is string => typeof target === "string");
+  return targets.filter(
+    (target): target is string => typeof target === "string",
+  );
 };
 
 const updateTargets = (kind: JsResultKind, value: AcceptableInputValue[]) => {
@@ -125,13 +129,21 @@ watch(
 
 <template>
   <details class="rounded-md border p-3" :open="isOpen" @toggle="handleToggle">
-    <summary class="cursor-pointer text-sm font-medium select-none">
-      {{ t("dashboard.token.permissionsConfig.limitItem.permissionCard.jsResult.title") }}
+    <summary class="cursor-pointer select-none text-sm font-medium">
+      {{
+        t(
+          "dashboard.token.permissionsConfig.limitItem.permissionCard.jsResult.title",
+        )
+      }}
     </summary>
     <div class="mt-3 space-y-3">
       <div class="space-y-1">
-        <div class="text-muted-foreground text-xs">
-          {{ t("dashboard.token.permissionsConfig.limitItem.permissionCard.jsResult.readTarget") }}
+        <div class="text-xs text-muted-foreground">
+          {{
+            t(
+              "dashboard.token.permissionsConfig.limitItem.permissionCard.jsResult.readTarget",
+            )
+          }}
         </div>
         <TagsInput
           :model-value="readTargets"
@@ -140,7 +152,11 @@ watch(
           @update:model-value="updateTargets('read', $event)"
         >
           <div class="flex flex-wrap gap-2">
-            <TagsInputItem v-for="target in readTargets" :key="`read-${target}`" :value="target">
+            <TagsInputItem
+              v-for="target in readTargets"
+              :key="`read-${target}`"
+              :value="target"
+            >
               <TagsInputItemText />
               <TagsInputItemDelete />
             </TagsInputItem>
@@ -150,9 +166,11 @@ watch(
       </div>
 
       <div class="space-y-1">
-        <div class="text-muted-foreground text-xs">
+        <div class="text-xs text-muted-foreground">
           {{
-            t("dashboard.token.permissionsConfig.limitItem.permissionCard.jsResult.deleteTarget")
+            t(
+              "dashboard.token.permissionsConfig.limitItem.permissionCard.jsResult.deleteTarget",
+            )
           }}
         </div>
         <TagsInput

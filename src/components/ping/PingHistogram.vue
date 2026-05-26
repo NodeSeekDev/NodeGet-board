@@ -6,7 +6,11 @@ import { GridComponent, TooltipComponent } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
 import type { EChartsType } from "echarts/core";
 import type { PingResult } from "./usePingTask";
-import { LATENCY_SEGMENTS, LOSS_COLOR, getLatencyColor } from "./pingLatencyConfig";
+import {
+  LATENCY_SEGMENTS,
+  LOSS_COLOR,
+  getLatencyColor,
+} from "./pingLatencyConfig";
 
 echarts.use([BarChart, GridComponent, TooltipComponent, CanvasRenderer]);
 
@@ -38,19 +42,26 @@ const bucketCounts = computed(() => {
 });
 
 const stats = computed(() => {
-  if (doneResults.value.length === 0) return { avg: null, jitter: null, lossRate: null };
+  if (doneResults.value.length === 0)
+    return { avg: null, jitter: null, lossRate: null };
 
   const latencies = doneResults.value
     .filter((r) => r.avg !== null && r.loss < 100)
     .map((r) => r.avg as number);
-  const avg = latencies.length ? latencies.reduce((a, b) => a + b, 0) / latencies.length : null;
+  const avg = latencies.length
+    ? latencies.reduce((a, b) => a + b, 0) / latencies.length
+    : null;
 
   const jitters = doneResults.value
     .filter((r) => r.jitter !== null && r.loss < 100)
     .map((r) => r.jitter as number);
-  const jitter = jitters.length ? jitters.reduce((a, b) => a + b, 0) / jitters.length : null;
+  const jitter = jitters.length
+    ? jitters.reduce((a, b) => a + b, 0) / jitters.length
+    : null;
 
-  const lossRate = doneResults.value.reduce((a, r) => a + r.loss, 0) / doneResults.value.length;
+  const lossRate =
+    doneResults.value.reduce((a, r) => a + r.loss, 0) /
+    doneResults.value.length;
 
   return { avg, jitter, lossRate };
 });
@@ -117,35 +128,38 @@ watch(option, (newOption) => {
 </script>
 
 <template>
-  <div class="flex h-full flex-col gap-4">
+  <div class="flex flex-col h-full gap-4">
     <div class="grid grid-cols-3 gap-3">
-      <div class="bg-card rounded-lg border p-3 text-center">
-        <div class="text-muted-foreground mb-1 text-xs">平均</div>
-        <div class="font-mono text-lg font-bold" :style="{ color: getLatencyColor(stats.avg, 0) }">
+      <div class="p-3 rounded-lg border bg-card text-center">
+        <div class="text-xs text-muted-foreground mb-1">平均</div>
+        <div
+          class="text-lg font-mono font-bold"
+          :style="{ color: getLatencyColor(stats.avg, 0) }"
+        >
           {{ fmt(stats.avg) }}
         </div>
       </div>
-      <div class="bg-card rounded-lg border p-3 text-center">
-        <div class="text-muted-foreground mb-1 text-xs">抖动</div>
+      <div class="p-3 rounded-lg border bg-card text-center">
+        <div class="text-xs text-muted-foreground mb-1">抖动</div>
         <div
-          class="font-mono text-lg font-bold"
+          class="text-lg font-mono font-bold"
           :style="{ color: getLatencyColor(stats.jitter, 0) }"
         >
           {{ fmt(stats.jitter) }}
         </div>
       </div>
-      <div class="bg-card rounded-lg border p-3 text-center">
-        <div class="text-muted-foreground mb-1 text-xs">丢包率</div>
+      <div class="p-3 rounded-lg border bg-card text-center">
+        <div class="text-xs text-muted-foreground mb-1">丢包率</div>
         <div
-          class="font-mono text-lg font-bold"
+          class="text-lg font-mono font-bold"
           :style="{ color: getLossRateColor(stats.lossRate) }"
         >
           {{ fmtLoss(stats.lossRate) }}
         </div>
       </div>
     </div>
-    <div class="bg-card flex-1 overflow-hidden rounded-lg border">
-      <div ref="chartRef" class="h-full w-full" />
+    <div class="flex-1 border rounded-lg bg-card overflow-hidden">
+      <div ref="chartRef" class="w-full h-full" />
     </div>
   </div>
 </template>

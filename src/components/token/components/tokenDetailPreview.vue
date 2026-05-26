@@ -2,11 +2,20 @@
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { ChevronDown, Eye, ScanEye } from "lucide-vue-next";
-import type { PermissionEntry, Token, TokenDetail, TokenLimitEntry } from "../type";
+import type {
+  PermissionEntry,
+  Token,
+  TokenDetail,
+  TokenLimitEntry,
+} from "../type";
 import { createPermissionBuckets } from "./permissions/permissionsState";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { Spinner } from "@/components/ui/spinner";
 
 type PermissionSection = {
@@ -28,7 +37,10 @@ const props = withDefaults(
 
 const { t, locale } = useI18n();
 
-const displayText = (value: string | number | null | undefined, fallback = "-") => {
+const displayText = (
+  value: string | number | null | undefined,
+  fallback = "-",
+) => {
   if (value === null || value === undefined) return fallback;
   if (typeof value === "string") return value.trim() || fallback;
   return String(value);
@@ -165,7 +177,9 @@ const tokenLimitDetails = computed(() => {
   });
 });
 
-const previewJson = computed(() => JSON.stringify(props.rawDetail ?? props.token ?? {}, null, 2));
+const previewJson = computed(() =>
+  JSON.stringify(props.rawDetail ?? props.token ?? {}, null, 2),
+);
 
 const openedPermissionCards = ref<boolean[]>([]);
 
@@ -188,9 +202,12 @@ const rawSummary = computed(() => {
 </script>
 
 <template>
-  <div v-if="loading" class="flex min-h-[320px] flex-col items-center justify-center gap-3">
+  <div
+    v-if="loading"
+    class="flex min-h-[320px] flex-col items-center justify-center gap-3"
+  >
     <Spinner />
-    <div class="text-muted-foreground text-sm">
+    <div class="text-sm text-muted-foreground">
       {{ t("dashboard.token.detail.detailLoading") }}
     </div>
   </div>
@@ -206,7 +223,7 @@ const rawSummary = computed(() => {
         </CardHeader>
         <CardContent class="grid gap-4 md:grid-cols-2">
           <div class="space-y-1">
-            <div class="text-muted-foreground text-xs">
+            <div class="text-xs text-muted-foreground">
               {{ t("dashboard.token.detail.preview.tokenKey") }}
             </div>
             <div class="font-mono text-sm break-all">
@@ -214,7 +231,7 @@ const rawSummary = computed(() => {
             </div>
           </div>
           <div class="space-y-1">
-            <div class="text-muted-foreground text-xs">
+            <div class="text-xs text-muted-foreground">
               {{ t("dashboard.token.detail.preview.version") }}
             </div>
             <div class="text-sm">
@@ -222,7 +239,7 @@ const rawSummary = computed(() => {
             </div>
           </div>
           <div class="space-y-1">
-            <div class="text-muted-foreground text-xs">
+            <div class="text-xs text-muted-foreground">
               {{ t("dashboard.token.detail.preview.username") }}
             </div>
             <div class="text-sm">
@@ -235,25 +252,31 @@ const rawSummary = computed(() => {
             </div>
           </div>
           <div class="space-y-1">
-            <div class="text-muted-foreground text-xs">
+            <div class="text-xs text-muted-foreground">
               {{ t("dashboard.token.detail.preview.tokenLimitCount") }}
             </div>
             <div class="text-sm">{{ token.token_limit.length }}</div>
           </div>
           <div class="space-y-1">
-            <div class="text-muted-foreground text-xs">
+            <div class="text-xs text-muted-foreground">
               {{ t("dashboard.token.detail.preview.startTime") }}
             </div>
             <div class="text-sm">
-              {{ formatTimestamp(rawSummary.timestamp_from ?? token.timestamp_from) }}
+              {{
+                formatTimestamp(
+                  rawSummary.timestamp_from ?? token.timestamp_from,
+                )
+              }}
             </div>
           </div>
           <div class="space-y-1">
-            <div class="text-muted-foreground text-xs">
+            <div class="text-xs text-muted-foreground">
               {{ t("dashboard.token.detail.preview.endTime") }}
             </div>
             <div class="text-sm">
-              {{ formatTimestamp(rawSummary.timestamp_to ?? token.timestamp_to) }}
+              {{
+                formatTimestamp(rawSummary.timestamp_to ?? token.timestamp_to)
+              }}
             </div>
           </div>
         </CardContent>
@@ -270,7 +293,7 @@ const rawSummary = computed(() => {
               <CollapsibleTrigger as-child>
                 <button
                   type="button"
-                  class="hover:bg-muted/40 focus-visible:ring-ring/50 flex w-full flex-col gap-3 rounded-md text-left transition-colors focus-visible:ring-[1px] focus-visible:outline-none lg:flex-row lg:items-center lg:justify-between"
+                  class="flex w-full flex-col gap-3 rounded-md text-left transition-colors hover:bg-muted/40 focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[1px] lg:flex-row lg:items-center lg:justify-between"
                 >
                   <div class="flex items-center gap-2">
                     <CardTitle>{{
@@ -278,7 +301,9 @@ const rawSummary = computed(() => {
                         index: limit.index + 1,
                       })
                     }}</CardTitle>
-                    <span class="inline-flex size-8 items-center justify-center rounded-md">
+                    <span
+                      class="inline-flex size-8 items-center justify-center rounded-md"
+                    >
                       <ChevronDown
                         class="h-4 w-4 transition-transform duration-200"
                         :class="{
@@ -303,7 +328,7 @@ const rawSummary = computed(() => {
             <CollapsibleContent>
               <CardContent class="space-y-5">
                 <div class="space-y-2">
-                  <div class="text-muted-foreground text-xs">
+                  <div class="text-xs text-muted-foreground">
                     {{ t("dashboard.token.detail.preview.scope") }}
                   </div>
                   <div class="flex flex-wrap gap-2">
@@ -344,18 +369,19 @@ const rawSummary = computed(() => {
       </div>
     </div>
 
-    <Card class="h-fit max-w-full min-w-0 overflow-hidden">
+    <Card class="h-fit min-w-0 max-w-full overflow-hidden">
       <CardHeader>
         <CardTitle class="flex items-center gap-2">
           <ScanEye class="h-5 w-5" />
           {{ t("dashboard.token.detail.preview.rawJsonTitle") }}
         </CardTitle>
       </CardHeader>
-      <CardContent class="max-w-full min-w-0">
-        <div class="bg-muted/40 w-full max-w-full overflow-x-auto rounded-lg">
-          <pre class="max-h-[720px] w-max min-w-full overflow-y-auto p-4 text-xs leading-6">{{
-            previewJson
-          }}</pre>
+      <CardContent class="min-w-0 max-w-full">
+        <div class="w-full max-w-full overflow-x-auto rounded-lg bg-muted/40">
+          <pre
+            class="max-h-[720px] w-max min-w-full overflow-y-auto p-4 text-xs leading-6"
+            >{{ previewJson }}</pre
+          >
         </div>
       </CardContent>
     </Card>

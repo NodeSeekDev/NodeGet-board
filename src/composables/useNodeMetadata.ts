@@ -1,8 +1,10 @@
 import type { NodeMetadata } from "@/types/agent";
 import type { useKv } from "@/composables/useKv";
+import { shorterUUID } from "@/utils/format";
 
 export function makeDefaultMetadata(uuid: string) {
-  const defaultName = "节点" + uuid.slice(-6);
+  const defaultName = "节点" + shorterUUID(uuid);
+
   return {
     metadata_name: defaultName,
     metadata_tags: [],
@@ -24,9 +26,10 @@ export function useNodeMetadata(kv: ReturnType<typeof useKv>) {
     const get = (key: string) => entries.find((e) => e.key === key)?.value;
     return {
       customName: String(get("metadata_name") ?? "") || fallbackName,
-      tags: (Array.isArray(get("metadata_tags")) ? (get("metadata_tags") as string[]) : []).filter(
-        Boolean,
-      ),
+      tags: (Array.isArray(get("metadata_tags"))
+        ? (get("metadata_tags") as string[])
+        : []
+      ).filter(Boolean),
       price: Number(get("metadata_price") ?? 0),
       priceUnit: String(get("metadata_price_unit") ?? "$"),
       priceCycle: Number(get("metadata_price_cycle") ?? 30),
@@ -56,7 +59,9 @@ export function useNodeMetadata(kv: ReturnType<typeof useKv>) {
     metadata: Record<string, any> = makeDefaultMetadata(uuid),
   ) {
     kv.namespace.value = uuid;
-    await Promise.all(Object.entries(metadata).map(([k, v]) => kv.setValue(k, v)));
+    await Promise.all(
+      Object.entries(metadata).map(([k, v]) => kv.setValue(k, v)),
+    );
   }
 
   return {

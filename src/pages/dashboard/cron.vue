@@ -157,14 +157,18 @@ const handleSave = async (data: Omit<CronTask, "id"> & { id?: number }) => {
         cron_expression: data.cronExpression,
         cron_type,
       });
-      toast.success(formatRpcSuccessMessage(result, t("dashboard.cron.updateSuccess")));
+      toast.success(
+        formatRpcSuccessMessage(result, t("dashboard.cron.updateSuccess")),
+      );
     } else {
       const result = await cron.create({
         name: data.name,
         cron_expression: data.cronExpression,
         cron_type,
       });
-      toast.success(formatRpcSuccessMessage(result, t("dashboard.cron.createSuccess")));
+      toast.success(
+        formatRpcSuccessMessage(result, t("dashboard.cron.createSuccess")),
+      );
     }
     formOpen.value = false;
     await loadTasks();
@@ -181,7 +185,9 @@ const handleDelete = async (name: string) => {
   deletingNames.value = [...deletingNames.value, name];
   try {
     const result = await cron.remove(name);
-    toast.success(formatRpcSuccessMessage(result, t("dashboard.cron.deleteSuccess")));
+    toast.success(
+      formatRpcSuccessMessage(result, t("dashboard.cron.deleteSuccess")),
+    );
     await loadTasks();
   } catch (e: unknown) {
     toast.error(e instanceof Error ? e.message : String(e));
@@ -205,7 +211,9 @@ const handleToggle = async (task: CronTask) => {
     toast.success(
       formatRpcSuccessMessage(
         result,
-        enabled ? t("dashboard.cron.enableSuccess") : t("dashboard.cron.disableSuccess"),
+        enabled
+          ? t("dashboard.cron.enableSuccess")
+          : t("dashboard.cron.disableSuccess"),
       ),
     );
     await loadTasks();
@@ -213,7 +221,9 @@ const handleToggle = async (task: CronTask) => {
     task.enabled = previousEnabled;
     toast.error(e instanceof Error ? e.message : String(e));
   } finally {
-    togglingNames.value = togglingNames.value.filter((name) => name !== task.name);
+    togglingNames.value = togglingNames.value.filter(
+      (name) => name !== task.name,
+    );
   }
 };
 
@@ -236,15 +246,20 @@ const handleUpdateNodes = async (name: string, agentIds: string[]) => {
     <div class="flex items-start justify-between">
       <div>
         <h1 class="text-2xl font-semibold">{{ t("dashboard.cron.title") }}</h1>
-        <p class="text-muted-foreground mt-1 text-sm">
+        <p class="text-sm text-muted-foreground mt-1">
           {{ t("dashboard.cron.desc") }}
         </p>
       </div>
-      <Button variant="outline" :disabled="loading" class="mr-2 ml-auto" @click="() => loadTasks()">
+      <Button
+        variant="outline"
+        :disabled="loading"
+        class="ml-auto mr-2"
+        @click="() => loadTasks()"
+      >
         <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': loading }" />
       </Button>
       <Button @click="openCreate">
-        <Plus class="mr-1.5 h-4 w-4" />
+        <Plus class="h-4 w-4 mr-1.5" />
         {{ t("dashboard.cron.create") }}
       </Button>
     </div>

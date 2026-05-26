@@ -44,7 +44,9 @@ const bucketFile = useStaticBucketFile();
 const backendStore = useBackendStore();
 
 const backendUrl = computed(() => backendStore.currentBackend.value?.url ?? "");
-const backendToken = computed(() => backendStore.currentBackend.value?.token ?? "");
+const backendToken = computed(
+  () => backendStore.currentBackend.value?.token ?? "",
+);
 
 const tokenPresetOpen = ref(false);
 const uploadLocalOpen = ref(false);
@@ -104,8 +106,10 @@ const loadThemeMetas = async () => {
 
 const getThemeName = (bucketName: string) =>
   themeMetaMap.value[bucketName]?.name ?? bucketName.replace(/^theme_/, "");
-const getAuthor = (bucketName: string) => themeMetaMap.value[bucketName]?.author ?? "—";
-const getVersion = (bucketName: string) => themeMetaMap.value[bucketName]?.version ?? "—";
+const getAuthor = (bucketName: string) =>
+  themeMetaMap.value[bucketName]?.author ?? "—";
+const getVersion = (bucketName: string) =>
+  themeMetaMap.value[bucketName]?.version ?? "—";
 
 onMounted(async () => {
   await staticBucket.fetchList();
@@ -116,11 +120,18 @@ onMounted(async () => {
     remoteImportInitialUrl.value = addUrl;
 
     const autoEnableParam = route.query.auto_enable;
-    remoteImportAutoEnable.value = autoEnableParam !== "0" && autoEnableParam !== "false";
+    remoteImportAutoEnable.value =
+      autoEnableParam !== "0" && autoEnableParam !== "false";
 
     const tokenPresetParam = route.query.token_preset;
-    const validPresets: TokenPresetChoice[] = ["monitor_only", "monitor_ping", "none"];
-    remoteImportTokenPreset.value = validPresets.includes(tokenPresetParam as TokenPresetChoice)
+    const validPresets: TokenPresetChoice[] = [
+      "monitor_only",
+      "monitor_ping",
+      "none",
+    ];
+    remoteImportTokenPreset.value = validPresets.includes(
+      tokenPresetParam as TokenPresetChoice,
+    )
       ? (tokenPresetParam as TokenPresetChoice)
       : "monitor_ping";
 
@@ -207,19 +218,19 @@ function getPrevieLink(bucket: StaticBucket): string {
 </script>
 
 <template>
-  <div class="space-y-6 p-6">
+  <div class="p-6 space-y-6">
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-xl font-semibold">主题管理</h1>
-        <p class="text-muted-foreground mt-0.5 text-sm">列表</p>
+        <p class="text-sm text-muted-foreground mt-0.5">列表</p>
       </div>
       <div class="flex items-center gap-2">
         <Button variant="outline" size="sm" @click="tokenPresetOpen = true">
-          <Settings2 class="mr-1.5 h-4 w-4" />
+          <Settings2 class="h-4 w-4 mr-1.5" />
           Token 预设
         </Button>
         <Button variant="outline" size="sm" @click="openUploadLocal(null)">
-          <Upload class="mr-1.5 h-4 w-4" />
+          <Upload class="h-4 w-4 mr-1.5" />
           从本地上传
         </Button>
         <Button
@@ -232,15 +243,15 @@ function getPrevieLink(bucket: StaticBucket): string {
             remoteImportOpen = true;
           "
         >
-          <Link class="mr-1.5 h-4 w-4" />
+          <Link class="h-4 w-4 mr-1.5" />
           从远程导入
         </Button>
       </div>
     </div>
 
-    <div class="overflow-hidden rounded-lg border">
+    <div class="border rounded-lg overflow-hidden">
       <div
-        class="bg-muted/50 text-muted-foreground grid grid-cols-[2fr_1fr_5rem_1fr_13rem] gap-4 border-b px-4 py-2.5 text-xs font-medium"
+        class="grid grid-cols-[2fr_1fr_5rem_1fr_13rem] gap-4 px-4 py-2.5 bg-muted/50 text-xs font-medium text-muted-foreground border-b"
       >
         <span>名称</span>
         <span>作者</span>
@@ -251,19 +262,19 @@ function getPrevieLink(bucket: StaticBucket): string {
 
       <div
         v-if="staticBucket.loading.value"
-        class="text-muted-foreground flex items-center justify-center gap-2 py-10 text-sm"
+        class="flex items-center justify-center py-10 text-muted-foreground text-sm gap-2"
       >
         <span
-          class="border-muted-foreground inline-block h-4 w-4 animate-spin rounded-full border-2 border-t-transparent"
+          class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent"
         />
         加载中...
       </div>
 
       <div
         v-else-if="!themeBuckets.length"
-        class="text-muted-foreground flex flex-col items-center justify-center py-12"
+        class="flex flex-col items-center justify-center py-12 text-muted-foreground"
       >
-        <Palette class="mb-3 h-10 w-10 opacity-30" />
+        <Palette class="h-10 w-10 mb-3 opacity-30" />
         <p class="text-sm">暂无主题，点击「从本地上传」添加</p>
       </div>
 
@@ -271,19 +282,19 @@ function getPrevieLink(bucket: StaticBucket): string {
         <div
           v-for="bucket in themeBuckets"
           :key="bucket.name"
-          class="hover:bg-muted/20 grid grid-cols-[2fr_1fr_5rem_1fr_13rem] items-center gap-4 border-b px-4 py-3 transition-colors last:border-0"
+          class="grid grid-cols-[2fr_1fr_5rem_1fr_13rem] gap-4 px-4 py-3 items-center border-b last:border-0 hover:bg-muted/20 transition-colors"
         >
           <div class="min-w-0">
             <button
-              class="w-full cursor-pointer truncate text-left text-sm font-medium hover:underline"
+              class="text-sm font-medium hover:underline cursor-pointer truncate text-left w-full"
               @click="router.push(`/dashboard/theme/${bucket.name}`)"
             >
               {{ getThemeName(bucket.name) }}
             </button>
           </div>
 
-          <span class="text-muted-foreground text-sm">
-            <Loader2 v-if="metaLoading" class="inline h-3 w-3 animate-spin" />
+          <span class="text-sm text-muted-foreground">
+            <Loader2 v-if="metaLoading" class="h-3 w-3 animate-spin inline" />
             <template v-else>{{ getAuthor(bucket.name) }}</template>
           </span>
 
@@ -296,13 +307,15 @@ function getPrevieLink(bucket: StaticBucket): string {
             >
               <span
                 class="inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform"
-                :class="bucket.is_http_root ? 'translate-x-4' : 'translate-x-0.5'"
+                :class="
+                  bucket.is_http_root ? 'translate-x-4' : 'translate-x-0.5'
+                "
               />
             </button>
           </div>
 
-          <span class="text-muted-foreground text-sm">
-            <Loader2 v-if="metaLoading" class="inline h-3 w-3 animate-spin" />
+          <span class="text-sm text-muted-foreground">
+            <Loader2 v-if="metaLoading" class="h-3 w-3 animate-spin inline" />
             <template v-else>{{ getVersion(bucket.name) }}</template>
           </span>
 
@@ -363,7 +376,7 @@ function getPrevieLink(bucket: StaticBucket): string {
               <Button
                 variant="ghost"
                 size="icon"
-                class="text-destructive hover:text-destructive h-8 w-8"
+                class="h-8 w-8 text-destructive hover:text-destructive"
                 :disabled="deletingBucket === bucket.name"
                 title="删除主题"
               >
@@ -375,7 +388,7 @@ function getPrevieLink(bucket: StaticBucket): string {
       </template>
     </div>
 
-    <p v-if="staticBucket.error.value" class="text-destructive text-sm">
+    <p v-if="staticBucket.error.value" class="text-sm text-destructive">
       {{ staticBucket.error.value }}
     </p>
 

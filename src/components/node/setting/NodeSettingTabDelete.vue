@@ -46,7 +46,9 @@ const nodeName = ref("");
 
 onMounted(async () => {
   try {
-    const results = await kv.getMultiValue([{ namespace: props.uuid, key: "metadata_name" }]);
+    const results = await kv.getMultiValue([
+      { namespace: props.uuid, key: "metadata_name" },
+    ]);
     const entry = results.find((r) => r.key === "metadata_name");
     if (entry) nodeName.value = String(entry.value);
   } catch {
@@ -58,7 +60,12 @@ const dialogOpen = ref(false);
 const confirmName = ref("");
 const progress = ref(0);
 const activeStep = ref(0); // 0=idle
-const stepStatus = ref<("idle" | "running" | "done")[]>(["idle", "idle", "idle", "idle"]);
+const stepStatus = ref<("idle" | "running" | "done")[]>([
+  "idle",
+  "idle",
+  "idle",
+  "idle",
+]);
 
 function openDialog() {
   confirmName.value = "";
@@ -69,7 +76,9 @@ function openDialog() {
 }
 
 const confirmDisabled = () =>
-  !confirmName.value || confirmName.value !== nodeName.value || activeStep.value > 0;
+  !confirmName.value ||
+  confirmName.value !== nodeName.value ||
+  activeStep.value > 0;
 
 function setStep(i: number, status: "running" | "done") {
   stepStatus.value = stepStatus.value.map((s, idx) => (idx === i ? status : s));
@@ -178,10 +187,12 @@ async function handleDelete() {
       <h2 class="text-lg font-semibold">
         {{ $t("dashboard.node.delete.title") }}
       </h2>
-      <p class="text-muted-foreground mt-1 text-sm">
+      <p class="mt-1 text-sm text-muted-foreground">
         {{ $t("dashboard.node.delete.desc") }}
       </p>
-      <ul class="text-muted-foreground mt-3 list-inside list-disc space-y-1 text-sm">
+      <ul
+        class="mt-3 list-inside list-disc space-y-1 text-sm text-muted-foreground"
+      >
         <li>{{ $t("dashboard.node.delete.step1") }}</li>
         <li>{{ $t("dashboard.node.delete.step2") }}</li>
         <li>{{ $t("dashboard.node.delete.step3") }}</li>
@@ -214,14 +225,23 @@ async function handleDelete() {
             >
               <Loader2
                 v-if="stepStatus[i] === 'running'"
-                class="text-muted-foreground h-4 w-4 animate-spin"
+                class="h-4 w-4 animate-spin text-muted-foreground"
               />
-              <CheckCircle2 v-else-if="stepStatus[i] === 'done'" class="h-4 w-4 text-green-500" />
+              <CheckCircle2
+                v-else-if="stepStatus[i] === 'done'"
+                class="h-4 w-4 text-green-500"
+              />
               <span
                 v-else
-                class="border-muted-foreground/30 inline-block h-4 w-4 rounded-full border"
+                class="inline-block h-4 w-4 rounded-full border border-muted-foreground/30"
               />
-              <span :class="stepStatus[i] === 'done' ? 'text-foreground' : 'text-muted-foreground'">
+              <span
+                :class="
+                  stepStatus[i] === 'done'
+                    ? 'text-foreground'
+                    : 'text-muted-foreground'
+                "
+              >
                 {{ $t(`dashboard.node.delete.${stepKey}`) }}
               </span>
             </div>
@@ -238,10 +258,17 @@ async function handleDelete() {
         </div>
 
         <AlertDialogFooter>
-          <AlertDialogCancel :disabled="activeStep > 0" @click="dialogOpen = false">
+          <AlertDialogCancel
+            :disabled="activeStep > 0"
+            @click="dialogOpen = false"
+          >
             {{ $t("dashboard.node.delete.cancel") }}
           </AlertDialogCancel>
-          <Button variant="destructive" :disabled="confirmDisabled()" @click="handleDelete">
+          <Button
+            variant="destructive"
+            :disabled="confirmDisabled()"
+            @click="handleDelete"
+          >
             {{ $t("dashboard.node.delete.confirm") }}
           </Button>
         </AlertDialogFooter>

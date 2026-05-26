@@ -14,7 +14,10 @@ type TokenPermissionTemplateOption = {
 type TokenPermissionTemplateConfig = {
   value: Exclude<TokenPermissionTemplateValue, "custom">;
   buildPermissions: () => PermissionEntry[];
-  matches: (tokenLimit: TokenLimitEntry, currentScopeTab: ScopeTabValue) => boolean;
+  matches: (
+    tokenLimit: TokenLimitEntry,
+    currentScopeTab: ScopeTabValue,
+  ) => boolean;
   apply: (tokenLimit: TokenLimitEntry) => {
     tokenLimit: TokenLimitEntry;
     scopeTab: ScopeTabValue;
@@ -68,7 +71,10 @@ const normalizePermissionValue = (value: unknown): string => {
   if (value && typeof value === "object") {
     return `{${Object.entries(value as Record<string, unknown>)
       .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
-      .map(([key, nestedValue]) => `${key}:${normalizePermissionValue(nestedValue)}`)
+      .map(
+        ([key, nestedValue]) =>
+          `${key}:${normalizePermissionValue(nestedValue)}`,
+      )
       .join(",")}}`;
   }
 
@@ -82,7 +88,10 @@ const arePermissionSetsEqual = (
   const normalizeEntries = (entries: PermissionEntry[] | undefined) =>
     (entries ?? []).map(normalizePermissionValue).sort();
 
-  return JSON.stringify(normalizeEntries(left)) === JSON.stringify(normalizeEntries(right));
+  return (
+    JSON.stringify(normalizeEntries(left)) ===
+    JSON.stringify(normalizeEntries(right))
+  );
 };
 
 const normalizeGlobalTemplateScopes = (): TokenLimitScope => [...DEFAULT_SCOPE];
@@ -92,18 +101,30 @@ export const getTokenPermissionTemplateOptions = (
 ): TokenPermissionTemplateOption[] => [
   {
     value: "agent",
-    label: t("dashboard.token.permissionsConfig.limitItem.template.agent.title"),
-    description: t("dashboard.token.permissionsConfig.limitItem.template.agent.description"),
+    label: t(
+      "dashboard.token.permissionsConfig.limitItem.template.agent.title",
+    ),
+    description: t(
+      "dashboard.token.permissionsConfig.limitItem.template.agent.description",
+    ),
   },
   {
     value: "visitor",
-    label: t("dashboard.token.permissionsConfig.limitItem.template.visitor.title"),
-    description: t("dashboard.token.permissionsConfig.limitItem.template.visitor.description"),
+    label: t(
+      "dashboard.token.permissionsConfig.limitItem.template.visitor.title",
+    ),
+    description: t(
+      "dashboard.token.permissionsConfig.limitItem.template.visitor.description",
+    ),
   },
   {
     value: "custom",
-    label: t("dashboard.token.permissionsConfig.limitItem.template.custom.title"),
-    description: t("dashboard.token.permissionsConfig.limitItem.template.custom.description"),
+    label: t(
+      "dashboard.token.permissionsConfig.limitItem.template.custom.title",
+    ),
+    description: t(
+      "dashboard.token.permissionsConfig.limitItem.template.custom.description",
+    ),
   },
 ];
 
@@ -116,7 +137,10 @@ const TEMPLATE_CONFIGS: Record<
     buildPermissions: () => AGENT_PERMISSIONS.map((item) => ({ ...item })),
     matches: (tokenLimit, currentScopeTab) => {
       if (currentScopeTab !== "Global") return false;
-      return arePermissionSetsEqual(tokenLimit.permissions ?? [], AGENT_PERMISSIONS);
+      return arePermissionSetsEqual(
+        tokenLimit.permissions ?? [],
+        AGENT_PERMISSIONS,
+      );
     },
     apply: (tokenLimit) => ({
       tokenLimit: {
@@ -132,7 +156,10 @@ const TEMPLATE_CONFIGS: Record<
     buildPermissions: () => VISITOR_PERMISSIONS.map((item) => ({ ...item })),
     matches: (tokenLimit, currentScopeTab) => {
       if (currentScopeTab !== "Global") return false;
-      return arePermissionSetsEqual(tokenLimit.permissions ?? [], VISITOR_PERMISSIONS);
+      return arePermissionSetsEqual(
+        tokenLimit.permissions ?? [],
+        VISITOR_PERMISSIONS,
+      );
     },
     apply: (tokenLimit) => ({
       tokenLimit: {

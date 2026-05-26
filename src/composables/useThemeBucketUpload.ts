@@ -39,28 +39,42 @@ export function useThemeBucketUpload() {
     if (isUpdate) {
       const needConfig = kp.userPrefs === "old" || kp.siteTokens === "old";
       const [configResult, cssResult, jsResult] = await Promise.all([
-        needConfig ? sbf.readTextFile(bucketName, "config.json") : Promise.resolve(""),
-        kp.css === "old" ? sbf.readTextFile(bucketName, "custom.css") : Promise.resolve(""),
-        kp.js === "old" ? sbf.readTextFile(bucketName, "custom.js") : Promise.resolve(""),
+        needConfig
+          ? sbf.readTextFile(bucketName, "config.json")
+          : Promise.resolve(""),
+        kp.css === "old"
+          ? sbf.readTextFile(bucketName, "custom.css")
+          : Promise.resolve(""),
+        kp.js === "old"
+          ? sbf.readTextFile(bucketName, "custom.js")
+          : Promise.resolve(""),
       ]);
       oldConfigText = configResult;
       oldCss = cssResult;
       oldJs = jsResult;
     }
 
-    const manifestEntry = files.find((f) => f.path === "nodeget-theme-files.json");
+    const manifestEntry = files.find(
+      (f) => f.path === "nodeget-theme-files.json",
+    );
     if (manifestEntry) {
       try {
-        const text = new TextDecoder().decode(base64ToBuf(manifestEntry.base64));
+        const text = new TextDecoder().decode(
+          base64ToBuf(manifestEntry.base64),
+        );
         const list: unknown = JSON.parse(text);
         if (Array.isArray(list)) {
           const paths = list.map((item) =>
-            typeof item === "string" ? item : ((item as { path?: string }).path ?? ""),
+            typeof item === "string"
+              ? item
+              : ((item as { path?: string }).path ?? ""),
           );
           const toAdd = FIXED_CUSTOM_FILES.filter((f) => !paths.includes(f));
           if (toAdd.length > 0) {
             const isObjectFormat =
-              list.length > 0 && typeof list[0] === "object" && list[0] !== null;
+              list.length > 0 &&
+              typeof list[0] === "object" &&
+              list[0] !== null;
             const toAddItems: unknown[] = isObjectFormat
               ? toAdd.map((f) => ({ path: f }))
               : [...toAdd];
@@ -93,7 +107,12 @@ export function useThemeBucketUpload() {
           await sbf.saveTextFile(
             bucketName,
             "config.json",
-            mergeThemeConfigJson(newConfigText, oldConfigText, kp.userPrefs, kp.siteTokens),
+            mergeThemeConfigJson(
+              newConfigText,
+              oldConfigText,
+              kp.userPrefs,
+              kp.siteTokens,
+            ),
           );
         }
       }

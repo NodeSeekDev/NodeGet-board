@@ -58,8 +58,12 @@ const currentAgent = computed(() => {
   if (!isAgentPanel.value) {
     return null;
   }
-  const info = agents.value.find((v) => v.uuid === (route.params as { uuid: string }).uuid);
-  const staticData = servers.value.find((v) => v.uuid === (route.params as { uuid: string }).uuid);
+  const info = agents.value.find(
+    (v) => v.uuid === (route.params as { uuid: string }).uuid,
+  );
+  const staticData = servers.value.find(
+    (v) => v.uuid === (route.params as { uuid: string }).uuid,
+  );
   return {
     info,
     staticData,
@@ -86,23 +90,26 @@ onMounted(init);
 </script>
 
 <template>
-  <header class="flex h-14 shrink-0 items-center gap-3 border-b px-4">
+  <header class="flex h-14 shrink-0 items-center border-b px-4 gap-3">
     <Button
       variant="ghost"
       size="icon"
-      class="shrink-0 md:hidden"
+      class="md:hidden shrink-0"
       @click="emit('openMobileSidebar')"
     >
       <Menu class="h-5 w-5" />
     </Button>
     <div v-if="isAgentPanel && currentAgent" class="ml-2 opacity-60">
       <div class="flex h-5 items-center space-x-4 text-sm">
-        <div class="flex gap-1" v-if="agents.length && (route.params as { uuid: string }).uuid">
+        <div
+          class="flex gap-1"
+          v-if="agents.length && (route.params as { uuid: string }).uuid"
+        >
           <Select
             :model-value="(route.params as { uuid: string }).uuid"
             @update:model-value="(v) => selectAgent(v as string)"
           >
-            <SelectTrigger class="flex w-[160px] items-center gap-1">
+            <SelectTrigger class="w-[160px] flex gap-1 items-center">
               <template v-if="currentAgent.info?.metadata?.region">
                 <img
                   v-if="flagUrl(currentAgent.info?.metadata?.region)"
@@ -110,19 +117,23 @@ onMounted(init);
                   :alt="currentAgent.info?.metadata?.region"
                   :title="currentAgent.info?.metadata?.region"
                   loading="lazy"
-                  class="mr-1 inline-block h-3.5 w-5 rounded-[1px] object-cover shadow-sm"
+                  class="inline-block w-5 h-3.5 rounded-[1px] object-cover shadow-sm mr-1"
                 />
               </template>
               <CircleQuestionMark
                 v-else
-                class="mx-1 inline-block h-3.5 w-5 rounded-[1px] object-cover"
+                class="inline-block w-5 h-3.5 rounded-[1px] object-cover mx-1"
               />
               <SelectValue placeholder="切换被控节点" />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup class="px-1.5">
                 <SelectLabel>被控节点</SelectLabel>
-                <SelectItem :value="ag.uuid" v-for="ag in agents" class="flex items-center gap-1">
+                <SelectItem
+                  :value="ag.uuid"
+                  v-for="ag in agents"
+                  class="flex gap-1 items-center"
+                >
                   <!-- <Router class="h-4 w-4 mr-1" /> -->
                   <template v-if="ag?.metadata?.region">
                     <img
@@ -131,12 +142,12 @@ onMounted(init);
                       :alt="ag?.metadata?.region"
                       :title="ag?.metadata?.region"
                       loading="lazy"
-                      class="mr-1 inline-block h-3.5 w-5 rounded-[1px] object-cover shadow-sm"
+                      class="inline-block w-5 h-3.5 rounded-[1px] object-cover shadow-sm mr-1"
                     />
                   </template>
                   <CircleQuestionMark
                     v-else
-                    class="mx-1 inline-block h-3.5 w-8 rounded-[1px] object-cover"
+                    class="inline-block w-8 h-3.5 rounded-[1px] object-cover mx-1"
                   />
                   {{ ag.metadata?.customName }}
                 </SelectItem>
@@ -162,7 +173,7 @@ onMounted(init);
       <SettingsDialog />
       <!-- <RouterLink :to="{ name: '/' }"> -->
       <Button variant="ghost" size="sm" @click="() => router.back()">
-        <ArrowLeft class="mr-1 h-4 w-4" />
+        <ArrowLeft class="h-4 w-4 mr-1" />
         返回
       </Button>
       <!-- </RouterLink> -->

@@ -38,7 +38,10 @@ const { t } = useI18n();
 const router = useRouter();
 
 const nodeNameMap = computed(
-  () => new Map(props.nodes.map((node) => [node.uuid, node.customName || node.uuid])),
+  () =>
+    new Map(
+      props.nodes.map((node) => [node.uuid, node.customName || node.uuid]),
+    ),
 );
 
 const taskKindVariant = (kind: string) => {
@@ -103,7 +106,8 @@ const formatSingleNodeLabel = (agentId: string) => {
 
 const nodeBadgeLabel = (task: CronTask) => {
   if (!task.agentIds.length) return "x 0";
-  if (task.agentIds.length === 1) return formatSingleNodeLabel(task.agentIds[0] ?? "");
+  if (task.agentIds.length === 1)
+    return formatSingleNodeLabel(task.agentIds[0] ?? "");
   return `x ${task.agentIds.length}`;
 };
 
@@ -127,9 +131,9 @@ const isDeleting = (name: string) => props.deletingNames.includes(name);
   <div class="relative w-full">
     <div
       v-if="loading && tasks.length"
-      class="bg-background/40 absolute inset-0 z-10 flex flex-col items-center justify-center rounded-md backdrop-blur-[1px]"
+      class="absolute inset-0 z-10 bg-background/40 backdrop-blur-[1px] flex flex-col items-center justify-center rounded-md"
     >
-      <Loader2 class="text-muted-foreground h-8 w-8 animate-spin" />
+      <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
     </div>
     <Table>
       <TableHeader>
@@ -145,15 +149,18 @@ const isDeleting = (name: string) => props.deletingNames.includes(name);
       </TableHeader>
       <TableBody>
         <TableRow v-if="loading && !tasks.length">
-          <TableCell colspan="7" class="text-muted-foreground h-32 text-center">
+          <TableCell colspan="7" class="h-32 text-center text-muted-foreground">
             <div class="flex flex-col items-center justify-center space-y-3">
-              <Loader2 class="text-muted-foreground/50 h-6 w-6 animate-spin" />
+              <Loader2 class="w-6 h-6 animate-spin text-muted-foreground/50" />
               <span class="text-sm font-medium">{{ t("common.loading") }}</span>
             </div>
           </TableCell>
         </TableRow>
         <TableRow v-else-if="!tasks.length">
-          <TableCell colspan="7" class="text-muted-foreground py-12 text-center">
+          <TableCell
+            colspan="7"
+            class="text-center text-muted-foreground py-12"
+          >
             {{ t("dashboard.cron.empty") }}
           </TableCell>
         </TableRow>
@@ -161,16 +168,25 @@ const isDeleting = (name: string) => props.deletingNames.includes(name);
           <TableCell class="font-medium">{{ task.name }}</TableCell>
           <TableCell>
             <div class="flex flex-col gap-1">
-              <Badge :variant="taskKindVariant(task.taskKind)">{{ task.taskKind }}</Badge>
-              <span class="text-muted-foreground font-mono text-xs">{{ taskLabel(task) }}</span>
+              <Badge :variant="taskKindVariant(task.taskKind)">{{
+                task.taskKind
+              }}</Badge>
+              <span class="text-xs text-muted-foreground font-mono">{{
+                taskLabel(task)
+              }}</span>
             </div>
           </TableCell>
-          <TableCell class="font-mono text-sm">{{ task.cronExpression }}</TableCell>
+          <TableCell class="font-mono text-sm">{{
+            task.cronExpression
+          }}</TableCell>
           <TableCell>
-            <div v-if="task.taskKind === 'agent'" class="flex flex-col items-start gap-1">
+            <div
+              v-if="task.taskKind === 'agent'"
+              class="flex flex-col items-start gap-1"
+            >
               <Badge
                 variant="outline"
-                class="hover:bg-muted cursor-pointer"
+                class="cursor-pointer hover:bg-muted"
                 @click="openNodeSelect(task)"
               >
                 {{ nodeBadgeLabel(task) }}
@@ -178,7 +194,7 @@ const isDeleting = (name: string) => props.deletingNames.includes(name);
             </div>
             <Badge v-else variant="outline">-</Badge>
           </TableCell>
-          <TableCell class="text-muted-foreground text-sm">{{
+          <TableCell class="text-sm text-muted-foreground">{{
             formatTime(task.lastRunTime)
           }}</TableCell>
           <TableCell>
@@ -190,9 +206,11 @@ const isDeleting = (name: string) => props.deletingNames.includes(name);
               :disabled="isToggling(task.name)"
               :class="
                 cn(
-                  'focus-visible:ring-ring relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 border-transparent transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
+                  'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                   task.enabled ? 'bg-primary' : 'bg-input',
-                  isToggling(task.name) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer',
+                  isToggling(task.name)
+                    ? 'cursor-not-allowed opacity-50'
+                    : 'cursor-pointer',
                 )
               "
               @click.stop="handleToggleEnabled(task)"
@@ -200,31 +218,48 @@ const isDeleting = (name: string) => props.deletingNames.includes(name);
               <span
                 :class="
                   cn(
-                    'bg-background pointer-events-none flex h-4 w-4 items-center justify-center rounded-full shadow-lg ring-0 transition-transform',
+                    'pointer-events-none flex h-4 w-4 items-center justify-center rounded-full bg-background shadow-lg ring-0 transition-transform',
                     task.enabled ? 'translate-x-4' : 'translate-x-0',
                   )
                 "
               >
                 <Loader2
                   v-if="isToggling(task.name)"
-                  class="text-muted-foreground h-3 w-3 animate-spin"
+                  class="h-3 w-3 animate-spin text-muted-foreground"
                 />
               </span>
             </button>
           </TableCell>
           <TableCell>
             <div class="flex items-center gap-1">
-              <Button size="icon" variant="ghost" class="h-7 w-7" @click="openHistory(task)">
+              <Button
+                size="icon"
+                variant="ghost"
+                class="h-7 w-7"
+                @click="openHistory(task)"
+              >
                 <History class="h-3.5 w-3.5" />
               </Button>
-              <Button size="icon" variant="ghost" class="h-7 w-7" @click="emit('edit', task)">
+              <Button
+                size="icon"
+                variant="ghost"
+                class="h-7 w-7"
+                @click="emit('edit', task)"
+              >
                 <Pencil class="h-3.5 w-3.5" />
               </Button>
-              <Button size="icon" variant="ghost" class="h-7 w-7" @click="emit('duplicate', task)">
+              <Button
+                size="icon"
+                variant="ghost"
+                class="h-7 w-7"
+                @click="emit('duplicate', task)"
+              >
                 <Copy class="h-3.5 w-3.5" />
               </Button>
               <PopConfirm
-                :description="t('dashboard.cron.deleteConfirm', { name: task.name })"
+                :description="
+                  t('dashboard.cron.deleteConfirm', { name: task.name })
+                "
                 :loading="isDeleting(task.name)"
                 @confirm="emit('delete', task.name)"
               >
@@ -232,7 +267,7 @@ const isDeleting = (name: string) => props.deletingNames.includes(name);
                   size="icon"
                   variant="ghost"
                   :disabled="isDeleting(task.name)"
-                  class="text-destructive hover:text-destructive h-7 w-7"
+                  class="h-7 w-7 text-destructive hover:text-destructive"
                 >
                   <Trash2 class="h-3.5 w-3.5" />
                 </Button>

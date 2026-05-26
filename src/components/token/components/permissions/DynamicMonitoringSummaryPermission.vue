@@ -16,7 +16,9 @@ const readEnabled = ref(false);
 const writeEnabled = ref(false);
 const deleteEnabled = ref(false);
 const hydrating = ref(false);
-const { isOpen, handleToggle } = usePermissionModuleOpen(() => props.modelValue);
+const { isOpen, handleToggle } = usePermissionModuleOpen(
+  () => props.modelValue,
+);
 
 const build = (): PermissionEntry[] => {
   const result: PermissionEntry[] = [];
@@ -80,7 +82,7 @@ watch(
 
 <template>
   <details class="rounded-md border p-3" :open="isOpen" @toggle="handleToggle">
-    <summary class="cursor-pointer text-sm font-medium select-none">
+    <summary class="cursor-pointer select-none text-sm font-medium">
       {{
         t(
           "dashboard.token.permissionsConfig.limitItem.permissionCard.dynamicMonitoringSummary.title",
@@ -88,7 +90,7 @@ watch(
       }}
     </summary>
     <div class="mt-3 space-y-2">
-      <div class="text-muted-foreground text-xs">
+      <div class="text-xs text-muted-foreground">
         {{
           t(
             "dashboard.token.permissionsConfig.limitItem.permissionCard.dynamicMonitoringSummary.read",
@@ -109,7 +111,7 @@ watch(
           }}
         </Button>
       </div>
-      <div class="text-muted-foreground text-xs">
+      <div class="text-xs text-muted-foreground">
         {{
           t(
             "dashboard.token.permissionsConfig.limitItem.permissionCard.dynamicMonitoringSummary.write",
@@ -130,7 +132,7 @@ watch(
           }}
         </Button>
       </div>
-      <div class="text-muted-foreground text-xs">
+      <div class="text-xs text-muted-foreground">
         {{
           t(
             "dashboard.token.permissionsConfig.limitItem.permissionCard.dynamicMonitoringSummary.delete",

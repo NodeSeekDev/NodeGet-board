@@ -16,7 +16,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PopConfirm } from "@/components/ui/pop-confirm";
 import { Spinner } from "@/components/ui/spinner";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { toast } from "vue-sonner";
 import {
   Table,
@@ -29,7 +34,10 @@ import {
 } from "@/components/ui/table";
 import { useBackendStore, type Backend } from "@/composables/useBackendStore";
 import BackendSwitcher from "@/components/BackendSwitcher.vue";
-import { useBackendExtra, getSingleBackendProperty } from "@/composables/useBackendExtra";
+import {
+  useBackendExtra,
+  getSingleBackendProperty,
+} from "@/composables/useBackendExtra";
 import type { ServerVersionInfo } from "@/composables/useBackendExtra";
 import { useLifecycle } from "@/composables/useLifecycle";
 import { useTask } from "@/composables/useTask";
@@ -43,9 +51,16 @@ import codeCopy from "@/components/node-manage/codeCopy.vue";
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
-const { backends, selectBackend, removeBackend, addBackend } = useBackendStore();
-const { refreshAll, isActive, serverInfo, serverInfoLoading, updateServer, fetchServerInfo } =
-  useBackendExtra();
+const { backends, selectBackend, removeBackend, addBackend } =
+  useBackendStore();
+const {
+  refreshAll,
+  isActive,
+  serverInfo,
+  serverInfoLoading,
+  updateServer,
+  fetchServerInfo,
+} = useBackendExtra();
 const { afterServerCreate } = useLifecycle();
 
 const installScript = ref(
@@ -60,7 +75,9 @@ const shareOpen = ref(false);
 const shareBackend = ref<Backend | null>(null);
 const availableVersions = ref<string[]>([]);
 const pendingUpdateUrl = ref<string>("");
-const upgradeStatus = ref<Map<string, "waiting" | "upgrading" | "confirming">>(new Map());
+const upgradeStatus = ref<Map<string, "waiting" | "upgrading" | "confirming">>(
+  new Map(),
+);
 const initForm = ref<{
   newName: string;
   newUrl: string;
@@ -89,7 +106,9 @@ const latestVersion = computed(() => {
   if (availableVersions.value.length === 0) {
     return "";
   }
-  const sorted = availableVersions.value.map((v) => v.replace(/^v/g, "")).sort(compareVersions);
+  const sorted = availableVersions.value
+    .map((v) => v.replace(/^v/g, ""))
+    .sort(compareVersions);
 
   return sorted[sorted.length - 1] as string;
 });
@@ -178,14 +197,18 @@ function fetchVersion() {
   return fetch(`https://api.github.com/repos/${repo}/releases`)
     .then((r) => r.json())
     .then((r) =>
-      (r as { tag_name: string }[]).map((v) => v.tag_name).filter((v) => v.startsWith("v")),
+      (r as { tag_name: string }[])
+        .map((v) => v.tag_name)
+        .filter((v) => v.startsWith("v")),
     )
     .then((r) => {
       availableVersions.value = r;
     })
     .catch((e) => {
       console.error(e);
-      toast.error("Failed to fetch GitHub releases, check if api.github.com is accessible");
+      toast.error(
+        "Failed to fetch GitHub releases, check if api.github.com is accessible",
+      );
     });
 }
 
@@ -203,7 +226,9 @@ watch(
       const decoded = JSON.parse(atob(raw)) as Backend;
       if (!decoded.url || !decoded.token || !decoded.name) return;
 
-      const exists = backends.value.some((b) => b.url === decoded.url && b.token === decoded.token);
+      const exists = backends.value.some(
+        (b) => b.url === decoded.url && b.token === decoded.token,
+      );
       if (!exists) {
         initForm.value.newName = decoded.name;
         initForm.value.newUrl = decoded.url;
@@ -227,7 +252,10 @@ fetchVersion();
   <div class="space-y-4">
     <div class="flex items-center justify-end gap-2">
       <Button variant="outline" size="sm" @click="refreshAll">
-        <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': serverInfoLoading }" />
+        <RefreshCw
+          class="h-4 w-4"
+          :class="{ 'animate-spin': serverInfoLoading }"
+        />
       </Button>
       <Button size="sm" @click="addOpen = true">
         <Plus class="mr-1.5 h-4 w-4" />
@@ -244,7 +272,9 @@ fetchVersion();
             <TableHead>{{ t("dashboard.servers.colEndpoint") }}</TableHead>
             <TableHead>{{ t("dashboard.servers.colVersion") }}</TableHead>
             <TableHead>{{ t("dashboard.servers.colStatus") }}</TableHead>
-            <TableHead class="text-right">{{ t("dashboard.servers.colActions") }}</TableHead>
+            <TableHead class="text-right">{{
+              t("dashboard.servers.colActions")
+            }}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -260,10 +290,13 @@ fetchVersion();
                 {{ backend.name }}
               </RouterLink>
             </TableCell>
-            <TableCell class="text-muted-foreground font-mono text-xs">
+            <TableCell class="font-mono text-xs text-muted-foreground">
               {{ serverInfo[backend.url]?.uuid ?? "--" }}
             </TableCell>
-            <TableCell class="max-w-[200px] truncate font-mono text-xs" :title="backend.url">
+            <TableCell
+              class="max-w-[200px] truncate font-mono text-xs"
+              :title="backend.url"
+            >
               {{ backend.url }}
             </TableCell>
             <TableCell class="text-muted-foreground">
@@ -293,7 +326,8 @@ fetchVersion();
                       <TooltipContent>
                         <div class="w-150">
                           <h2 class="my-2 text-base">
-                            版本太老，不支持 API 更新，只能通过在终端运行脚本来更新到新版本
+                            版本太老，不支持 API
+                            更新，只能通过在终端运行脚本来更新到新版本
                           </h2>
                           <codeCopy :code="installScript"></codeCopy>
                         </div>
@@ -306,7 +340,9 @@ fetchVersion();
                       variant="outline"
                       v-if="
                         compareVersions(
-                          extractVersion(serverInfo[backend.url]?.version || ''),
+                          extractVersion(
+                            serverInfo[backend.url]?.version || '',
+                          ),
                           latestVersion,
                         ) < 0
                       "
@@ -334,7 +370,12 @@ fetchVersion();
               <Badge v-if="isActive(backend)" variant="default">
                 {{ t("dashboard.servers.active") }}
               </Badge>
-              <Button v-else size="sm" variant="secondary" @click="handleSelect(backend)">
+              <Button
+                v-else
+                size="sm"
+                variant="secondary"
+                @click="handleSelect(backend)"
+              >
                 {{ t("dashboard.servers.select") }}
               </Button>
             </TableCell>
@@ -368,7 +409,12 @@ fetchVersion();
                   :cancel-text="t('dashboard.servers.deleteCancel')"
                   @confirm="afterServerCreate(backend, true)"
                 >
-                  <Button size="icon" variant="ghost" class="h-8 w-8" title="重新初始化">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    class="h-8 w-8"
+                    title="重新初始化"
+                  >
                     <RefreshCw class="h-4 w-4" />
                   </Button>
                 </PopConfirm>
@@ -391,7 +437,7 @@ fetchVersion();
                   <Button
                     size="icon"
                     variant="ghost"
-                    class="text-destructive hover:text-destructive/90 h-8 w-8"
+                    class="h-8 w-8 text-destructive hover:text-destructive/90"
                   >
                     <Trash2 class="h-4 w-4" />
                   </Button>
@@ -403,7 +449,11 @@ fetchVersion();
       </Table>
     </div>
 
-    <BackendSwitcher v-model:open="addOpen" :init-form="initForm" :show-list="false" />
+    <BackendSwitcher
+      v-model:open="addOpen"
+      :init-form="initForm"
+      :show-list="false"
+    />
     <VersionDialog
       v-if="changeVersionOpen"
       :availableVersions="availableVersions"

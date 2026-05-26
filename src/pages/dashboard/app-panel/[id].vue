@@ -9,13 +9,15 @@ import type { Extension } from "@/composables/useExtensions";
 
 definePage({ meta: { title: "", hidden: true } });
 
-const route = useRoute();
+const route = useRoute("/dashboard/app-panel/[id]");
 const router = useRouter();
-const extensionId = computed(() => (route.params as Record<string, string>).id);
+const extensionId = computed(() => route.params.id);
 
 const { extensions, loading, fetchExtensions } = useExtensions();
 
-const extension = computed(() => extensions.value.find((e) => e.id === extensionId.value) ?? null);
+const extension = computed(
+  () => extensions.value.find((e) => e.id === extensionId.value) ?? null,
+);
 
 const fetched = ref(extensions.value.length > 0);
 
@@ -40,20 +42,29 @@ const handleUpdated = (ext: Extension) => {
 <template>
   <div class="flex h-full flex-col gap-4 overflow-hidden">
     <div class="flex items-center gap-3">
-      <Button variant="ghost" size="sm" @click="router.push('/dashboard/app-panel')">
+      <Button
+        variant="ghost"
+        size="sm"
+        @click="router.push('/dashboard/app-panel')"
+      >
         <ArrowLeft class="mr-1 h-4 w-4" />
         返回
       </Button>
       <h2 class="text-xl font-semibold">{{ extension?.app.name }}</h2>
     </div>
 
-    <div v-if="!fetched || loading" class="flex flex-1 items-center justify-center">
-      <div class="border-primary h-6 w-6 animate-spin rounded-full border-2 border-t-transparent" />
+    <div
+      v-if="!fetched || loading"
+      class="flex flex-1 items-center justify-center"
+    >
+      <div
+        class="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"
+      />
     </div>
 
     <div
       v-else-if="!extension"
-      class="text-muted-foreground flex flex-1 items-center justify-center"
+      class="flex flex-1 items-center justify-center text-muted-foreground"
     >
       未找到扩展
     </div>

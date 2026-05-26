@@ -1,5 +1,5 @@
 <template>
-  <main class="bg-background flex-1 overflow-auto p-6">
+  <main class="flex-1 overflow-auto p-6 bg-background">
     <router-view v-slot="{ Component }">
       <Transition name="page" mode="out-in">
         <component :is="Component" />

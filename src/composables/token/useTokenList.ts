@@ -83,10 +83,10 @@ export const useTokenListHook = () => {
     const target_token = tokenItem.token_key ?? tokenItem.username;
     if (!url || !token) return;
     try {
-      const result = await getWsConnection(url).call<{ message: string }>("token_delete", {
-        token,
-        target_token,
-      });
+      const result = await getWsConnection(url).call<{ message: string }>(
+        "token_delete",
+        { token, target_token },
+      );
       if (result?.message) {
         toast.success(t("dashboard.token.api.deleteSuccess"));
         getTokenList();
@@ -201,7 +201,9 @@ export const useTokenListHook = () => {
     }
   };
 
-  const getTokenDetailApi = async (searchToken: string): Promise<TokenDetail | null> => {
+  const getTokenDetailApi = async (
+    searchToken: string,
+  ): Promise<TokenDetail | null> => {
     const url = backendUrl.value.trim();
     const token = currentBackend.value?.token?.trim() || "";
     const target_token = searchToken?.trim() || "";

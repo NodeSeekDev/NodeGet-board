@@ -85,7 +85,8 @@ const filteredNodes = computed(() => {
   const text = searchText.value.trim().toLowerCase();
   return props.nodes.filter((node) => {
     const matchesText =
-      node.name.toLowerCase().includes(text) || node.uuid.toLowerCase().includes(text);
+      node.name.toLowerCase().includes(text) ||
+      node.uuid.toLowerCase().includes(text);
     const matchesTag = tag.value === "all" || node.tags.includes(tag.value);
     return matchesText && matchesTag;
   });
@@ -96,29 +97,38 @@ const filteredNodes = computed(() => {
   <div>
     <div
       v-if="props.nodes.length === 0"
-      class="bg-background/60 absolute inset-0 z-50 flex h-full w-full items-center justify-center space-x-2 p-4"
+      class="flex items-center justify-center space-x-2 p-4 w-full h-full absolute inset-0 bg-background/60 z-50"
     >
-      <Loader2 class="h-6 w-6 animate-spin text-gray-500" />
+      <Loader2 class="w-6 h-6 animate-spin text-gray-500" />
       <span class="text-gray-500">Loading...</span>
     </div>
-    <div class="mb-2 flex flex-col items-center justify-between gap-1 md:flex-row">
-      <div class="flex w-full flex-col gap-1 md:w-auto md:flex-row">
+    <div
+      class="flex flex-col md:flex-row gap-1 items-center justify-between mb-2"
+    >
+      <div class="flex flex-col md:flex-row w-full md:w-auto gap-1">
         <div class="flex-1 md:w-32">
           <Select v-model="tag">
             <SelectTrigger class="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{{ $t("dashboard.batchExec.selectTag") }}</SelectItem>
-              <SelectItem v-for="item in tags" :value="item">{{ item }}</SelectItem>
+              <SelectItem value="all">{{
+                $t("dashboard.batchExec.selectTag")
+              }}</SelectItem>
+              <SelectItem v-for="item in tags" :value="item">{{
+                item
+              }}</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div class="flex-1 md:w-60">
-          <Input v-model="searchText" :placeholder="$t('dashboard.batchExec.searchNodesTips')" />
+          <Input
+            v-model="searchText"
+            :placeholder="$t('dashboard.batchExec.searchNodesTips')"
+          />
         </div>
       </div>
-      <div class="flex w-full items-center justify-end gap-1 md:w-auto">
+      <div class="flex items-center justify-end w-full md:w-auto gap-1">
         <div class="flex-1">
           <Button @click="pickAll()" class="w-full">{{
             $t("dashboard.batchExec.selectAll")
@@ -130,12 +140,12 @@ const filteredNodes = computed(() => {
           }}</Button>
         </div>
         <div
-          class="hidden h-6 w-6 cursor-pointer md:block"
+          class="cursor-pointer w-6 h-6 hidden md:block"
           @click="showFunction = !showFunction"
           :title="$t('dashboard.batchExec.toggleArrangementMode')"
         >
-          <LayoutGrid class="h-6 w-6 text-gray-500" v-if="showFunction" />
-          <StretchHorizontal class="h-6 w-6 text-gray-500" v-else />
+          <LayoutGrid class="w-6 h-6 text-gray-500" v-if="showFunction" />
+          <StretchHorizontal class="w-6 h-6 text-gray-500" v-else />
         </div>
       </div>
     </div>
@@ -144,7 +154,7 @@ const filteredNodes = computed(() => {
       class="max-h-50 overflow-auto"
       :class="
         showFunction
-          ? 'grid grid-cols-1 gap-1 md:grid-cols-3 xl:grid-cols-4'
+          ? 'grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-1'
           : 'flex flex-col space-y-1'
       "
     >
@@ -155,9 +165,9 @@ const filteredNodes = computed(() => {
         class="h-16 text-left whitespace-normal"
         @click="pickNode(node.uuid)"
       >
-        <div class="flex w-full flex-col items-start">
-          <p class="w-full truncate font-medium">{{ node.name }}</p>
-          <p class="w-full truncate text-xs break-words opacity-80">
+        <div class="flex flex-col items-start w-full">
+          <p class="truncate font-medium w-full">{{ node.name }}</p>
+          <p class="truncate text-xs opacity-80 break-words w-full">
             {{ node.uuid }}
           </p>
         </div>

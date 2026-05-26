@@ -2,7 +2,15 @@
 import { ref, type Ref, computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { Loader2, PackageOpen, ArrowLeft, Copy, Check, Pencil, Cable } from "lucide-vue-next";
+import {
+  Loader2,
+  PackageOpen,
+  ArrowLeft,
+  Copy,
+  Check,
+  Pencil,
+  Cable,
+} from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -24,14 +32,15 @@ definePage({
 });
 
 const { t } = useI18n();
-const route = useRoute();
+const route = useRoute("/dashboard/servers-detail/[backendName]");
 const router = useRouter();
 const { backends, currentBackend } = useBackendStore();
-const { serverInfo, saveAgentConfigWsUrl, refreshAll, serverInfoLoading } = useBackendExtra();
+const { serverInfo, saveAgentConfigWsUrl, refreshAll, serverInfoLoading } =
+  useBackendExtra();
 const themeStore = useThemeStore();
 
 const backend = computed(() => {
-  const backendName = (route.params as { backendName: string }).backendName;
+  const backendName = route.params.backendName;
   // const sep = raw.indexOf(":::");
   // if (sep === -1) {
   //   const token = decodeURIComponent(raw);
@@ -84,7 +93,8 @@ const fetchConfig = async () => {
       "nodeget-server_read_config",
       { token: backend.value.token },
     );
-    configContent.value = typeof result === "string" ? result : JSON.stringify(result, null, 2);
+    configContent.value =
+      typeof result === "string" ? result : JSON.stringify(result, null, 2);
     configLoaded.value = true;
   } catch {
   } finally {
@@ -132,10 +142,10 @@ const saveConfig = async () => {
   if (!backend.value || configSaving.value) return;
   configSaving.value = true;
   try {
-    await getWsConnection(backend.value.url).call("nodeget-server_edit_config", {
-      token: backend.value.token,
-      config_string: configContent.value,
-    });
+    await getWsConnection(backend.value.url).call(
+      "nodeget-server_edit_config",
+      { token: backend.value.token, config_string: configContent.value },
+    );
   } catch {
   } finally {
     configSaving.value = false;
@@ -222,7 +232,9 @@ function saveEdit(field: string) {
 
   if (field === "name") {
     backends.value[idx]!.name = editValue.value;
-    router.replace(`/dashboard/servers-detail/${encodeURIComponent(editValue.value)}`);
+    router.replace(
+      `/dashboard/servers-detail/${encodeURIComponent(editValue.value)}`,
+    );
   } else if (field === "url") {
     backends.value[idx]!.url = normalizeUrl(editValue.value);
   } else if (field === "token") {
@@ -264,11 +276,20 @@ function saveEdit(field: string) {
     </div>
 
     <!-- Tabs -->
-    <Tabs :model-value="activeTab" @update:model-value="handleTabChange($event as string)">
+    <Tabs
+      :model-value="activeTab"
+      @update:model-value="handleTabChange($event as string)"
+    >
       <TabsList>
-        <TabsTrigger value="info">{{ t("dashboard.servers.detail.tabInfo") }}</TabsTrigger>
-        <TabsTrigger value="storage">{{ t("dashboard.servers.detail.tabStorage") }}</TabsTrigger>
-        <TabsTrigger value="config">{{ t("dashboard.servers.detail.tabConfig") }}</TabsTrigger>
+        <TabsTrigger value="info">{{
+          t("dashboard.servers.detail.tabInfo")
+        }}</TabsTrigger>
+        <TabsTrigger value="storage">{{
+          t("dashboard.servers.detail.tabStorage")
+        }}</TabsTrigger>
+        <TabsTrigger value="config">{{
+          t("dashboard.servers.detail.tabConfig")
+        }}</TabsTrigger>
         <TabsTrigger value="version" v-if="false">{{
           t("dashboard.servers.detail.tabVersion")
         }}</TabsTrigger>
@@ -280,7 +301,7 @@ function saveEdit(field: string) {
         <div class="divide-y rounded-md border">
           <!-- 名称 -->
           <div class="flex items-center gap-4 px-4 py-3">
-            <span class="text-muted-foreground w-28 shrink-0 text-sm">
+            <span class="w-28 shrink-0 text-sm text-muted-foreground">
               {{ t("dashboard.servers.detail.infoName") }}
             </span>
             <template v-if="editingField === 'name'">
@@ -293,15 +314,20 @@ function saveEdit(field: string) {
               </Button>
             </template>
             <template v-else>
-              <span class="text-sm font-medium">{{ backend?.name ?? "--" }}</span>
+              <span class="text-sm font-medium">{{
+                backend?.name ?? "--"
+              }}</span>
               <Button
                 size="icon"
                 variant="ghost"
                 class="h-6 w-6 shrink-0"
                 @click="copyText('name', backend?.name)"
               >
-                <Check v-if="copiedKey === 'name'" class="h-3.5 w-3.5 text-green-500" />
-                <Copy v-else class="text-muted-foreground h-3.5 w-3.5" />
+                <Check
+                  v-if="copiedKey === 'name'"
+                  class="h-3.5 w-3.5 text-green-500"
+                />
+                <Copy v-else class="h-3.5 w-3.5 text-muted-foreground" />
               </Button>
               <Button
                 size="icon"
@@ -309,13 +335,13 @@ function saveEdit(field: string) {
                 class="h-6 w-6 shrink-0"
                 @click="startEdit('name', backend?.name)"
               >
-                <Pencil class="text-muted-foreground h-3.5 w-3.5" />
+                <Pencil class="h-3.5 w-3.5 text-muted-foreground" />
               </Button>
             </template>
           </div>
           <!-- API 地址 -->
           <div class="flex flex-wrap items-center gap-4 px-4 py-3">
-            <span class="text-muted-foreground w-28 shrink-0 text-sm">
+            <span class="w-28 shrink-0 text-sm text-muted-foreground">
               {{ t("dashboard.servers.detail.infoEndpoint") }}
             </span>
             <div
@@ -343,7 +369,9 @@ function saveEdit(field: string) {
             </div>
             <template v-else>
               <div class="flex min-w-0 items-center gap-1.5">
-                <span class="font-mono text-sm">{{ backend?.url ?? "--" }}</span>
+                <span class="font-mono text-sm">{{
+                  backend?.url ?? "--"
+                }}</span>
                 <Button
                   v-if="backend?.url"
                   size="icon"
@@ -351,8 +379,11 @@ function saveEdit(field: string) {
                   class="h-6 w-6 shrink-0"
                   @click="copyText('url', backend?.url)"
                 >
-                  <Check v-if="copiedKey === 'url'" class="h-3.5 w-3.5 text-green-500" />
-                  <Copy v-else class="text-muted-foreground h-3.5 w-3.5" />
+                  <Check
+                    v-if="copiedKey === 'url'"
+                    class="h-3.5 w-3.5 text-green-500"
+                  />
+                  <Copy v-else class="h-3.5 w-3.5 text-muted-foreground" />
                 </Button>
                 <Button
                   size="icon"
@@ -360,7 +391,7 @@ function saveEdit(field: string) {
                   class="h-6 w-6 shrink-0"
                   @click="startEdit('url', backend?.url)"
                 >
-                  <Pencil class="text-muted-foreground h-3.5 w-3.5" />
+                  <Pencil class="h-3.5 w-3.5 text-muted-foreground" />
                 </Button>
                 <Button
                   v-if="serverUuid"
@@ -371,12 +402,15 @@ function saveEdit(field: string) {
                   @click="setAgentConfigWsUrl('url-select', backend?.url || '')"
                 >
                   <template v-if="copiedKey === 'url-select'">
-                    <Check v-if="serverInfoLoading" class="h-3.5 w-3.5 text-green-500" />
+                    <Check
+                      v-if="serverInfoLoading"
+                      class="h-3.5 w-3.5 text-green-500"
+                    />
                     <Loader2 v-else class="h-3.5 w-3.5 animate-spin"></Loader2>
                   </template>
                   <Cable
                     v-else
-                    class="text-muted-foreground h-3.5 w-3.5"
+                    class="h-3.5 w-3.5 text-muted-foreground"
                     title="select as agent config address"
                   />
                 </Button>
@@ -386,7 +420,7 @@ function saveEdit(field: string) {
 
           <!-- 状态 -->
           <div class="flex items-center gap-4 px-4 py-3">
-            <span class="text-muted-foreground w-28 shrink-0 text-sm">
+            <span class="w-28 shrink-0 text-sm text-muted-foreground">
               {{ t("dashboard.servers.detail.infoStatus") }}
             </span>
             <Badge v-if="isActive" variant="default">
@@ -398,14 +432,18 @@ function saveEdit(field: string) {
           </div>
           <!-- Token -->
           <div class="flex items-start gap-4 px-4 py-3">
-            <span class="text-muted-foreground w-28 shrink-0 pt-0.5 text-sm">
+            <span class="w-28 shrink-0 pt-0.5 text-sm text-muted-foreground">
               {{ t("dashboard.servers.detail.infoToken") }}
             </span>
             <template v-if="editingField === 'token'">
               <div class="flex min-w-0 flex-col gap-2">
                 <Input v-model="editValue" class="h-8 w-64 font-mono text-xs" />
                 <div class="flex gap-2">
-                  <Button size="sm" variant="outline" @click="saveEdit('token')">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    @click="saveEdit('token')"
+                  >
                     {{ t("dashboard.servers.detail.infoSave") }}
                   </Button>
                   <Button size="sm" variant="ghost" @click="cancelEdit">
@@ -416,7 +454,9 @@ function saveEdit(field: string) {
             </template>
             <template v-else>
               <div class="flex min-w-0 items-start gap-1.5">
-                <span class="font-mono text-sm break-all">{{ backend?.token ?? "--" }}</span>
+                <span class="font-mono text-sm break-all">{{
+                  backend?.token ?? "--"
+                }}</span>
                 <Button
                   v-if="backend?.token"
                   size="icon"
@@ -424,8 +464,11 @@ function saveEdit(field: string) {
                   class="mt-0.5 h-6 w-6 shrink-0"
                   @click="copyText('token', backend?.token)"
                 >
-                  <Check v-if="copiedKey === 'token'" class="h-3.5 w-3.5 text-green-500" />
-                  <Copy v-else class="text-muted-foreground h-3.5 w-3.5" />
+                  <Check
+                    v-if="copiedKey === 'token'"
+                    class="h-3.5 w-3.5 text-green-500"
+                  />
+                  <Copy v-else class="h-3.5 w-3.5 text-muted-foreground" />
                 </Button>
                 <Button
                   size="icon"
@@ -433,7 +476,7 @@ function saveEdit(field: string) {
                   class="mt-0.5 h-6 w-6 shrink-0"
                   @click="startEdit('token', backend?.token)"
                 >
-                  <Pencil class="text-muted-foreground h-3.5 w-3.5" />
+                  <Pencil class="h-3.5 w-3.5 text-muted-foreground" />
                 </Button>
               </div>
             </template>
@@ -444,13 +487,13 @@ function saveEdit(field: string) {
         <div class="relative divide-y rounded-md border">
           <div
             v-if="serverInfoLoading"
-            class="bg-background/40 absolute inset-0 z-10 flex flex-col items-center justify-center rounded-md backdrop-blur-[1px]"
+            class="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-md bg-background/40 backdrop-blur-[1px]"
           >
-            <Loader2 class="text-muted-foreground h-8 w-8 animate-spin" />
+            <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
           <!-- UUID -->
           <div class="flex items-center gap-4 px-4 py-3">
-            <span class="text-muted-foreground w-28 shrink-0 text-sm">
+            <span class="w-28 shrink-0 text-sm text-muted-foreground">
               {{ t("dashboard.servers.detail.infoId") }}
             </span>
             <div class="flex min-w-0 items-center gap-1.5">
@@ -462,20 +505,29 @@ function saveEdit(field: string) {
                 class="h-6 w-6 shrink-0"
                 @click="copyText('uuid', serverUuid)"
               >
-                <Check v-if="copiedKey === 'uuid'" class="h-3.5 w-3.5 text-green-500" />
-                <Copy v-else class="text-muted-foreground h-3.5 w-3.5" />
+                <Check
+                  v-if="copiedKey === 'uuid'"
+                  class="h-3.5 w-3.5 text-green-500"
+                />
+                <Copy v-else class="h-3.5 w-3.5 text-muted-foreground" />
               </Button>
             </div>
           </div>
 
           <!-- IP -->
           <div class="flex items-center gap-4 px-4 py-3">
-            <span class="text-muted-foreground w-28 shrink-0 text-sm"> IP </span>
+            <span class="w-28 shrink-0 text-sm text-muted-foreground">
+              IP
+            </span>
             <div class="flex min-w-0 items-center gap-1.5">
               <span class="font-mono text-sm">{{
-                (typeof backend?.url === "string" && serverInfo[backend?.url]?.ip) ?? "--"
+                (typeof backend?.url === "string" &&
+                  serverInfo[backend?.url]?.ip) ??
+                "--"
               }}</span>
-              <span class="font-mono text-sm" v-if="local_ws_port">(:{{ local_ws_port }})</span>
+              <span class="font-mono text-sm" v-if="local_ws_port"
+                >(:{{ local_ws_port }})</span
+              >
               <Button
                 v-if="serverUuid"
                 size="icon"
@@ -484,12 +536,17 @@ function saveEdit(field: string) {
                 @click="
                   copyText(
                     'ip',
-                    (typeof backend?.url === 'string' && serverInfo[backend?.url]?.ip) || '',
+                    (typeof backend?.url === 'string' &&
+                      serverInfo[backend?.url]?.ip) ||
+                      '',
                   )
                 "
               >
-                <Check v-if="copiedKey === 'ip'" class="h-3.5 w-3.5 text-green-500" />
-                <Copy v-else class="text-muted-foreground h-3.5 w-3.5" />
+                <Check
+                  v-if="copiedKey === 'ip'"
+                  class="h-3.5 w-3.5 text-green-500"
+                />
+                <Copy v-else class="h-3.5 w-3.5 text-muted-foreground" />
               </Button>
               <Button
                 v-if="serverUuid"
@@ -500,17 +557,22 @@ function saveEdit(field: string) {
                 @click="
                   setAgentConfigWsUrl(
                     'ip-select',
-                    (typeof backend?.url === 'string' && serverInfo[backend?.url]?.ip) || '',
+                    (typeof backend?.url === 'string' &&
+                      serverInfo[backend?.url]?.ip) ||
+                      '',
                   )
                 "
               >
                 <template v-if="copiedKey === 'ip-select'">
-                  <Check v-if="serverInfoLoading" class="h-3.5 w-3.5 text-green-500" />
+                  <Check
+                    v-if="serverInfoLoading"
+                    class="h-3.5 w-3.5 text-green-500"
+                  />
                   <Loader2 v-else class="h-3.5 w-3.5 animate-spin"></Loader2>
                 </template>
                 <Cable
                   v-else
-                  class="text-muted-foreground h-3.5 w-3.5"
+                  class="h-3.5 w-3.5 text-muted-foreground"
                   title="select as agent config address"
                 />
               </Button>
@@ -519,15 +581,20 @@ function saveEdit(field: string) {
 
           <!-- Agent Config API 地址 -->
           <div class="flex flex-wrap items-center gap-4 gap-y-0.5 px-4 py-3">
-            <span class="text-muted-foreground w-28 shrink-0 text-sm">
-              {{ t("dashboard.servers.detail.infoEndpoint") }} <br />[ for agent ]
+            <span class="w-28 shrink-0 text-sm text-muted-foreground">
+              {{ t("dashboard.servers.detail.infoEndpoint") }} <br />[ for agent
+              ]
             </span>
             <div
               v-if="editingField === 'agent-url'"
               class="flex flex-wrap items-center gap-x-4 gap-y-1 py-1"
             >
               <Input v-model="editValue" class="h-8 w-64" />
-              <Button size="sm" variant="outline" @click="saveEdit('agent-url')">
+              <Button
+                size="sm"
+                variant="outline"
+                @click="saveEdit('agent-url')"
+              >
                 {{ t("dashboard.servers.detail.infoSave") }}
               </Button>
               <Button size="sm" variant="ghost" @click="cancelEdit">
@@ -547,30 +614,43 @@ function saveEdit(field: string) {
                   size="icon"
                   variant="ghost"
                   class="h-6 w-6 shrink-0"
-                  @click="copyText('agent-url', serverInfo[backend?.url]?.agentConfigWsUrl)"
+                  @click="
+                    copyText(
+                      'agent-url',
+                      serverInfo[backend?.url]?.agentConfigWsUrl,
+                    )
+                  "
                 >
-                  <Check v-if="copiedKey === 'agent-url'" class="h-3.5 w-3.5 text-green-500" />
-                  <Copy v-else class="text-muted-foreground h-3.5 w-3.5" />
+                  <Check
+                    v-if="copiedKey === 'agent-url'"
+                    class="h-3.5 w-3.5 text-green-500"
+                  />
+                  <Copy v-else class="h-3.5 w-3.5 text-muted-foreground" />
                 </Button>
                 <Button
                   size="icon"
                   variant="ghost"
                   class="h-6 w-6 shrink-0"
-                  @click="startEdit('agent-url', serverInfo[backend?.url]?.agentConfigWsUrl || '')"
+                  @click="
+                    startEdit(
+                      'agent-url',
+                      serverInfo[backend?.url]?.agentConfigWsUrl || '',
+                    )
+                  "
                 >
-                  <Pencil class="text-muted-foreground h-3.5 w-3.5" />
+                  <Pencil class="h-3.5 w-3.5 text-muted-foreground" />
                 </Button>
               </div>
             </template>
             <div class="w-full"></div>
-            <div class="text-muted-foreground ml-32 font-mono text-xs">
+            <div class="ml-32 font-mono text-xs text-muted-foreground">
               添加新的 agent 时使用的 ws_url 配置
             </div>
           </div>
 
           <!-- 版本号 -->
           <div class="flex items-center gap-4 px-4 py-3">
-            <span class="text-muted-foreground w-28 shrink-0 text-sm">
+            <span class="w-28 shrink-0 text-sm text-muted-foreground">
               {{ t("dashboard.servers.detail.infoVersion") }}
             </span>
             <span class="font-mono text-sm">{{ serverVersion ?? "--" }}</span>
@@ -580,13 +660,20 @@ function saveEdit(field: string) {
 
       <!-- Tab: 数据库占用 -->
       <TabsContent value="storage" class="mt-4">
-        <DatabaseStorageTab :data="storageData" :loading="storageLoading" @refresh="fetchStorage" />
+        <DatabaseStorageTab
+          :data="storageData"
+          :loading="storageLoading"
+          @refresh="fetchStorage"
+        />
       </TabsContent>
 
       <!-- Tab: 配置管理 -->
       <TabsContent value="config" class="mt-4">
         <div class="space-y-3">
-          <div v-if="configLoading" class="text-muted-foreground py-8 text-center text-sm">
+          <div
+            v-if="configLoading"
+            class="py-8 text-center text-sm text-muted-foreground"
+          >
             {{ t("dashboard.servers.detail.configLoading") }}
           </div>
           <template v-else>
@@ -609,7 +696,9 @@ function saveEdit(field: string) {
 
       <!-- Tab: 版本升级 -->
       <TabsContent value="version" class="mt-4" v-if="false">
-        <div class="text-muted-foreground flex flex-col items-center justify-center gap-4 py-24">
+        <div
+          class="flex flex-col items-center justify-center gap-4 py-24 text-muted-foreground"
+        >
           <PackageOpen class="h-16 w-16 opacity-30" />
           <p class="text-sm">
             {{ t("dashboard.servers.detail.versionComingSoon") }}

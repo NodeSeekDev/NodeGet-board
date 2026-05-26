@@ -48,9 +48,12 @@ export const useAgentHook = () => {
 
     try {
       const conn = getWsConnection(url);
-      const result = await conn.call<{ uuids?: string[] }>("nodeget-server_list_all_agent_uuid", {
-        token,
-      });
+      const result = await conn.call<{ uuids?: string[] }>(
+        "nodeget-server_list_all_agent_uuid",
+        {
+          token,
+        },
+      );
 
       const uuids = Array.isArray(result?.uuids) ? result.uuids : [];
       const nameMap = new Map<string, string>();

@@ -33,7 +33,9 @@ function fmtLoss(v: number): string {
   return v === 0 ? "0%" : `${v.toFixed(0)}%`;
 }
 
-function ispColor(_isp: string): "default" | "secondary" | "destructive" | "outline" {
+function ispColor(
+  _isp: string,
+): "default" | "secondary" | "destructive" | "outline" {
   return "secondary";
 }
 
@@ -58,13 +60,13 @@ const groups = computed(() =>
   <div>
     <div
       v-if="provinceFilter"
-      class="mb-2 flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300"
+      class="mb-2 flex items-center gap-2 rounded-md border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 px-3 py-2 text-sm text-blue-700 dark:text-blue-300"
     >
       <span
         >仅显示：<strong>{{ provinceFilter }}</strong></span
       >
       <button
-        class="ml-auto flex items-center gap-1 rounded-md border border-blue-300 px-2 py-0.5 text-xs font-medium transition-colors hover:bg-blue-100 dark:border-blue-700 dark:hover:bg-blue-900/50"
+        class="ml-auto flex items-center gap-1 rounded-md border border-blue-300 dark:border-blue-700 px-2 py-0.5 text-xs font-medium hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
         @click="emit('clear-province')"
       >
         ✕ 清除筛选
@@ -81,17 +83,19 @@ const groups = computed(() =>
           <TableHead class="text-right">最快ms</TableHead>
           <TableHead class="text-right">最慢ms</TableHead>
           <TableHead class="text-right">平均ms</TableHead>
-          <TableHead class="w-[220px] text-center">网络质量示意图</TableHead>
+          <TableHead class="text-center w-[220px]">网络质量示意图</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         <template v-for="group in groups" :key="group.isp">
           <TableRow class="bg-muted/50 hover:bg-muted/50">
-            <TableCell colspan="9" class="px-3 py-1.5">
+            <TableCell colspan="9" class="py-1.5 px-3">
               <Badge :variant="ispColor(group.isp)" class="text-xs">
                 {{ group.label }}
               </Badge>
-              <span class="text-muted-foreground ml-2 text-xs">{{ group.rows.length }} 个节点</span>
+              <span class="ml-2 text-xs text-muted-foreground"
+                >{{ group.rows.length }} 个节点</span
+              >
             </TableCell>
           </TableRow>
           <TableRow
@@ -101,16 +105,20 @@ const groups = computed(() =>
           >
             <TableCell>
               <span class="text-sm">{{
-                r.node.isp === "international" ? r.node.location : r.node.province
+                r.node.isp === "international"
+                  ? r.node.location
+                  : r.node.province
               }}</span>
             </TableCell>
-            <TableCell class="text-muted-foreground font-mono text-xs">{{ r.node.host }}</TableCell>
+            <TableCell class="font-mono text-xs text-muted-foreground">{{
+              r.node.host
+            }}</TableCell>
             <TableCell class="text-right text-sm">
-              <span :class="r.loss > 0 ? 'font-medium text-red-500' : ''">
+              <span :class="r.loss > 0 ? 'text-red-500 font-medium' : ''">
                 {{ r.status === "pending" ? "—" : fmtLoss(r.loss) }}
               </span>
             </TableCell>
-            <TableCell class="text-right font-mono text-sm">
+            <TableCell class="text-right text-sm font-mono">
               {{ r.status === "pending" ? "—" : r.sent }}
             </TableCell>
             <TableCell class="text-right font-mono text-sm font-medium">
@@ -129,7 +137,7 @@ const groups = computed(() =>
                 {{ r.status === "pending" ? "—" : fmt(r.avg) }}
               </span>
             </TableCell>
-            <TableCell class="w-[220px] text-center">
+            <TableCell class="text-center w-[220px]">
               <PingQualityCanvas
                 v-if="r.qualityBars.length > 0"
                 :bars="r.qualityBars"

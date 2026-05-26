@@ -108,7 +108,10 @@ export const rpcMethodTemplates: RpcMethodTemplate[] = [
       static_monitoring_data: {
         uuid: "e8583352-39e8-5a5b-b66c-e450689088fd",
         time: 1769341269012,
-        data_hash: [171, 205, 18, 52, 86, 120, 144, 171, 205, 239, 1, 35, 69, 103, 137, 171],
+        data_hash: [
+          171, 205, 18, 52, 86, 120, 144, 171, 205, 239, 1, 35, 69, 103, 137,
+          171,
+        ],
         cpu: {
           physical_cores: 16,
           logical_cores: 32,
@@ -268,7 +271,10 @@ export const rpcMethodTemplates: RpcMethodTemplate[] = [
     hint: "Token",
     params: {
       token: tokenPlaceholder,
-      uuids: ["e8583352-39e8-5a5b-b66c-e450689088fd", "830cec66-8fc9-5c21-9e2d-2da2b2f2d3b3"],
+      uuids: [
+        "e8583352-39e8-5a5b-b66c-e450689088fd",
+        "830cec66-8fc9-5c21-9e2d-2da2b2f2d3b3",
+      ],
       fields: ["cpu", "system"],
     },
   },
@@ -525,7 +531,10 @@ export const rpcMethodTemplates: RpcMethodTemplate[] = [
       name: "ping_task",
       cron_expression: "0 * * * * *",
       cron_type: {
-        agent: [["00000000-0000-0000-0000-000000000001"], { task: { ping: "www.example.com" } }],
+        agent: [
+          ["00000000-0000-0000-0000-000000000001"],
+          { task: { ping: "www.example.com" } },
+        ],
       },
     },
   },
@@ -668,7 +677,11 @@ export const rpcMethodTemplates: RpcMethodTemplate[] = [
     params: {
       token: tokenPlaceholder,
       query: {
-        condition: [{ js_worker_name: "demo_worker" }, "is_failure", { limit: 50 }],
+        condition: [
+          { js_worker_name: "demo_worker" },
+          "is_failure",
+          { limit: 50 },
+        ],
       },
     },
   },
@@ -789,7 +802,8 @@ export const rpcMethodTemplates: RpcMethodTemplate[] = [
       token: tokenPlaceholder,
       name: "my-site",
       path: "/index.html",
-      base64: "PCFET0NUWVBFIGh0bWw+PGh0bWw+PGJvZHk+SGVsbG88L2JvZHk+PC9odG1sPg==",
+      base64:
+        "PCFET0NUWVBFIGh0bWw+PGh0bWw+PGJvZHk+SGVsbG88L2JvZHk+PC9odG1sPg==",
     },
   },
   {
@@ -826,7 +840,10 @@ export const rpcMethodTemplates: RpcMethodTemplate[] = [
 export const methodCatalog = rpcMethodTemplates.map((item) => item.method);
 
 export const methodHints: Record<string, string> = Object.fromEntries(
-  rpcMethodTemplates.map((item) => [item.method, `${item.module} / ${item.hint}`]),
+  rpcMethodTemplates.map((item) => [
+    item.method,
+    `${item.module} / ${item.hint}`,
+  ]),
 );
 
 export function getRpcMethodTemplate(method: string) {
@@ -847,6 +864,9 @@ function replaceTokenPlaceholder(value: unknown, token: string): unknown {
   if (!value || typeof value !== "object") return value;
 
   return Object.fromEntries(
-    Object.entries(value).map(([key, item]) => [key, replaceTokenPlaceholder(item, token)]),
+    Object.entries(value).map(([key, item]) => [
+      key,
+      replaceTokenPlaceholder(item, token),
+    ]),
   );
 }

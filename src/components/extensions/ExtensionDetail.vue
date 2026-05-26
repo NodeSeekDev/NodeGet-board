@@ -36,7 +36,11 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import type { Extension } from "@/composables/useExtensions";
 import { useExtensions } from "@/composables/useExtensions";
 import { useJsRuntime } from "@/composables/useJsRuntime";
@@ -56,7 +60,8 @@ const { currentBackend } = useBackendStore();
 const backendUrl = computed(() => currentBackend.value?.url ?? "");
 const router = useRouter();
 
-const { saveExtension, deleteExtension, getStaticUrl, uploadFile } = useExtensions();
+const { saveExtension, deleteExtension, getStaticUrl, uploadFile } =
+  useExtensions();
 const { getWorker } = useJsRuntime();
 
 const backendToken = computed(() => currentBackend.value?.token ?? "");
@@ -69,24 +74,24 @@ const fetchNodeUuids = async () => {
   if (!backendUrl.value) return;
   const conn = getWsConnection(backendUrl.value);
   try {
-    const result = await conn.call<{ uuids: string[] }>("nodeget-server_list_all_agent_uuid", {
-      token: backendToken.value,
-    });
+    const result = await conn.call<{ uuids: string[] }>(
+      "nodeget-server_list_all_agent_uuid",
+      { token: backendToken.value },
+    );
     const uuids = Array.isArray(result?.uuids) ? result.uuids : [];
     nodeUuids.value = uuids;
 
     // 批量拉取节点名称
     if (uuids.length > 0) {
-      const names = await conn.call<{ namespace: string; key: string; value: unknown }[]>(
-        "kv_get_multi_value",
-        {
-          token: backendToken.value,
-          namespace_key: uuids.map((uuid) => ({
-            namespace: uuid,
-            key: "metadata_name",
-          })),
-        },
-      );
+      const names = await conn.call<
+        { namespace: string; key: string; value: unknown }[]
+      >("kv_get_multi_value", {
+        token: backendToken.value,
+        namespace_key: uuids.map((uuid) => ({
+          namespace: uuid,
+          key: "metadata_name",
+        })),
+      });
       const map: Record<string, string> = {};
       if (Array.isArray(names)) {
         for (const item of names) {
@@ -310,7 +315,9 @@ const buildFileTree = (files: { path: string }[]): TreeNode[] => {
   return root;
 };
 
-const resourceFiles = computed(() => buildFileTree(props.extension.files ?? []));
+const resourceFiles = computed(() =>
+  buildFileTree(props.extension.files ?? []),
+);
 
 const specialFiles = [
   { name: "app.json", path: VIRTUAL.APP_JSON, isDir: false },
@@ -392,7 +399,8 @@ const handleSaveToken = async () => {
 };
 
 const handleDelete = async () => {
-  if (!confirm(`确认删除扩展「${props.extension.app.name}」？此操作不可撤销。`)) return;
+  if (!confirm(`确认删除扩展「${props.extension.app.name}」？此操作不可撤销。`))
+    return;
   deleting.value = true;
   try {
     await deleteExtension(props.extension.id);
@@ -485,7 +493,10 @@ const ExtensionFileNode = defineComponent({
           class: `flex items-center gap-1.5 w-full text-left text-xs px-2 py-1 rounded hover:bg-muted transition-colors ${props.selected === node.path ? "bg-muted" : ""}`,
           onClick: () => emit("select", node.path),
         },
-        [h(File, { class: "h-3 w-3 text-muted-foreground flex-shrink-0" }), h("span", node.name)],
+        [
+          h(File, { class: "h-3 w-3 text-muted-foreground flex-shrink-0" }),
+          h("span", node.name),
+        ],
       );
     };
   },
@@ -506,21 +517,23 @@ const ExtensionFileNode = defineComponent({
         <!-- 基本字段 -->
         <div class="space-y-2 text-sm">
           <div class="flex gap-2">
-            <span class="text-muted-foreground w-12 shrink-0">名称</span>
+            <span class="w-12 shrink-0 text-muted-foreground">名称</span>
             <span class="font-medium">{{ extension.app.name }}</span>
           </div>
           <div class="flex gap-2">
-            <span class="text-muted-foreground w-12 shrink-0">ID</span>
+            <span class="w-12 shrink-0 text-muted-foreground">ID</span>
             <span class="truncate font-mono text-xs">{{ extension.id }}</span>
           </div>
           <div class="flex gap-2">
-            <span class="text-muted-foreground w-12 shrink-0">描述</span>
+            <span class="w-12 shrink-0 text-muted-foreground">描述</span>
             <span>{{ extension.app.description || "—" }}</span>
           </div>
           <div class="flex gap-4">
             <div class="flex gap-2">
               <span class="text-muted-foreground">创建于</span>
-              <span>{{ new Date(extension.created_at).toLocaleDateString("zh-CN") }}</span>
+              <span>{{
+                new Date(extension.created_at).toLocaleDateString("zh-CN")
+              }}</span>
             </div>
             <div class="flex gap-2">
               <span class="text-muted-foreground">编辑于</span>
@@ -538,7 +551,7 @@ const ExtensionFileNode = defineComponent({
                 <!-- global 路由：直接跳转 -->
                 <button
                   v-if="route.type === 'global'"
-                  class="border-primary/30 text-primary hover:bg-muted inline-flex items-center gap-1.5 rounded-md border px-2 py-1 font-mono text-xs transition-colors"
+                  class="inline-flex items-center gap-1.5 rounded-md border border-primary/30 px-2 py-1 font-mono text-xs text-primary transition-colors hover:bg-muted"
                   @click="navigateRoute(route.name, route.type)"
                 >
                   {{ route.name }}
@@ -558,7 +571,7 @@ const ExtensionFileNode = defineComponent({
                 >
                   <PopoverTrigger as-child>
                     <button
-                      class="border-border text-muted-foreground hover:bg-muted inline-flex items-center gap-1.5 rounded-md border px-2 py-1 font-mono text-xs transition-colors"
+                      class="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 font-mono text-xs text-muted-foreground transition-colors hover:bg-muted"
                       @click="navigateRoute(route.name, route.type)"
                     >
                       {{ route.name }}
@@ -567,18 +580,23 @@ const ExtensionFileNode = defineComponent({
                     </button>
                   </PopoverTrigger>
                   <PopoverContent class="w-64 p-2">
-                    <p class="text-muted-foreground mb-2 px-1 text-xs">选择节点</p>
+                    <p class="mb-2 px-1 text-xs text-muted-foreground">
+                      选择节点
+                    </p>
                     <div class="max-h-48 space-y-0.5 overflow-y-auto">
                       <button
                         v-for="uuid in nodeUuids"
                         :key="uuid"
-                        class="hover:bg-muted w-full rounded px-2 py-1.5 text-left text-xs transition-colors"
+                        class="w-full rounded px-2 py-1.5 text-left text-xs transition-colors hover:bg-muted"
                         @click="pickNode(uuid)"
                       >
-                        <span class="font-medium">{{ nodeNames[uuid] || "未命名节点" }}</span>
-                        <span class="text-muted-foreground block truncate font-mono text-[10px]">{{
-                          uuid
+                        <span class="font-medium">{{
+                          nodeNames[uuid] || "未命名节点"
                         }}</span>
+                        <span
+                          class="block truncate font-mono text-[10px] text-muted-foreground"
+                          >{{ uuid }}</span
+                        >
                       </button>
                     </div>
                   </PopoverContent>
@@ -591,10 +609,15 @@ const ExtensionFileNode = defineComponent({
         <!-- README -->
         <div
           v-if="extension.readme"
-          class="prose prose-sm prose-neutral dark:prose-invert max-w-none overflow-y-auto rounded border p-3 text-sm"
+          class="prose prose-sm max-w-none overflow-y-auto rounded border p-3 text-sm prose-neutral dark:prose-invert"
           v-html="renderMarkdown(extension.readme)"
         />
-        <div v-else class="text-muted-foreground rounded border p-3 text-xs italic">无 README</div>
+        <div
+          v-else
+          class="rounded border p-3 text-xs text-muted-foreground italic"
+        >
+          无 README
+        </div>
       </div>
     </TabsContent>
 
@@ -602,7 +625,7 @@ const ExtensionFileNode = defineComponent({
     <TabsContent value="files" class="min-h-0 flex-1">
       <div class="grid h-full grid-cols-3 gap-4">
         <div class="col-span-1 flex min-h-0 flex-col rounded-lg border p-3">
-          <p class="text-muted-foreground mb-2 shrink-0 text-xs">普通文件</p>
+          <p class="mb-2 shrink-0 text-xs text-muted-foreground">普通文件</p>
           <div class="flex-1 space-y-0.5 overflow-y-auto">
             <component
               :is="ExtensionFileNode"
@@ -612,26 +635,31 @@ const ExtensionFileNode = defineComponent({
               :selected="selectedFile"
               @select="loadFileContent"
             />
-            <p v-if="!resourceFiles.length" class="text-muted-foreground text-xs italic">
+            <p
+              v-if="!resourceFiles.length"
+              class="text-xs text-muted-foreground italic"
+            >
               无资源文件
             </p>
-            <p class="text-muted-foreground mt-3 mb-2 text-xs">特殊文件</p>
+            <p class="mt-3 mb-2 text-xs text-muted-foreground">特殊文件</p>
             <button
               v-for="sf in specialFiles"
               :key="sf.path"
-              class="hover:bg-muted flex w-full items-center gap-1.5 rounded px-2 py-1 text-left text-xs transition-colors"
+              class="flex w-full items-center gap-1.5 rounded px-2 py-1 text-left text-xs transition-colors hover:bg-muted"
               :class="{ 'bg-muted': selectedFile === sf.path }"
               @click="loadFileContent(sf.path)"
             >
-              <File class="text-muted-foreground h-3 w-3" />{{ sf.name }}
+              <File class="h-3 w-3 text-muted-foreground" />{{ sf.name }}
             </button>
             <template v-if="workerDisplayName">
               <button
-                class="hover:bg-muted mt-0.5 flex w-full items-center gap-1.5 rounded px-2 py-1 text-left text-xs transition-colors"
+                class="mt-0.5 flex w-full items-center gap-1.5 rounded px-2 py-1 text-left text-xs transition-colors hover:bg-muted"
                 :class="{ 'bg-muted': selectedFile === VIRTUAL.WORKER }"
                 @click="loadFileContent(VIRTUAL.WORKER)"
               >
-                <Cpu class="text-muted-foreground h-3 w-3" />{{ workerDisplayName }}
+                <Cpu class="h-3 w-3 text-muted-foreground" />{{
+                  workerDisplayName
+                }}
               </button>
             </template>
           </div>
@@ -639,9 +667,11 @@ const ExtensionFileNode = defineComponent({
 
         <div class="col-span-2 flex min-h-0 flex-col rounded-lg border p-3">
           <div class="mb-2 flex shrink-0 items-center justify-between">
-            <p class="text-muted-foreground text-xs">内容预览</p>
+            <p class="text-xs text-muted-foreground">内容预览</p>
             <div
-              v-if="selectedFile && !fileLoading && !fileError && !isSpecialFile"
+              v-if="
+                selectedFile && !fileLoading && !fileError && !isSpecialFile
+              "
               class="flex items-center gap-1"
             >
               <input
@@ -670,16 +700,22 @@ const ExtensionFileNode = defineComponent({
               </Button>
             </div>
           </div>
-          <div v-if="!selectedFile" class="text-muted-foreground text-xs italic">
+          <div
+            v-if="!selectedFile"
+            class="text-xs text-muted-foreground italic"
+          >
             选择左侧文件查看内容
           </div>
           <div
             v-else-if="fileLoading"
-            class="text-muted-foreground flex items-center gap-2 text-xs"
+            class="flex items-center gap-2 text-xs text-muted-foreground"
           >
             <Loader2 class="h-3 w-3 animate-spin" />加载中...
           </div>
-          <div v-else-if="fileError" class="text-destructive flex items-center gap-1 text-xs">
+          <div
+            v-else-if="fileError"
+            class="flex items-center gap-1 text-xs text-destructive"
+          >
             <AlertCircle class="h-3 w-3" />{{ fileError }}
           </div>
           <div v-else class="min-h-0 flex-1 overflow-hidden rounded border">
@@ -699,7 +735,7 @@ const ExtensionFileNode = defineComponent({
       <!-- 启用 -->
       <div class="grid grid-cols-[auto_1fr_auto] items-center gap-3">
         <Label class="text-sm font-medium">启用</Label>
-        <span class="text-muted-foreground text-xs"
+        <span class="text-xs text-muted-foreground"
           >（当前是{{ extension.disabled ? "disabled" : "enabled" }}状态）</span
         >
         <button
@@ -728,14 +764,19 @@ const ExtensionFileNode = defineComponent({
             />
             <button
               type="button"
-              class="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2 transition-colors"
+              class="absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
               @click="showToken = !showToken"
             >
               <Eye v-if="!showToken" class="h-4 w-4" />
               <EyeOff v-else class="h-4 w-4" />
             </button>
           </div>
-          <Button size="sm" class="shrink-0" :disabled="savingToken" @click="handleSaveToken">
+          <Button
+            size="sm"
+            class="shrink-0"
+            :disabled="savingToken"
+            @click="handleSaveToken"
+          >
             <Loader2 v-if="savingToken" class="mr-1 h-3 w-3 animate-spin" />
             <Save v-else class="mr-1 h-3 w-3" />确认
           </Button>
@@ -749,39 +790,59 @@ const ExtensionFileNode = defineComponent({
           <table class="w-full text-xs">
             <thead class="bg-muted/50">
               <tr>
-                <th class="text-muted-foreground px-3 py-2 text-left font-medium">name</th>
-                <th class="text-muted-foreground px-3 py-2 text-left font-medium">type</th>
-                <th class="text-muted-foreground px-3 py-2 text-left font-medium">entry</th>
-                <th class="text-muted-foreground px-3 py-2 text-left font-medium">icon path</th>
+                <th
+                  class="px-3 py-2 text-left font-medium text-muted-foreground"
+                >
+                  name
+                </th>
+                <th
+                  class="px-3 py-2 text-left font-medium text-muted-foreground"
+                >
+                  type
+                </th>
+                <th
+                  class="px-3 py-2 text-left font-medium text-muted-foreground"
+                >
+                  entry
+                </th>
+                <th
+                  class="px-3 py-2 text-left font-medium text-muted-foreground"
+                >
+                  icon path
+                </th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(route, i) in editableRoutes" :key="i" class="border-t">
+              <tr
+                v-for="(route, i) in editableRoutes"
+                :key="i"
+                class="border-t"
+              >
                 <td class="px-2 py-1">
                   <input
                     v-model="route.name"
-                    class="border-border focus:ring-ring w-full rounded border bg-transparent px-1 py-0.5 font-mono transition-colors outline-none focus:ring-1"
+                    class="w-full rounded border border-border bg-transparent px-1 py-0.5 font-mono transition-colors outline-none focus:ring-1 focus:ring-ring"
                     @input="onRouteInput"
                   />
                 </td>
                 <td class="px-2 py-1">
                   <input
                     v-model="route.type"
-                    class="border-border focus:ring-ring w-full rounded border bg-transparent px-1 py-0.5 font-mono transition-colors outline-none focus:ring-1"
+                    class="w-full rounded border border-border bg-transparent px-1 py-0.5 font-mono transition-colors outline-none focus:ring-1 focus:ring-ring"
                     @input="onRouteInput"
                   />
                 </td>
                 <td class="px-2 py-1">
                   <input
                     v-model="route.entry"
-                    class="border-border text-muted-foreground focus:ring-ring w-full rounded border bg-transparent px-1 py-0.5 font-mono transition-colors outline-none focus:ring-1"
+                    class="w-full rounded border border-border bg-transparent px-1 py-0.5 font-mono text-muted-foreground transition-colors outline-none focus:ring-1 focus:ring-ring"
                     @input="onRouteInput"
                   />
                 </td>
                 <td class="px-2 py-1">
                   <input
                     v-model="route.icon"
-                    class="border-border text-muted-foreground focus:ring-ring w-full rounded border bg-transparent px-1 py-0.5 font-mono transition-colors outline-none focus:ring-1"
+                    class="w-full rounded border border-border bg-transparent px-1 py-0.5 font-mono text-muted-foreground transition-colors outline-none focus:ring-1 focus:ring-ring"
                     @input="onRouteInput"
                   />
                 </td>

@@ -50,7 +50,10 @@ const defaultContent = `export default {
   }
 };`;
 
-const extensions = computed(() => [javascript(), ...(themeStore.isDark ? [oneDark] : [])]);
+const extensions = computed(() => [
+  javascript(),
+  ...(themeStore.isDark ? [oneDark] : []),
+]);
 
 watch(
   () => props.open,
@@ -72,22 +75,28 @@ const close = () => emit("update:open", false);
 
 <template>
   <Dialog :open="open" @update:open="emit('update:open', $event)">
-    <DialogContent class="flex h-[80vh] max-w-3xl flex-col">
+    <DialogContent class="max-w-3xl h-[80vh] flex flex-col">
       <DialogHeader>
         <DialogTitle>{{
-          editWorker ? t("dashboard.jsRuntime.editWorker") : t("dashboard.jsRuntime.addWorker")
+          editWorker
+            ? t("dashboard.jsRuntime.editWorker")
+            : t("dashboard.jsRuntime.addWorker")
         }}</DialogTitle>
       </DialogHeader>
 
-      <div class="flex flex-1 flex-col space-y-4 overflow-hidden">
+      <div class="flex-1 overflow-hidden space-y-4 flex flex-col">
         <div class="space-y-2">
           <Label for="worker-name">{{ t("dashboard.jsRuntime.name") }}</Label>
-          <Input id="worker-name" v-model="name" :placeholder="t('dashboard.jsRuntime.name')" />
+          <Input
+            id="worker-name"
+            v-model="name"
+            :placeholder="t('dashboard.jsRuntime.name')"
+          />
         </div>
 
-        <div class="flex flex-1 flex-col space-y-2 overflow-hidden">
+        <div class="space-y-2 flex-1 flex flex-col overflow-hidden">
           <Label>{{ t("dashboard.jsRuntime.content") }}</Label>
-          <div class="min-h-0 flex-1 overflow-hidden rounded-md border">
+          <div class="flex-1 rounded-md border overflow-hidden min-h-0">
             <Codemirror
               v-model="content"
               :extensions="extensions"
@@ -99,10 +108,16 @@ const close = () => emit("update:open", false);
       </div>
 
       <DialogFooter class="pt-4">
-        <Button variant="outline" @click="close">{{ t("dashboard.jsRuntime.cancel") }}</Button>
+        <Button variant="outline" @click="close">{{
+          t("dashboard.jsRuntime.cancel")
+        }}</Button>
         <Button :disabled="loading || !name.trim()" @click="handleSave">
           <Loader2 v-if="loading" class="h-4 w-4 animate-spin" />
-          {{ editWorker ? t("dashboard.jsRuntime.save") : t("dashboard.jsRuntime.create") }}
+          {{
+            editWorker
+              ? t("dashboard.jsRuntime.save")
+              : t("dashboard.jsRuntime.create")
+          }}
         </Button>
       </DialogFooter>
     </DialogContent>

@@ -16,8 +16,8 @@ definePage({
   },
 });
 
-const route = useRoute();
-const uuid = computed(() => (route.params as { uuid: string }).uuid);
+const route = useRoute("/dashboard/node/[uuid]/status");
+const uuid = computed(() => route.params.uuid);
 
 const {
   server,
@@ -53,9 +53,15 @@ const {
       :show-live="!!server"
     />
 
-    <div v-if="!server" class="text-muted-foreground flex flex-1 items-center justify-center">
+    <div
+      v-if="!server"
+      class="flex flex-1 items-center justify-center text-muted-foreground"
+    >
       <div class="flex flex-col items-center gap-2">
-        <div v-if="dynamicError" class="text-destructive flex items-center gap-2">
+        <div
+          v-if="dynamicError"
+          class="flex items-center gap-2 text-destructive"
+        >
           <AlertCircle class="h-5 w-5" /> {{ dynamicError }}
         </div>
         <span v-else-if="notFound">节点未找到或已离线</span>

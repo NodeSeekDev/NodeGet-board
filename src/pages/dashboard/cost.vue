@@ -153,6 +153,7 @@ async function loadNodes() {
     }
   }
 
+  /*
   const namespacesWithData = new Set(results.map((row) => row.namespace));
   const emptyUuids = uuids.filter((uuid) => !namespacesWithData.has(uuid));
   for (const emptyUuid of emptyUuids) {
@@ -164,6 +165,7 @@ async function loadNodes() {
     );
     results = [...results, ...newResults];
   }
+  */
 
   const grouped = new Map<string, { key: string; value: unknown }[]>();
   for (const row of results) {
@@ -188,7 +190,8 @@ async function loadCostSettings() {
     kv.getValue(GLOBAL_KV_COST_FX_PROVIDER).catch(() => null),
   ]);
 
-  const parsedBaseCurrency = normalizeBaseCurrency(rawBaseCurrency) ?? DEFAULT_BASE_CURRENCY;
+  const parsedBaseCurrency =
+    normalizeBaseCurrency(rawBaseCurrency) ?? DEFAULT_BASE_CURRENCY;
   baseCurrency.value = parsedBaseCurrency;
   fxSnapshot.value = parseFxSnapshot(rawFxCache);
   fxProviderTemplate.value = parseFxProviderTemplate(rawFxProvider);
@@ -223,7 +226,9 @@ const effectiveFxProviderLabel = computed(() => {
 });
 
 async function refreshFxRates(showToast = false) {
-  const hasSupportedCurrency = nodes.value.some((node) => currencyFromPriceUnit(node.priceUnit));
+  const hasSupportedCurrency = nodes.value.some((node) =>
+    currencyFromPriceUnit(node.priceUnit),
+  );
 
   const targets = supportedCurrenciesForNodes(nodes.value, baseCurrency.value);
   if (!hasSupportedCurrency) {
@@ -268,8 +273,12 @@ async function refreshFxRates(showToast = false) {
       fxState.value = "cached";
       fxSnapshot.value = cachedSnapshot;
       fxMessage.value = isFxSnapshotFresh(cachedSnapshot)
-        ? `${reason}，当前使用最近一次缓存汇率（${formatTimestamp(cachedSnapshot.fetched_at)}）。`
-        : `${reason}，当前使用已过期缓存汇率（${formatTimestamp(cachedSnapshot.fetched_at)}）。`;
+        ? `${reason}，当前使用最近一次缓存汇率（${formatTimestamp(
+            cachedSnapshot.fetched_at,
+          )}）。`
+        : `${reason}，当前使用已过期缓存汇率（${formatTimestamp(
+            cachedSnapshot.fetched_at,
+          )}）。`;
     } else {
       fxState.value = "grouped";
       fxSnapshot.value = null;
@@ -315,7 +324,8 @@ const sortedNodes = computed<EvaluatedCostNode[]>(() => {
   return list.sort((left, right) => {
     let diff = 0;
     if (field === "price") {
-      if (left.monthlyCostBase === null && right.monthlyCostBase === null) diff = 0;
+      if (left.monthlyCostBase === null && right.monthlyCostBase === null)
+        diff = 0;
       else if (left.monthlyCostBase === null) diff = 1;
       else if (right.monthlyCostBase === null) diff = -1;
       else diff = left.monthlyCostBase - right.monthlyCostBase;
@@ -365,7 +375,9 @@ async function adjustExpire(
   const key = `${node.id}:${direction}`;
   adjustLoading.value = key;
   try {
-    const current = node.expireTime ? new Date(`${node.expireTime}T00:00:00`) : new Date();
+    const current = node.expireTime
+      ? new Date(`${node.expireTime}T00:00:00`)
+      : new Date();
     current.setHours(0, 0, 0, 0);
     current.setDate(current.getDate() + direction * node.priceCycle);
     const newExpire = formatDateOnly(current);
@@ -401,10 +413,13 @@ onMounted(initialize);
 </script>
 
 <template>
-  <div class="flex h-full flex-col gap-4 overflow-hidden p-1">
+  <div class="h-full flex flex-col gap-4 overflow-hidden p-1">
     <div class="flex flex-wrap items-center gap-2">
-      <span class="text-muted-foreground text-sm">基准币种：</span>
-      <Select :model-value="baseCurrency" @update:model-value="handleBaseCurrencyChange">
+      <span class="text-sm text-muted-foreground">基准币种：</span>
+      <Select
+        :model-value="baseCurrency"
+        @update:model-value="handleBaseCurrencyChange"
+      >
         <SelectTrigger class="w-36">
           <SelectValue />
         </SelectTrigger>
@@ -428,9 +443,13 @@ onMounted(initialize);
         <template v-else>刷新汇率</template>
       </Button>
       <Badge v-if="fxState === 'live'" variant="secondary">实时汇率</Badge>
-      <Badge v-else-if="fxState === 'cached'" variant="secondary">缓存汇率</Badge>
-      <Badge v-else-if="fxState === 'grouped'" variant="secondary"> 按币种分组 </Badge>
-      <span v-if="effectiveFxSnapshot" class="text-muted-foreground text-xs">
+      <Badge v-else-if="fxState === 'cached'" variant="secondary"
+        >缓存汇率</Badge
+      >
+      <Badge v-else-if="fxState === 'grouped'" variant="secondary">
+        按币种分组
+      </Badge>
+      <span v-if="effectiveFxSnapshot" class="text-xs text-muted-foreground">
         汇率来源：{{ effectiveFxProviderLabel }}，更新于
         {{ formatTimestamp(effectiveFxSnapshot.fetched_at) }}
       </span>
@@ -446,99 +465,105 @@ onMounted(initialize);
       </AlertDescription>
     </Alert>
 
-    <div v-if="stats.unified" class="grid grid-cols-2 gap-4 md:grid-cols-4">
-      <div class="bg-card flex items-center gap-3 rounded-lg border p-4">
-        <div class="bg-primary/10 rounded-md p-2">
-          <CreditCard class="text-primary h-5 w-5" />
+    <div v-if="stats.unified" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="rounded-lg border bg-card p-4 flex items-center gap-3">
+        <div class="p-2 rounded-md bg-primary/10">
+          <CreditCard class="h-5 w-5 text-primary" />
         </div>
         <div>
-          <p class="text-muted-foreground text-xs">折算月成本</p>
-          <p class="font-mono text-xl font-semibold">
+          <p class="text-xs text-muted-foreground">折算月成本</p>
+          <p class="text-xl font-semibold font-mono">
             {{ formatAmount(baseCurrencySymbol, stats.totalMonthlyCost) }}
           </p>
         </div>
       </div>
 
-      <div class="bg-card flex items-center gap-3 rounded-lg border p-4">
-        <div class="rounded-md bg-blue-500/10 p-2">
+      <div class="rounded-lg border bg-card p-4 flex items-center gap-3">
+        <div class="p-2 rounded-md bg-blue-500/10">
           <TrendingUp class="h-5 w-5 text-blue-500" />
         </div>
         <div>
-          <p class="text-muted-foreground text-xs">平均每台 / 月</p>
-          <p class="font-mono text-xl font-semibold">
+          <p class="text-xs text-muted-foreground">平均每台 / 月</p>
+          <p class="text-xl font-semibold font-mono">
             {{ formatAmount(baseCurrencySymbol, stats.avgMonthlyCost) }}
           </p>
         </div>
       </div>
 
-      <div class="bg-card flex items-center gap-3 rounded-lg border p-4">
-        <div class="rounded-md bg-green-500/10 p-2">
+      <div class="rounded-lg border bg-card p-4 flex items-center gap-3">
+        <div class="p-2 rounded-md bg-green-500/10">
           <TrendingUp class="h-5 w-5 text-green-500" />
         </div>
         <div>
-          <p class="text-muted-foreground text-xs">折算剩余价值</p>
-          <p class="font-mono text-xl font-semibold">
+          <p class="text-xs text-muted-foreground">折算剩余价值</p>
+          <p class="text-xl font-semibold font-mono">
             {{ formatAmount(baseCurrencySymbol, stats.totalRemainingValue) }}
           </p>
         </div>
       </div>
 
-      <div class="bg-card flex items-center gap-3 rounded-lg border p-4">
-        <div class="rounded-md bg-orange-500/10 p-2">
+      <div class="rounded-lg border bg-card p-4 flex items-center gap-3">
+        <div class="p-2 rounded-md bg-orange-500/10">
           <AlertTriangle class="h-5 w-5 text-orange-500" />
         </div>
         <div>
-          <p class="text-muted-foreground text-xs">30 天内到期</p>
+          <p class="text-xs text-muted-foreground">30 天内到期</p>
           <p class="text-xl font-semibold">
             {{ stats.expiringSoon }}
-            <span class="text-muted-foreground text-sm font-normal">台</span>
+            <span class="text-sm font-normal text-muted-foreground">台</span>
           </p>
         </div>
       </div>
     </div>
 
-    <div v-else class="grid grid-cols-2 gap-4 md:grid-cols-4">
+    <div v-else class="grid grid-cols-2 md:grid-cols-4 gap-4">
       <div
         v-for="group in stats.groupedMonthlyTotals"
         :key="group.currency"
-        class="bg-card flex items-center gap-3 rounded-lg border p-4"
+        class="rounded-lg border bg-card p-4 flex items-center gap-3"
       >
-        <div class="bg-primary/10 rounded-md p-2">
-          <CreditCard class="text-primary h-5 w-5" />
+        <div class="p-2 rounded-md bg-primary/10">
+          <CreditCard class="h-5 w-5 text-primary" />
         </div>
         <div>
-          <p class="text-muted-foreground text-xs">{{ group.currency }} 月成本</p>
-          <p class="font-mono text-xl font-semibold">
+          <p class="text-xs text-muted-foreground">
+            {{ group.currency }} 月成本
+          </p>
+          <p class="text-xl font-semibold font-mono">
             {{ formatAmount(group.symbol, group.monthlyCost) }}
           </p>
-          <p class="text-muted-foreground text-xs">
-            剩余价值 {{ formatAmount(group.symbol, group.remainingValue) }} · {{ group.count }} 台
+          <p class="text-xs text-muted-foreground">
+            剩余价值 {{ formatAmount(group.symbol, group.remainingValue) }} ·
+            {{ group.count }} 台
           </p>
         </div>
       </div>
 
-      <div class="bg-card flex items-center gap-3 rounded-lg border p-4">
-        <div class="rounded-md bg-orange-500/10 p-2">
+      <div class="rounded-lg border bg-card p-4 flex items-center gap-3">
+        <div class="p-2 rounded-md bg-orange-500/10">
           <AlertTriangle class="h-5 w-5 text-orange-500" />
         </div>
         <div>
-          <p class="text-muted-foreground text-xs">30 天内到期</p>
+          <p class="text-xs text-muted-foreground">30 天内到期</p>
           <p class="text-xl font-semibold">
             {{ stats.expiringSoon }}
-            <span class="text-muted-foreground text-sm font-normal">台</span>
+            <span class="text-sm font-normal text-muted-foreground">台</span>
           </p>
         </div>
       </div>
     </div>
 
     <div class="flex items-center gap-2">
-      <span class="text-muted-foreground text-sm">排序：</span>
+      <span class="text-sm text-muted-foreground">排序：</span>
       <Button
         size="sm"
         :variant="sortField === 'remaining' ? 'default' : 'outline'"
         @click="toggleSort('remaining')"
       >
-        <ArrowUp v-if="sortField === 'remaining' && sortDir === 'asc'" class="h-3.5 w-3.5" />
+        <ArrowUp
+          v-if="sortField === 'remaining' && sortDir === 'asc'"
+          class="h-3.5 w-3.5"
+        />
         <ArrowDown
           v-else-if="sortField === 'remaining' && sortDir === 'desc'"
           class="h-3.5 w-3.5"
@@ -551,25 +576,40 @@ onMounted(initialize);
         :variant="sortField === 'price' ? 'default' : 'outline'"
         @click="toggleSort('price')"
       >
-        <ArrowUp v-if="sortField === 'price' && sortDir === 'asc'" class="h-3.5 w-3.5" />
-        <ArrowDown v-else-if="sortField === 'price' && sortDir === 'desc'" class="h-3.5 w-3.5" />
+        <ArrowUp
+          v-if="sortField === 'price' && sortDir === 'asc'"
+          class="h-3.5 w-3.5"
+        />
+        <ArrowDown
+          v-else-if="sortField === 'price' && sortDir === 'desc'"
+          class="h-3.5 w-3.5"
+        />
         <ArrowUpDown v-else class="h-3.5 w-3.5" />
         折算月成本
       </Button>
     </div>
 
-    <div v-if="loading" class="text-muted-foreground flex items-center justify-center py-16">
-      <Loader2 class="mr-2 h-5 w-5 animate-spin" />
+    <div
+      v-if="loading"
+      class="flex items-center justify-center py-16 text-muted-foreground"
+    >
+      <Loader2 class="h-5 w-5 animate-spin mr-2" />
       加载中...
     </div>
 
-    <div v-else-if="nodes.length === 0" class="text-muted-foreground py-16 text-center text-sm">
+    <div
+      v-else-if="nodes.length === 0"
+      class="py-16 text-center text-muted-foreground text-sm"
+    >
       暂无节点数据
     </div>
 
-    <div v-else class="bg-card cost-table-wrap min-h-0 flex-1 overflow-auto rounded-md border">
+    <div
+      v-else
+      class="flex-1 min-h-0 rounded-md border bg-card overflow-auto cost-table-wrap"
+    >
       <Table>
-        <TableHeader class="bg-card sticky top-0 z-10">
+        <TableHeader class="sticky top-0 bg-card z-10">
           <TableRow>
             <TableHead>节点名称</TableHead>
             <TableHead class="text-right">价格 / 周期</TableHead>
@@ -588,7 +628,7 @@ onMounted(initialize);
               >
                 {{ node.customName }}
               </RouterLink>
-              <div class="text-muted-foreground font-mono text-xs">
+              <div class="text-xs text-muted-foreground font-mono">
                 {{ node.id.slice(-8) }}
               </div>
             </TableCell>
@@ -596,11 +636,17 @@ onMounted(initialize);
             <TableCell class="text-right font-mono">
               <div>
                 {{ node.priceUnit }}{{ node.price.toFixed(2) }}
-                <span class="text-muted-foreground text-xs"> / {{ node.priceCycle }}天 </span>
+                <span class="text-xs text-muted-foreground">
+                  / {{ node.priceCycle }}天
+                </span>
               </div>
-              <div v-if="node.monthlyCostBase !== null" class="text-muted-foreground text-xs">
+              <div
+                v-if="node.monthlyCostBase !== null"
+                class="text-xs text-muted-foreground"
+              >
                 {{ isExactMonthlyBaseDisplay(node, baseCurrency) ? "=" : "≈" }}
-                {{ formatAmount(baseCurrencySymbol, node.monthlyCostBase) }} / 30天
+                {{ formatAmount(baseCurrencySymbol, node.monthlyCostBase) }} /
+                30天
               </div>
             </TableCell>
 
@@ -625,26 +671,41 @@ onMounted(initialize);
             </TableCell>
 
             <TableCell class="text-right font-mono">
-              <template v-if="node.expireTime && getRemainingDays(node.expireTime) !== null">
+              <template
+                v-if="
+                  node.expireTime && getRemainingDays(node.expireTime) !== null
+                "
+              >
                 <div>
                   {{
                     formatAmount(
                       node.priceUnit,
-                      getRemainingValue(node.expireTime, node.price, node.priceCycle),
+                      getRemainingValue(
+                        node.expireTime,
+                        node.price,
+                        node.priceCycle,
+                      ),
                     )
                   }}
                 </div>
-                <div v-if="node.remainingValueBase !== null" class="text-muted-foreground text-xs">
-                  {{ isExactRemainingBaseDisplay(node, baseCurrency) ? "=" : "≈" }}
-                  {{ formatAmount(baseCurrencySymbol, node.remainingValueBase) }}
+                <div
+                  v-if="node.remainingValueBase !== null"
+                  class="text-xs text-muted-foreground"
+                >
+                  {{
+                    isExactRemainingBaseDisplay(node, baseCurrency) ? "=" : "≈"
+                  }}
+                  {{
+                    formatAmount(baseCurrencySymbol, node.remainingValueBase)
+                  }}
                 </div>
                 <div
                   v-else-if="node.excludedReason === 'unsupported_currency'"
-                  class="text-muted-foreground text-xs"
+                  class="text-xs text-muted-foreground"
                 >
                   不支持折算
                 </div>
-                <div v-else class="text-muted-foreground text-xs">等待汇率</div>
+                <div v-else class="text-xs text-muted-foreground">等待汇率</div>
               </template>
               <template v-else>
                 <span class="text-muted-foreground">—</span>
@@ -652,11 +713,15 @@ onMounted(initialize);
             </TableCell>
 
             <TableCell>
-              <template v-if="node.expireTime && getRemainingDays(node.expireTime) !== null">
+              <template
+                v-if="
+                  node.expireTime && getRemainingDays(node.expireTime) !== null
+                "
+              >
                 <div class="space-y-1.5">
                   <div class="flex items-center justify-between text-xs">
                     <template v-if="getRemainingDays(node.expireTime)! < 0">
-                      <Badge variant="destructive" class="px-1.5 py-0 text-xs">
+                      <Badge variant="destructive" class="text-xs px-1.5 py-0">
                         已过期
                         {{ Math.abs(getRemainingDays(node.expireTime)!) }} 天
                       </Badge>
@@ -665,7 +730,7 @@ onMounted(initialize);
                       <span
                         :class="
                           getRemainingDays(node.expireTime)! <= 7
-                            ? 'font-medium text-red-500'
+                            ? 'text-red-500 font-medium'
                             : getRemainingDays(node.expireTime)! <= 30
                               ? 'text-orange-500'
                               : 'text-muted-foreground'
@@ -675,7 +740,9 @@ onMounted(initialize);
                       </span>
                     </template>
                   </div>
-                  <div class="bg-muted h-1.5 w-full overflow-hidden rounded-full">
+                  <div
+                    class="h-1.5 w-full rounded-full bg-muted overflow-hidden"
+                  >
                     <div
                       class="h-full rounded-full transition-all"
                       :class="

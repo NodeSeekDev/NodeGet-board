@@ -4,8 +4,16 @@ import type { RouteLocationRaw, RouteMeta } from "vue-router";
 import { RouterLink } from "vue-router";
 import { ChevronDown } from "lucide-vue-next";
 import { useI18n } from "vue-i18n";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 
 export interface SidebarRoute {
@@ -38,7 +46,10 @@ const isOpen = ref(props.isOpen);
 const visibleChildren = computed(() =>
   (props.route.children ?? [])
     .filter((c) => !c.meta?.hidden)
-    .sort((a, b) => ((a.meta?.order as number) ?? 99) - ((b.meta?.order as number) ?? 99)),
+    .sort(
+      (a, b) =>
+        ((a.meta?.order as number) ?? 99) - ((b.meta?.order as number) ?? 99),
+    ),
 );
 
 const routeTo = computed<RouteLocationRaw>(() =>
@@ -66,7 +77,7 @@ function translateTitle(title: unknown): string {
         <button
           :class="
             cn(
-              'hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors',
+              'flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground',
             )
           "
         >
@@ -82,7 +93,9 @@ function translateTitle(title: unknown): string {
             v-else-if="route.meta?.icon && level === 0"
             class="h-4 w-4 shrink-0"
           />
-          <span class="flex-1 truncate text-left">{{ translateTitle(route.meta?.title) }}</span>
+          <span class="flex-1 truncate text-left">{{
+            translateTitle(route.meta?.title)
+          }}</span>
           <ChevronDown
             class="h-3.5 w-3.5 shrink-0 transition-transform duration-200"
             :class="{ '-rotate-90': !isOpen }"
@@ -91,7 +104,7 @@ function translateTitle(title: unknown): string {
       </CollapsibleTrigger>
       <CollapsibleContent>
         <div class="relative mt-0.5 flex flex-col gap-y-0.5 pl-6">
-          <div class="bg-border absolute inset-y-1 left-5 w-px" />
+          <div class="absolute inset-y-1 left-5 w-px bg-border" />
           <SidebarItem
             v-for="child in visibleChildren"
             :key="child.path"
@@ -105,7 +118,7 @@ function translateTitle(title: unknown): string {
     </Collapsible>
     <div v-else class="px-2 py-1">
       <button
-        class="hover:bg-accent hover:text-accent-foreground flex w-full items-center justify-center rounded-md p-2 text-sm transition-colors"
+        class="flex w-full items-center justify-center rounded-md p-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
         @click="isOpen = !isOpen"
       >
         <img
@@ -115,7 +128,11 @@ function translateTitle(title: unknown): string {
           class="h-4 w-4 rounded-sm object-contain"
           @error="($event.target as HTMLImageElement).style.display = 'none'"
         />
-        <component :is="route.meta?.icon" v-else-if="route.meta?.icon" class="h-4 w-4" />
+        <component
+          :is="route.meta?.icon"
+          v-else-if="route.meta?.icon"
+          class="h-4 w-4"
+        />
       </button>
     </div>
   </template>
@@ -125,25 +142,31 @@ function translateTitle(title: unknown): string {
       <TooltipTrigger as-child>
         <RouterLink :to="routeTo" class="block px-2 py-1">
           <span
-            class="hover:bg-accent hover:text-accent-foreground flex items-center justify-center rounded-md p-2 text-sm transition-colors"
+            class="flex items-center justify-center rounded-md p-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
           >
             <img
               v-if="isIconUrl && route.meta?.icon"
               :src="route.meta.icon as string"
               class="h-4 w-4 rounded-sm object-contain"
             />
-            <component :is="route.meta?.icon" v-else-if="route.meta?.icon" class="h-4 w-4" />
+            <component
+              :is="route.meta?.icon"
+              v-else-if="route.meta?.icon"
+              class="h-4 w-4"
+            />
           </span>
         </RouterLink>
       </TooltipTrigger>
-      <TooltipContent side="right">{{ translateTitle(route.meta?.title) }}</TooltipContent>
+      <TooltipContent side="right">{{
+        translateTitle(route.meta?.title)
+      }}</TooltipContent>
     </Tooltip>
     <RouterLink
       v-else
       :to="routeTo"
       :class="
         cn(
-          'hover:bg-accent hover:text-accent-foreground flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors',
+          'flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-accent hover:text-accent-foreground',
         )
       "
       active-class="bg-accent text-accent-foreground font-medium"

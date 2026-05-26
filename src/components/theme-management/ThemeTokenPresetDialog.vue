@@ -11,7 +11,10 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useThemeTokenPresets, type TokenPreset } from "@/composables/useThemeTokenPresets";
+import {
+  useThemeTokenPresets,
+  type TokenPreset,
+} from "@/composables/useThemeTokenPresets";
 
 const props = defineProps<{
   open: boolean;
@@ -91,13 +94,13 @@ const handleSave = async () => {
 
       <div class="space-y-3 py-2">
         <div v-if="loading" class="flex items-center justify-center py-6">
-          <Loader2 class="text-muted-foreground h-5 w-5 animate-spin" />
+          <Loader2 class="h-5 w-5 animate-spin text-muted-foreground" />
         </div>
 
         <template v-else>
           <div
             v-if="presets.length"
-            class="text-muted-foreground grid grid-cols-[1fr_1fr_1fr_auto] gap-2 px-1 text-xs"
+            class="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 px-1 text-xs text-muted-foreground"
           >
             <span>名称</span>
             <span>后端 URL</span>
@@ -113,12 +116,20 @@ const handleSave = async () => {
             <Input v-model="preset.name" placeholder="名称" />
             <Input v-model="preset.backend_url" placeholder="https://..." />
             <Input v-model="preset.token" placeholder="token" />
-            <Button variant="ghost" size="icon" class="shrink-0" @click="removeRow(i)">
+            <Button
+              variant="ghost"
+              size="icon"
+              class="shrink-0"
+              @click="removeRow(i)"
+            >
               <Trash2 class="h-4 w-4" />
             </Button>
           </div>
 
-          <div v-if="!presets.length" class="text-muted-foreground py-4 text-center text-sm">
+          <div
+            v-if="!presets.length"
+            class="py-4 text-center text-sm text-muted-foreground"
+          >
             暂无预设，点击「新增」添加
           </div>
 
@@ -130,7 +141,9 @@ const handleSave = async () => {
       </div>
 
       <DialogFooter>
-        <Button variant="outline" @click="$emit('update:open', false)"> 取消 </Button>
+        <Button variant="outline" @click="$emit('update:open', false)">
+          取消
+        </Button>
         <Button :disabled="saving" @click="handleSave">
           <Loader2 v-if="saving" class="mr-1 h-4 w-4 animate-spin" />
           保存

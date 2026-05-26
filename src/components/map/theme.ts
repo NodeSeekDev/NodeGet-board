@@ -80,7 +80,8 @@ export const MAP_THEME: Record<"dark" | "light", MapThemeMode> = {
   dark: {
     shellBorderClass: "theme-dark border-[rgba(103,232,249,0.14)]",
     frameClass: "border-[rgba(103,232,249,0.34)] opacity-100",
-    overlayClass: "bg-[linear-gradient(180deg,rgba(3,10,20,0.82),rgba(5,15,28,0.9))]",
+    overlayClass:
+      "bg-[linear-gradient(180deg,rgba(3,10,20,0.82),rgba(5,15,28,0.9))]",
     overlayLoadingTextClass: "text-slate-300",
     overlayErrorTextClass: "text-red-300",
     tooltipPanelClass:
@@ -154,7 +155,8 @@ export const MAP_THEME: Record<"dark" | "light", MapThemeMode> = {
   light: {
     shellBorderClass: "border-[rgba(191,219,254,0.72)]",
     frameClass: "border-[rgba(59,130,246,0.16)] opacity-90",
-    overlayClass: "bg-[linear-gradient(180deg,rgba(246,249,252,0.82),rgba(233,240,247,0.9))]",
+    overlayClass:
+      "bg-[linear-gradient(180deg,rgba(246,249,252,0.82),rgba(233,240,247,0.9))]",
     overlayLoadingTextClass: "text-slate-600",
     overlayErrorTextClass: "text-red-500",
     tooltipPanelClass:

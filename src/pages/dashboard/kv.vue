@@ -136,7 +136,9 @@ const handleDelete = async (key: string) => {
     await kv.deleteKey(key);
     toast.success(t("dashboard.kv.deleteSuccess"));
   } catch (e: unknown) {
-    toast.error(e instanceof Error ? e.message : t("dashboard.kv.deleteFailed"));
+    toast.error(
+      e instanceof Error ? e.message : t("dashboard.kv.deleteFailed"),
+    );
   }
 };
 
@@ -145,7 +147,9 @@ const handleNsDelete = async (ns: string) => {
   try {
     const { partialFailures } = await kv.deleteNamespace(ns);
     if (partialFailures.length > 0) {
-      toast.warning(`部分 key 删除失败，namespace 仍存在：${partialFailures.join("、")}`);
+      toast.warning(
+        `部分 key 删除失败，namespace 仍存在：${partialFailures.join("、")}`,
+      );
     } else {
       toast.success(`命名空间「${ns}」已删除`);
     }
@@ -164,8 +168,8 @@ const openAddKey = () => {
 </script>
 
 <template>
-  <div class="flex h-full flex-col space-y-4">
-    <h1 class="mb-2 text-2xl font-bold">{{ $t("dashboard.kv.title") }}</h1>
+  <div class="h-full flex flex-col space-y-4">
+    <h1 class="text-2xl font-bold mb-2">{{ $t("dashboard.kv.title") }}</h1>
 
     <!-- Tabs (only displayed in namespace list view) -->
     <Tabs
@@ -174,9 +178,15 @@ const openAddKey = () => {
       @update:model-value="handleTabChange($event as string)"
     >
       <TabsList>
-        <TabsTrigger value="list">{{ $t("dashboard.kv.normalView") }}</TabsTrigger>
-        <TabsTrigger value="flat" v-if="false">{{ $t("dashboard.kv.flatView") }}</TabsTrigger>
-        <TabsTrigger value="node">{{ $t("dashboard.kv.nodeView") }}</TabsTrigger>
+        <TabsTrigger value="list">{{
+          $t("dashboard.kv.normalView")
+        }}</TabsTrigger>
+        <TabsTrigger value="flat" v-if="false">{{
+          $t("dashboard.kv.flatView")
+        }}</TabsTrigger>
+        <TabsTrigger value="node">{{
+          $t("dashboard.kv.nodeView")
+        }}</TabsTrigger>
       </TabsList>
 
       <!-- Normal View: namespace list -->
@@ -217,9 +227,11 @@ const openAddKey = () => {
           <Button variant="outline" size="sm" @click="backToList">{{
             $t("dashboard.kv.back")
           }}</Button>
-          <p class="text-muted-foreground text-sm">
+          <p class="text-sm text-muted-foreground">
             {{ $t("dashboard.kv.namespace") }}
-            <span class="text-foreground font-mono font-medium">{{ selectedNamespace }}</span>
+            <span class="font-mono font-medium text-foreground">{{
+              selectedNamespace
+            }}</span>
             {{ $t("dashboard.kv.allKeys", { count: kv.entries.value.length }) }}
           </p>
         </div>

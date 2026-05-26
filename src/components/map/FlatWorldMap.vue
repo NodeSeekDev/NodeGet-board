@@ -47,7 +47,9 @@ let cnameMap = new Map<string, string>();
 
 const WORLD_MAP_URL = `${import.meta.env.BASE_URL}geo/world.json`;
 
-const themeMode = computed(() => (themeStore.isDark ? MAP_THEME.dark : MAP_THEME.light));
+const themeMode = computed(() =>
+  themeStore.isDark ? MAP_THEME.dark : MAP_THEME.light,
+);
 const palette = computed(() => themeMode.value.flat);
 
 const shellClass = computed(() => themeMode.value.shellBorderClass);
@@ -56,7 +58,11 @@ const frameClass = computed(() => themeMode.value.frameClass);
 
 const overlayClass = computed(() => themeMode.value.overlayClass);
 
-const HEAT: [[number, number, number], [number, number, number], [number, number, number]] = [
+const HEAT: [
+  [number, number, number],
+  [number, number, number],
+  [number, number, number],
+] = [
   [167, 243, 208],
   [52, 211, 153],
   [6, 95, 70],
@@ -71,7 +77,9 @@ function heatColor(t: number): string {
   return `rgb(${Math.round(a[0] + (b[0] - a[0]) * f)},${Math.round(a[1] + (b[1] - a[1]) * f)},${Math.round(a[2] + (b[2] - a[2]) * f)})`;
 }
 
-function buildGeoRegions(unlockedCountries: string[]): echarts.GeoComponentOption["regions"] {
+function buildGeoRegions(
+  unlockedCountries: string[],
+): echarts.GeoComponentOption["regions"] {
   if (!unlockedCountries.length) return [];
   const nodeCountByIso = new Map<string, number>();
   for (const point of props.points) {
@@ -124,12 +132,15 @@ function getScatterData(points: MapPoint[]) {
   const colors = palette.value;
   return points.map((point) => {
     const isSelected =
-      point.nodeIds?.includes(props.selectedNodeId ?? "") ?? point.id === props.selectedNodeId;
+      point.nodeIds?.includes(props.selectedNodeId ?? "") ??
+      point.id === props.selectedNodeId;
     return {
       ...point,
       itemStyle: {
         color: isSelected ? colors.nodeSelectedPoint : colors.nodePoint,
-        borderColor: isSelected ? colors.nodeSelectedPointBorder : colors.nodePointBorder,
+        borderColor: isSelected
+          ? colors.nodeSelectedPointBorder
+          : colors.nodePointBorder,
         borderWidth: isSelected ? 3 : 2,
         shadowBlur: isSelected ? 22 : 18,
         shadowColor: isSelected ? colors.nodeSelectedShadow : colors.nodeShadow,
@@ -163,7 +174,10 @@ function buildOption(): echarts.EChartsOption {
       formatter: (params: any) => {
         if (params.componentType === "geo") {
           const iso = params.name as string;
-          const countryDisplay = getDisplayCountryName(cnameMap.get(iso) ?? iso, locale.value);
+          const countryDisplay = getDisplayCountryName(
+            cnameMap.get(iso) ?? iso,
+            locale.value,
+          );
           const countryNodes = props.points.filter((p) => p.isoCode === iso);
           if (!countryNodes.length) return `<b>${countryDisplay}</b>`;
           const allNodeNames = countryNodes.flatMap((p) => p.nodes);
@@ -256,7 +270,9 @@ function buildOption(): echarts.EChartsOption {
           fontSize: window.innerWidth < 640 ? 11 : 13,
           fontWeight: 700,
           formatter: (params: any) =>
-            userLabelPlacement.position === "left" ? `${params.name} →` : `← ${params.name}`,
+            userLabelPlacement.position === "left"
+              ? `${params.name} →`
+              : `← ${params.name}`,
           backgroundColor: colors.userLabelBackground,
           borderColor: colors.userLabelBorder,
           borderWidth: 1,
@@ -274,7 +290,8 @@ function buildOption(): echarts.EChartsOption {
           brushType: "stroke",
         },
         showEffectOn: "render",
-        symbolSize: (value: number[]) => 9 + Math.min(Number(value[2] || 1) * 2.2, 18),
+        symbolSize: (value: number[]) =>
+          9 + Math.min(Number(value[2] || 1) * 2.2, 18),
         itemStyle: {
           color: colors.nodePoint,
           borderColor: colors.nodePointBorder,
@@ -390,7 +407,13 @@ onMounted(async () => {
 });
 
 watch(
-  () => [props.points, props.userLocation, props.selectedNodeId, props.unlockedCountries] as const,
+  () =>
+    [
+      props.points,
+      props.userLocation,
+      props.selectedNodeId,
+      props.unlockedCountries,
+    ] as const,
   ([points, userLocation, selectedNodeId, unlockedCountries]) => {
     if (!chart) return;
     const colors = palette.value;
@@ -442,7 +465,10 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="map-shell relative overflow-hidden rounded-[1.4rem] border" :class="shellClass">
+  <div
+    class="map-shell relative overflow-hidden rounded-[1.4rem] border"
+    :class="shellClass"
+  >
     <div class="map-grid pointer-events-none absolute inset-0 z-0" />
     <div class="map-vignette pointer-events-none absolute inset-0 z-0" />
     <div
@@ -461,27 +487,36 @@ onUnmounted(() => {
       class="pointer-events-none absolute right-[0.9rem] bottom-[0.9rem] z-0 h-[2.8rem] w-[2.8rem] rounded-br-[0.6rem] border-r-2 border-b-2"
       :class="frameClass"
     />
-    <div ref="chartEl" class="relative z-[1] aspect-[5/3] w-full md:aspect-auto md:h-[540px]" />
+    <div
+      ref="chartEl"
+      class="relative z-[1] aspect-[5/3] w-full md:aspect-auto md:h-[540px]"
+    />
 
     <Transition name="map-popover">
       <div
         v-if="pickedPoint"
-        class="border-border bg-popover text-popover-foreground absolute z-20 w-64 overflow-hidden rounded-xl border shadow-xl"
+        class="absolute z-20 w-64 overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-xl"
         :style="{ left: `${popoverPos.x}px`, top: `${popoverPos.y}px` }"
         @click.stop
         @mousedown.stop
       >
-        <div class="border-border/70 flex items-center gap-2 border-b px-3 py-2.5">
+        <div
+          class="flex items-center gap-2 border-b border-border/70 px-3 py-2.5"
+        >
           <div class="min-w-0 flex-1">
-            <div class="flex items-baseline gap-1.5 truncate text-sm leading-tight font-semibold">
-              <span class="truncate">{{ popoverCountryName(pickedPoint) }}</span>
+            <div
+              class="flex items-baseline gap-1.5 truncate text-sm leading-tight font-semibold"
+            >
+              <span class="truncate">{{
+                popoverCountryName(pickedPoint)
+              }}</span>
               <span
                 v-if="pickedPoint.isoCode"
-                class="text-muted-foreground shrink-0 font-mono text-xs font-normal"
+                class="shrink-0 font-mono text-xs font-normal text-muted-foreground"
                 >{{ pickedPoint.isoCode }}</span
               >
             </div>
-            <div class="text-muted-foreground mt-0.5 font-mono text-[11px]">
+            <div class="mt-0.5 font-mono text-[11px] text-muted-foreground">
               {{
                 t("dashboard.map.tooltip.nodeCount", {
                   count: pickedPoint.count,
@@ -490,7 +525,7 @@ onUnmounted(() => {
             </div>
           </div>
           <button
-            class="text-muted-foreground hover:bg-accent hover:text-foreground -mr-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded"
+            class="-mr-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground"
             @click="closePopover"
           >
             <X class="h-3.5 w-3.5" />
@@ -501,12 +536,16 @@ onUnmounted(() => {
             v-for="(nodeName, i) in pickedPoint.nodes"
             :key="pickedPoint.nodeIds?.[i] ?? `${i}-${nodeName}`"
             type="button"
-            class="group hover:bg-accent flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs transition-colors"
-            @click="selectNodeFromPopover(pickedPoint.nodeIds?.[i] ?? pickedPoint.id)"
+            class="group flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs transition-colors hover:bg-accent"
+            @click="
+              selectNodeFromPopover(pickedPoint.nodeIds?.[i] ?? pickedPoint.id)
+            "
           >
-            <span class="text-foreground/90 flex-1 truncate">{{ nodeName }}</span>
+            <span class="flex-1 truncate text-foreground/90">{{
+              nodeName
+            }}</span>
             <ChevronRight
-              class="text-muted-foreground/40 group-hover:text-muted-foreground h-3 w-3 shrink-0 transition-transform group-hover:translate-x-0.5"
+              class="h-3 w-3 shrink-0 text-muted-foreground/40 transition-transform group-hover:translate-x-0.5 group-hover:text-muted-foreground"
             />
           </button>
         </div>
@@ -518,7 +557,9 @@ onUnmounted(() => {
       class="absolute inset-0 z-[2] flex items-center justify-center text-sm backdrop-blur-[8px]"
       :class="[
         overlayClass,
-        loadError ? themeMode.overlayErrorTextClass : themeMode.overlayLoadingTextClass,
+        loadError
+          ? themeMode.overlayErrorTextClass
+          : themeMode.overlayLoadingTextClass,
       ]"
     >
       {{ loadError || t("dashboard.map.loading") }}
@@ -529,8 +570,16 @@ onUnmounted(() => {
 <style scoped>
 .map-shell {
   background:
-    radial-gradient(circle at top, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0) 34%),
-    linear-gradient(180deg, rgba(244, 247, 250, 0.98) 0%, rgba(231, 237, 243, 0.98) 100%);
+    radial-gradient(
+      circle at top,
+      rgba(255, 255, 255, 0.7),
+      rgba(255, 255, 255, 0) 34%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(244, 247, 250, 0.98) 0%,
+      rgba(231, 237, 243, 0.98) 100%
+    );
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.82),
     inset 0 0 0 1px rgba(148, 163, 184, 0.12),

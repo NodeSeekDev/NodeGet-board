@@ -41,7 +41,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import codeCopy from "@/components/node-manage/codeCopy.vue";
 
 import { useBackendStore } from "@/composables/useBackendStore";
@@ -51,6 +56,7 @@ import ShowAgentCommandDialog from "@/components/agents/ShowAgentCommandDialog.v
 import { useAgentInfo } from "@/composables/useAgentInfo";
 import VersionDialog from "@/components/node-manage/VersionDialog.vue";
 import { PopConfirm } from "@/components/ui/pop-confirm";
+import { useLifecycle } from "@/composables/useLifecycle";
 
 import { compareVersions } from "compare-versions";
 import { useTask } from "@/composables/useTask";
@@ -64,6 +70,7 @@ const currentAgentInfo = useAgentInfo(undefined, {
   withIP: true,
   withVersion: true,
 });
+const { afterAgentCreate } = useLifecycle();
 
 const { createSelfUpdateTask } = useTask();
 
@@ -95,7 +102,8 @@ const filteredAgents = computed(() => {
   if (!q) return agents.value;
   return agents.value.filter(
     (a) =>
-      (a.metadata?.customName && a.metadata?.customName.toLowerCase().includes(q)) ||
+      (a.metadata?.customName &&
+        a.metadata?.customName.toLowerCase().includes(q)) ||
       a.uuid.toLowerCase().includes(q),
   );
 });
@@ -205,7 +213,9 @@ const latestVersion = computed(() => {
   if (availableVersions.value.length === 0) {
     return "";
   }
-  const sorted = availableVersions.value.map((v) => v.replace(/^v/g, "")).sort(compareVersions);
+  const sorted = availableVersions.value
+    .map((v) => v.replace(/^v/g, ""))
+    .sort(compareVersions);
 
   return sorted[sorted.length - 1] as string;
 });
@@ -214,7 +224,9 @@ function extractVersion(version: string) {
   return version.split("-")[0] || "";
 }
 
-const upgradeStatus = ref<Map<string, "waiting" | "upgrading" | "confirming">>(new Map());
+const upgradeStatus = ref<Map<string, "waiting" | "upgrading" | "confirming">>(
+  new Map(),
+);
 async function confirmVersion(version: string) {
   version = version.replace(/^v/g, "");
 
@@ -279,7 +291,9 @@ async function confirmVersion(version: string) {
             await applyPostProces(uuid, oldVersion, version);
           } catch (error) {
             console.error("升级后处理失败", error);
-            toast.error(`agent ${agent.metadata?.customName || agent.uuid} 升级后处理失败`);
+            toast.error(
+              `agent ${agent.metadata?.customName || agent.uuid} 升级后处理失败`,
+            );
           }
 
           break;
@@ -292,11 +306,26 @@ async function confirmVersion(version: string) {
     }
     upgradeStatus.value.delete(uuid);
     if (!finished) {
-      toast.success(`agent ${agent.metadata?.customName || agent.uuid} 升级失败, 请尝试手动升级`);
+      toast.success(
+        `agent ${agent.metadata?.customName || agent.uuid} 升级失败, 请尝试手动升级`,
+      );
     }
   }
 
   toast.success("agent升级完成");
+}
+
+async function reinitAgent(uuid: string) {
+  await afterAgentCreate(
+    uuid,
+    {
+      cronList: [],
+      metadata: {},
+      databaseLimit: {},
+    },
+    currentBackend,
+  );
+  await refresh();
 }
 
 function fetchVersion() {
@@ -304,7 +333,9 @@ function fetchVersion() {
   return fetch(`https://api.github.com/repos/${repo}/releases`)
     .then((r) => r.json())
     .then((r) =>
-      (r as { tag_name: string }[]).map((v) => v.tag_name).filter((v) => v.startsWith("v")),
+      (r as { tag_name: string }[])
+        .map((v) => v.tag_name)
+        .filter((v) => v.startsWith("v")),
     )
     .then((r) => {
       availableVersions.value = r;
@@ -327,7 +358,9 @@ refresh();
   <div class="space-y-4">
     <div class="flex items-center gap-3">
       <div class="relative max-w-sm flex-1">
-        <Search class="text-muted-foreground absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2" />
+        <Search
+          class="absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+        />
         <Input
           v-model="searchQuery"
           :placeholder="t('dashboard.agents.searchPlaceholder')"
@@ -345,7 +378,12 @@ refresh();
           {{ t("dashboard.agents.batchUpgrade") }}
         </Button>
         <!-- temp disabled -->
-        <Button size="sm" variant="outline" @click="handleBatchAction('move')" v-if="false">
+        <Button
+          size="sm"
+          variant="outline"
+          @click="handleBatchAction('move')"
+          v-if="false"
+        >
           <FolderInput class="mr-1.5 h-4 w-4" />
           {{ t("dashboard.agents.batchMove") }}
         </Button>
@@ -367,7 +405,13 @@ refresh();
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <Button variant="outline" size="sm" :disabled="loading" class="ml-auto" @click="fetchAgents">
+      <Button
+        variant="outline"
+        size="sm"
+        :disabled="loading"
+        class="ml-auto"
+        @click="fetchAgents"
+      >
         <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': loading }" />
       </Button>
       <Button
@@ -377,7 +421,11 @@ refresh();
         @click="sortable = !sortable"
       >
         <Menu class="mr-1.5 h-4 w-4" />
-        {{ sortable ? t("dashboard.agents.sortSave") : t("dashboard.agents.sortEdit") }}
+        {{
+          sortable
+            ? t("dashboard.agents.sortSave")
+            : t("dashboard.agents.sortEdit")
+        }}
       </Button>
       <Button @click="addAgentOpen = true">
         <Plus class="mr-1.5 h-4 w-4" />
@@ -385,12 +433,18 @@ refresh();
       </Button>
     </div>
 
-    <div v-if="loading" class="text-muted-foreground flex items-center justify-center py-12">
+    <div
+      v-if="loading"
+      class="flex items-center justify-center py-12 text-muted-foreground"
+    >
       <Loader2 class="mr-2 h-5 w-5 animate-spin" />
       {{ t("common.loading") }}
     </div>
 
-    <div v-else-if="agents.length === 0" class="text-muted-foreground py-12 text-center text-sm">
+    <div
+      v-else-if="agents.length === 0"
+      class="py-12 text-center text-sm text-muted-foreground"
+    >
       {{ t("dashboard.agents.noAgents") }}
     </div>
 
@@ -408,7 +462,9 @@ refresh();
             <TableHead>{{ t("dashboard.agents.colId") }}</TableHead>
             <TableHead>{{ t("dashboard.agents.colIp") }}</TableHead>
             <TableHead>{{ t("dashboard.agents.colVersion") }}</TableHead>
-            <TableHead class="text-right">{{ t("dashboard.agents.colActions") }}</TableHead>
+            <TableHead class="text-right">{{
+              t("dashboard.agents.colActions")
+            }}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -425,7 +481,10 @@ refresh();
             @drop="(e: DragEvent) => onDrop(e, index)"
           >
             <TableCell>
-              <GripVertical v-if="sortable" class="text-muted-foreground h-4 w-4" />
+              <GripVertical
+                v-if="sortable"
+                class="h-4 w-4 text-muted-foreground"
+              />
               <Checkbox
                 v-else
                 :modelValue="selectedUuids.has(agent.uuid)"
@@ -437,27 +496,39 @@ refresh();
               />
             </TableCell>
             <TableCell class="font-medium">
-              <RouterLink :to="`/dashboard/node/${agent.uuid}`" class="hover:underline">
+              <RouterLink
+                :to="`/dashboard/node/${agent.uuid}`"
+                class="hover:underline"
+              >
                 {{ agent?.metadata?.customName || "--" }}
               </RouterLink>
             </TableCell>
-            <TableCell class="text-muted-foreground font-mono text-xs">
+            <TableCell class="font-mono text-xs text-muted-foreground">
               {{ agent.uuid.slice(0, 8) }}
             </TableCell>
             <TableCell class="min-w-20">
               <Loader2
                 v-if="agent.ip === undefined"
-                class="text-muted-foreground h-3.5 w-3.5 animate-spin"
+                class="h-3.5 w-3.5 animate-spin text-muted-foreground"
               />
-              <span v-else-if="agent.ip" class="font-mono text-xs">{{ agent.ip }}</span>
+              <span v-else-if="agent.ip" class="font-mono text-xs">{{
+                agent.ip
+              }}</span>
               <span v-else class="text-muted-foreground">--</span>
             </TableCell>
-            <TableCell class="text-muted-foreground" v-if="!upgradeStatus.has(agent.uuid)">
+            <TableCell
+              class="text-muted-foreground"
+              v-if="!upgradeStatus.has(agent.uuid)"
+            >
               <span :title="agent.version || ''">
                 {{ agent.version?.slice(0, 20) || "--" }}
               </span>
               <template v-if="agent.version">
-                <TooltipProvider v-if="compareVersions(extractVersion(agent.version), '0.1.3') < 0">
+                <TooltipProvider
+                  v-if="
+                    compareVersions(extractVersion(agent.version), '0.1.3') < 0
+                  "
+                >
                   <Tooltip>
                     <TooltipTrigger as-child>
                       <Badge
@@ -472,7 +543,8 @@ refresh();
                       <div class="w-150">
                         <article class="prose prose-sm mb-2">
                           <h4 class="mb-1">
-                            版本太老，不支持 API 更新，只能通过脚本来更新到新版本
+                            版本太老，不支持 API
+                            更新，只能通过脚本来更新到新版本
                           </h4>
                           <p>
                             你可以下面的命令，到
@@ -489,7 +561,12 @@ refresh();
                 <template v-else-if="availableVersions.length">
                   <Badge
                     variant="outline"
-                    v-if="compareVersions(extractVersion(agent.version), latestVersion) < 0"
+                    v-if="
+                      compareVersions(
+                        extractVersion(agent.version),
+                        latestVersion,
+                      ) < 0
+                    "
                     class="ml-2 bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
                     >可更新</Badge
                   >
@@ -520,6 +597,22 @@ refresh();
                 <CloudDownload class="h-4 w-4" />
               </Button>
               <PopConfirm
+                title="重新初始化agent？"
+                description="是否重新初始化agent，这会初始化agent的名称，经纬度，费用等等信息"
+                :confirm-text="t('dashboard.servers.refreshConfirm')"
+                :cancel-text="t('dashboard.servers.deleteCancel')"
+                @confirm="reinitAgent(agent.uuid)"
+              >
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  class="h-8 w-8"
+                  title="重新初始化"
+                >
+                  <RefreshCw class="h-4 w-4" />
+                </Button>
+              </PopConfirm>
+              <PopConfirm
                 title="重新连接agent？(危险操作)"
                 description="会关闭已授权此agent的token，并生成新的连接命令和token，已连接的agent（如果存在）会被强制断开连接，直至使用新的连接命令重新连接，适用于重装系统后恢复连接"
                 confirm-text="确定"
@@ -529,7 +622,12 @@ refresh();
                   showAgentCommandOpen = true;
                 "
               >
-                <Button size="icon" variant="ghost" class="h-8 w-8" title="重新显示连接命令">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  class="h-8 w-8"
+                  title="重新显示连接命令"
+                >
                   <LifeBuoyIcon class="h-4 w-4" />
                 </Button>
               </PopConfirm>
@@ -547,7 +645,11 @@ refresh();
         </TableBody>
       </Table>
     </div>
-    <AddAgentDialog v-if="addAgentOpen" v-model:open="addAgentOpen" @added="refresh()" />
+    <AddAgentDialog
+      v-if="addAgentOpen"
+      v-model:open="addAgentOpen"
+      @added="refresh()"
+    />
     <ShowAgentCommandDialog
       v-if="showAgentCommandOpen"
       v-model:open="showAgentCommandOpen"

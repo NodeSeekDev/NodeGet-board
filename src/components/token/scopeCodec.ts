@@ -23,7 +23,9 @@ export const createDefaultToken = (): Token => ({
   password: "",
 });
 
-export const cloneTokenLimitEntries = (tokenLimit: TokenLimitEntry[]): TokenLimitEntry[] =>
+export const cloneTokenLimitEntries = (
+  tokenLimit: TokenLimitEntry[],
+): TokenLimitEntry[] =>
   (tokenLimit ?? []).map((item) => ({
     scopes: (item.scopes ?? []).map((scope) => ({ ...scope })),
     permissions: (item.permissions ?? []).map((permission) =>
@@ -76,19 +78,19 @@ export const normalizeScopeItem = (item: unknown): TokenLimitScopeItem[] => {
   const source = item as Record<string, unknown>;
   if ("global" in source) return [{ global: null }];
 
-  const agentScopes = normalizeStringList(source.AgentUuid ?? source.agent_uuid).map(
-    (value) => ({ agent_uuid: value }) satisfies TokenLimitScopeItem,
-  );
+  const agentScopes = normalizeStringList(
+    source.AgentUuid ?? source.agent_uuid,
+  ).map((value) => ({ agent_uuid: value }) satisfies TokenLimitScopeItem);
   if (agentScopes.length > 0) return agentScopes;
 
-  const kvScopes = normalizeStringList(source.KvNamespace ?? source.kv_namespace).map(
-    (value) => ({ kv_namespace: value }) satisfies TokenLimitScopeItem,
-  );
+  const kvScopes = normalizeStringList(
+    source.KvNamespace ?? source.kv_namespace,
+  ).map((value) => ({ kv_namespace: value }) satisfies TokenLimitScopeItem);
   if (kvScopes.length > 0) return kvScopes;
 
-  const jsWorkerScopes = normalizeStringList(source.JsWorker ?? source.js_worker).map(
-    (value) => ({ js_worker: value }) satisfies TokenLimitScopeItem,
-  );
+  const jsWorkerScopes = normalizeStringList(
+    source.JsWorker ?? source.js_worker,
+  ).map((value) => ({ js_worker: value }) satisfies TokenLimitScopeItem);
   if (jsWorkerScopes.length > 0) return jsWorkerScopes;
 
   return [];
@@ -101,11 +103,15 @@ export const normalizeScopes = (scopes: unknown): TokenLimitScope => {
   return normalized.length > 0 ? normalized : DEFAULT_SCOPE;
 };
 
-export const normalizePermissions = (permissions: unknown): PermissionEntry[] => {
+export const normalizePermissions = (
+  permissions: unknown,
+): PermissionEntry[] => {
   if (!Array.isArray(permissions)) return [];
   return permissions.filter(
     (permission): permission is PermissionEntry =>
-      !!permission && typeof permission === "object" && !Array.isArray(permission),
+      !!permission &&
+      typeof permission === "object" &&
+      !Array.isArray(permission),
   );
 };
 
@@ -146,7 +152,10 @@ export const buildLimitPayload = (token: Token) => {
 };
 
 export const generateUuid = () => {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return crypto.randomUUID();
   }
 
@@ -156,7 +165,9 @@ export const generateUuid = () => {
   });
 };
 
-export const buildCredentialPayload = (source: Pick<Token, "username" | "password">) => {
+export const buildCredentialPayload = (
+  source: Pick<Token, "username" | "password">,
+) => {
   const username = source.username.trim();
   const password = source.password.trim();
 
@@ -170,7 +181,10 @@ const toOptionalTimestamp = (value: number) =>
   Number.isFinite(value) && value > 0 ? value : undefined;
 
 export const buildOptionalFieldPayload = (
-  token: Pick<Token, "username" | "password" | "timestamp_from" | "timestamp_to">,
+  token: Pick<
+    Token,
+    "username" | "password" | "timestamp_from" | "timestamp_to"
+  >,
 ) => {
   const timestampFrom = toOptionalTimestamp(token.timestamp_from);
   const timestampTo = toOptionalTimestamp(token.timestamp_to);
@@ -197,6 +211,8 @@ export const mapTokenDetailToForm = (detail: TokenDetail | null): Token => {
     password: detail.password ?? "",
     timestamp_from: detail.timestamp_from ?? 0,
     timestamp_to: detail.timestamp_to ?? 0,
-    token_limit: cloneTokenLimitEntries(normalizeTokenLimit(detail.token_limit)),
+    token_limit: cloneTokenLimitEntries(
+      normalizeTokenLimit(detail.token_limit),
+    ),
   };
 };

@@ -53,17 +53,23 @@ const selectedProxy = computed({
       </CardTitle>
     </CardHeader>
     <CardContent class="flex flex-col items-end space-y-4">
-      <SelectNodes :nodes="nodes" v-model:selected="selectedProxy" class="w-full" />
-      <div class="flex w-full flex-col items-end gap-1 md:flex-row">
-        <div class="w-full text-right text-xs text-gray-400 md:text-left">
+      <SelectNodes
+        :nodes="nodes"
+        v-model:selected="selectedProxy"
+        class="w-full"
+      />
+      <div class="w-full flex flex-col gap-1 items-end md:flex-row">
+        <div class="text-gray-400 text-xs text-right w-full md:text-left">
           {{
             $t("dashboard.batchExec.totalNodesCount", {
               count: selected.length,
             })
           }}
         </div>
-        <div class="flex w-full flex-col justify-end gap-1 md:flex-row md:items-end">
-          <div class="text-xs text-gray-400">
+        <div
+          class="w-full flex flex-col gap-1 flex-col md:flex-row justify-end md:items-end"
+        >
+          <div class="text-gray-400 text-xs">
             {{ $t("dashboard.batchExec.cmd") }}
           </div>
           <div class="w-full md:w-30">
@@ -72,12 +78,22 @@ const selectedProxy = computed({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem v-for="item in cmdList" :value="item">{{ item }}</SelectItem>
+                <SelectItem v-for="item in cmdList" :value="item">{{
+                  item
+                }}</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <Button class="w-full md:w-auto" :disabled="runStatus" @click="$emit('run')">
-            {{ runStatus ? $t("dashboard.batchExec.running") : $t("dashboard.batchExec.run") }}
+          <Button
+            class="w-full md:w-auto"
+            :disabled="runStatus"
+            @click="$emit('run')"
+          >
+            {{
+              runStatus
+                ? $t("dashboard.batchExec.running")
+                : $t("dashboard.batchExec.run")
+            }}
           </Button>
         </div>
       </div>

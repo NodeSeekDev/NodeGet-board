@@ -340,7 +340,10 @@ const COUNTRY_NAME_FALLBACK: Record<string, { zh: string; en: string }> = {
   Antarctica: { zh: "南极洲", en: "Antarctica" },
 };
 
-export function getDisplayCountryName(countryName: string, locale: string | undefined) {
+export function getDisplayCountryName(
+  countryName: string,
+  locale: string | undefined,
+) {
   const normalizedLocale = locale?.toLowerCase() ?? "zh-cn";
   const preferredLanguage = normalizedLocale.startsWith("zh") ? "zh" : "en";
   const fallback = COUNTRY_NAME_FALLBACK[countryName];
