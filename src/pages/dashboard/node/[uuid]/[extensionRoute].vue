@@ -9,9 +9,10 @@ definePage({
   meta: { title: "", hidden: true },
 });
 
-const route = useRoute("/dashboard/node/[uuid]/[extensionRoute]");
-const routeName = computed(() => route.params.extensionRoute);
-const nodeUuid = computed(() => route.params.uuid);
+const route = useRoute();
+const params = computed(() => route.params as Record<string, string>);
+const routeName = computed(() => params.value.extensionRoute ?? "");
+const nodeUuid = computed(() => params.value.uuid ?? "");
 
 const { extensions, fetchExtensions, getIframeUrl } = useExtensions();
 

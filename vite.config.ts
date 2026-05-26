@@ -1,7 +1,7 @@
 import { fileURLToPath, URL } from "node:url";
 
 import { defineConfig } from "vite";
-import { unpluginVueRouterInstance } from "./scripts/typed-router.d.ts/shared";
+import unpluginVueRouter from "unplugin-vue-router/vite";
 import vue from "@vitejs/plugin-vue";
 import vueJsx from "@vitejs/plugin-vue-jsx";
 import vueDevTools from "vite-plugin-vue-devtools";
@@ -18,7 +18,15 @@ export default defineConfig({
     manifest: true,
   },
   plugins: [
-    unpluginVueRouterInstance,
+    unpluginVueRouter({
+      routesFolder: [
+        {
+          src: "./src/pages",
+          exclude: ["**/__*.vue"],
+        },
+      ],
+      dts: "./src/types/typed-router.d.ts",
+    }),
     vue(),
     vueJsx(),
     vueDevTools(),

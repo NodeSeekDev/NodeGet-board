@@ -9,9 +9,9 @@ import type { Extension } from "@/composables/useExtensions";
 
 definePage({ meta: { title: "", hidden: true } });
 
-const route = useRoute("/dashboard/app-panel/[id]");
+const route = useRoute();
 const router = useRouter();
-const extensionId = computed(() => route.params.id);
+const extensionId = computed(() => (route.params as Record<string, string>).id);
 
 const { extensions, loading, fetchExtensions } = useExtensions();
 

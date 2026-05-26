@@ -51,7 +51,6 @@ import ShowAgentCommandDialog from "@/components/agents/ShowAgentCommandDialog.v
 import { useAgentInfo } from "@/composables/useAgentInfo";
 import VersionDialog from "@/components/node-manage/VersionDialog.vue";
 import { PopConfirm } from "@/components/ui/pop-confirm";
-import { useLifecycle } from "@/composables/useLifecycle";
 
 import { compareVersions } from "compare-versions";
 import { useTask } from "@/composables/useTask";
@@ -65,7 +64,6 @@ const currentAgentInfo = useAgentInfo(undefined, {
   withIP: true,
   withVersion: true,
 });
-const { afterAgentCreate } = useLifecycle();
 
 const { createSelfUpdateTask } = useTask();
 
@@ -301,19 +299,6 @@ async function confirmVersion(version: string) {
   toast.success("agent升级完成");
 }
 
-async function reinitAgent(uuid: string) {
-  await afterAgentCreate(
-    uuid,
-    {
-      cronList: [],
-      metadata: {},
-      databaseLimit: {},
-    },
-    currentBackend,
-  );
-  await refresh();
-}
-
 function fetchVersion() {
   const repo = import.meta.env.VITE_RELEASE_REPO;
   return fetch(`https://api.github.com/repos/${repo}/releases`)
@@ -534,17 +519,6 @@ refresh();
               >
                 <CloudDownload class="h-4 w-4" />
               </Button>
-              <PopConfirm
-                title="重新初始化agent？"
-                description="是否重新初始化agent，这会初始化agent的名称，经纬度，费用等等信息"
-                :confirm-text="t('dashboard.servers.refreshConfirm')"
-                :cancel-text="t('dashboard.servers.deleteCancel')"
-                @confirm="reinitAgent(agent.uuid)"
-              >
-                <Button size="icon" variant="ghost" class="h-8 w-8" title="重新初始化">
-                  <RefreshCw class="h-4 w-4" />
-                </Button>
-              </PopConfirm>
               <PopConfirm
                 title="重新连接agent？(危险操作)"
                 description="会关闭已授权此agent的token，并生成新的连接命令和token，已连接的agent（如果存在）会被强制断开连接，直至使用新的连接命令重新连接，适用于重装系统后恢复连接"

@@ -131,6 +131,12 @@ async function afterAgentCreate(
       ...makeDefaultMetadata(agentUUID),
       ...option.metadata,
     });
+    // for (const [key, value] of Object.entries({
+    // })) {
+    //   if (value !== undefined && value !== null) {
+    //     await kvClient.setValue(key, value);
+    //   }
+    // }
 
     // Update cron tasks to include this agent
     const cronClient = useCron(backend);

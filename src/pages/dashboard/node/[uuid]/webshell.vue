@@ -11,8 +11,8 @@ definePage({
   },
 });
 
-const route = useRoute("/dashboard/node/[uuid]/webshell");
-const uuid = route.params.uuid;
+const route = useRoute();
+const uuid = (route.params as { uuid: string }).uuid;
 
 const { currentBackend } = useBackendStore();
 

@@ -6,8 +6,13 @@ import FlickeringGrid from "@/components/ui/flickering-grid/FlickeringGrid.vue";
 import { ref, provide, onMounted, watch } from "vue";
 import { useBackendStore } from "@/composables/useBackendStore";
 import { usePermissionStore } from "@/stores/permission";
-import "@/utils/detectUpdate";
+import { getWsConnection } from "@/composables/useWsConnection";
+import { useRouter, useRoute } from "vue-router";
 import RpcDebugPanelDialog from "@/components/rpc-debug-panel/RpcDebugPanelDialog.vue";
+import "@/utils/detectUpdate";
+
+const router = useRouter();
+const route = useRoute();
 
 const background = ref<"default" | "flickering">("default");
 
@@ -19,7 +24,7 @@ const setBackground = (val: "default" | "flickering") => {
 provide("background", background);
 provide("setBackground", setBackground);
 
-const { currentBackend } = useBackendStore();
+const { backends, currentBackend } = useBackendStore();
 const permissionStore = usePermissionStore();
 
 onMounted(() => {
@@ -31,6 +36,37 @@ onMounted(() => {
     background.value = "flickering";
   }
 });
+
+async function ensureBackend() {
+  // Check if we need to force open backend switcher
+  await router.isReady();
+
+  if (backends.value.length === 0) {
+    if (route.name !== "/dashboard/node-manage" || !route.query.fill)
+      router.push({
+        name: "/dashboard/node-manage",
+        query: {
+          fill: "empty",
+          tab: "servers",
+        },
+      });
+  } else if (!route.fullPath.startsWith("/dashboard/")) {
+    // force pathname starts with /dashboard/
+    router.replace({
+      name: "/dashboard/overview",
+    });
+  }
+}
+
+watch(
+  () => route.fullPath,
+  () => {
+    ensureBackend();
+  },
+  {
+    immediate: true,
+  },
+);
 
 watch(
   currentBackend,

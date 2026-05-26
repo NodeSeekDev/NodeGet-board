@@ -11,8 +11,8 @@ import TrafficBarChart, { type TrafficBucket } from "@/components/node/traffic/T
 
 definePage({ meta: { title: "router.node.traffic" } });
 
-const route = useRoute("/dashboard/node/[uuid]/traffic");
-const uuid = computed(() => route.params.uuid);
+const route = useRoute();
+const uuid = computed(() => (route.params as { uuid: string }).uuid);
 const { currentBackend } = useBackendStore();
 
 type SummaryPoint = {

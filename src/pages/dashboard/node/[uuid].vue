@@ -5,19 +5,16 @@ import { onMounted, computed } from "vue";
 import { useRoute } from "vue-router";
 
 definePage({
-  redirect: (to) => {
-    const uuid = "uuid" in to.params ? to.params.uuid : "";
-    return `/dashboard/node/${uuid}/status`;
-  },
+  redirect: (to) => `/dashboard/node/${(to.params as { uuid: string }).uuid}/status`,
   meta: {
     title: "router.node.detail",
     hidden: true,
   },
 });
 
-const route = useRoute("/dashboard/node/[uuid]");
+const route = useRoute();
 const currentAgentUUID = computed(() => {
-  return route.params.uuid;
+  return (route.params as { uuid: string })?.uuid;
 });
 
 // const { connect: connectDynamic } = useAgentStatus();

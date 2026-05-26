@@ -9,8 +9,8 @@ definePage({
   meta: { title: "", hidden: true },
 });
 
-const route = useRoute("/dashboard/app/[extensionRoute]");
-const routeName = computed(() => route.params.extensionRoute);
+const route = useRoute();
+const routeName = computed(() => (route.params as Record<string, string>).extensionRoute ?? "");
 
 const { extensions, fetchExtensions, getIframeUrl } = useExtensions();
 

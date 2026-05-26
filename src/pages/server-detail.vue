@@ -41,11 +41,15 @@ import {
 } from "lucide-vue-next";
 import type { DynamicDetailData, DynamicDisk, DynamicNetworkInterface } from "@/types/monitoring";
 
+definePage({
+  path: "/s/:uuid",
+});
+
 const { t } = useI18n();
 
-const route = useRoute("/server-detail/[uuid]");
+const route = useRoute();
 const router = useRouter();
-const uuid = route.params.uuid;
+const uuid = (route.params as { uuid: string }).uuid;
 
 const isSidebarOpen = ref(false);
 
@@ -346,7 +350,7 @@ onUnmounted(() => {
                   'flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-all',
                   activeTab === tab.id
                     ? 'shadow-sm'
-                    : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground border-transparent',
+                    : 'hover:bg-muted/50 text-muted-foreground hover:text-foreground border-transparent',
                 ]"
               >
                 <div
@@ -470,7 +474,7 @@ onUnmounted(() => {
                   </CardHeader>
                   <CardContent>
                     <div
-                      class="group bg-muted/10 relative flex h-[200px] w-full items-end overflow-hidden rounded-md border p-0"
+                      class="bg-muted/10 group relative flex h-[200px] w-full items-end overflow-hidden rounded-md border p-0"
                     >
                       <!-- Axis Guide -->
                       <div
