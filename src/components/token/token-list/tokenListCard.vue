@@ -42,6 +42,7 @@ import {
 } from "lucide-vue-next";
 import { useTokenListHook, type Token } from "@/composables/token/useTokenList";
 import { getPasswordChangeValidationError } from "@/composables/token/tokenSecret";
+import { displayTokenUsername } from "@/components/agents/generateToken";
 import TokenSuccessDialog from "../components/TokenSuccessDialog.vue";
 
 const useTokenList = useTokenListHook();
@@ -82,10 +83,18 @@ const normalizeSearchText = (value: string | null | undefined) =>
 
 const filteredTokens = computed(() => {
   const keyword = normalizeSearchText(debouncedSearchKeyword.value);
+  const encodedKeyword = normalizeSearchText(encodeURIComponent(keyword));
 
   return tokensList.value.filter((token) => {
+    const storedUsername = token.username ?? "";
     const matchesUsername =
-      !keyword || normalizeSearchText(token.username).includes(keyword);
+      !keyword ||
+      normalizeSearchText(displayTokenUsername(storedUsername)).includes(
+        keyword,
+      ) ||
+      normalizeSearchText(storedUsername)
+        .replace(/%([0-9a-f]{2})/gi, (m) => m.toUpperCase())
+        .includes(encodedKeyword.toUpperCase());
     const matchesTokenKey =
       !keyword || normalizeSearchText(token.token_key).includes(keyword);
 
@@ -351,7 +360,7 @@ watch(changePasswordOpen, (open) => {
         <TableBody>
           <TableRow v-for="token in pagedTokens" :key="token.token_key">
             <TableCell>{{ token.version }}</TableCell>
-            <TableCell>{{ token.username }}</TableCell>
+            <TableCell>{{ displayTokenUsername(token.username) }}</TableCell>
             <TableCell class="font-mono">{{ token.token_key }}</TableCell>
             <TableCell>{{ token.token_limit?.length ?? 0 }}</TableCell>
             <TableCell class="flex w-32 gap-2">
@@ -500,7 +509,7 @@ watch(changePasswordOpen, (open) => {
               {{ t("dashboard.token.list.table.username") }}:
             </span>
             <span class="ml-2">
-              {{ selectedResetToken?.username || "-" }}
+              {{ displayTokenUsername(selectedResetToken?.username) || "-" }}
             </span>
           </div>
           <div>
@@ -551,7 +560,7 @@ watch(changePasswordOpen, (open) => {
               {{ t("dashboard.token.list.table.username") }}:
             </span>
             <span class="ml-2">
-              {{ selectedPasswordToken?.username || "-" }}
+              {{ displayTokenUsername(selectedPasswordToken?.username) || "-" }}
             </span>
           </div>
           <div>

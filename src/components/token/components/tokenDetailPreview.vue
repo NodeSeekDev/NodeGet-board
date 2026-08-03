@@ -17,6 +17,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Spinner } from "@/components/ui/spinner";
+import { displayTokenUsername } from "@/components/agents/generateToken";
 
 type PermissionSection = {
   title: string;
@@ -245,7 +246,7 @@ const rawSummary = computed(() => {
             <div class="text-sm">
               {{
                 displayText(
-                  rawSummary.username ?? token.username,
+                  displayTokenUsername(rawSummary.username ?? token.username),
                   t("dashboard.token.detail.preview.notSet"),
                 )
               }}
@@ -293,7 +294,7 @@ const rawSummary = computed(() => {
               <CollapsibleTrigger as-child>
                 <button
                   type="button"
-                  class="flex w-full flex-col gap-3 rounded-md text-left transition-colors hover:bg-muted/40 focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-[1px] lg:flex-row lg:items-center lg:justify-between"
+                  class="flex w-full flex-col gap-3 rounded-md text-left transition-colors hover:bg-muted/40 focus-visible:ring-[1px] focus-visible:ring-ring/50 focus-visible:outline-none lg:flex-row lg:items-center lg:justify-between"
                 >
                   <div class="flex items-center gap-2">
                     <CardTitle>{{
@@ -369,14 +370,14 @@ const rawSummary = computed(() => {
       </div>
     </div>
 
-    <Card class="h-fit min-w-0 max-w-full overflow-hidden">
+    <Card class="h-fit max-w-full min-w-0 overflow-hidden">
       <CardHeader>
         <CardTitle class="flex items-center gap-2">
           <ScanEye class="h-5 w-5" />
           {{ t("dashboard.token.detail.preview.rawJsonTitle") }}
         </CardTitle>
       </CardHeader>
-      <CardContent class="min-w-0 max-w-full">
+      <CardContent class="max-w-full min-w-0">
         <div class="w-full max-w-full overflow-x-auto rounded-lg bg-muted/40">
           <pre
             class="max-h-[720px] w-max min-w-full overflow-y-auto p-4 text-xs leading-6"
