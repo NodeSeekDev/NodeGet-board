@@ -4,6 +4,7 @@ import { getWsConnection } from "@/composables/useWsConnection";
 import {
   createDefaultToken,
   DEFAULT_SCOPE,
+  encodeTokenUsername,
   serializeTokenPayload,
 } from "@/components/token/scopeCodec";
 import { generatePassword } from "@/lib/password";
@@ -61,7 +62,10 @@ export function useThemeTokenPresets() {
     const listResult = await conn.call<{
       tokens?: Array<{ token_key: string; username: string | null }>;
     }>("token_list_all_tokens", { token: fatherToken });
-    const existing = listResult.tokens?.find((t) => t.username === username);
+    const existing = listResult.tokens?.find(
+      (t) =>
+        t.username === encodeTokenUsername(username) || t.username === username,
+    );
     if (existing) {
       await conn.call("token_delete", {
         token: fatherToken,

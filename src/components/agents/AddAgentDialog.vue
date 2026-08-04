@@ -34,6 +34,7 @@ import { useKv } from "@/composables/useKv";
 import { useBackendExtra } from "@/composables/useBackendExtra";
 import { useLifecycle } from "@/composables/useLifecycle";
 import { reGenerateToken } from "@/components/agents/generateToken";
+import { toast } from "vue-sonner";
 
 const open = defineModel<boolean>("open", { required: true });
 const emit = defineEmits<{
@@ -267,7 +268,12 @@ const canNext = computed(() => {
 const handleNext = async () => {
   if (step.value === 1) {
     // 预生成 token
-    generatedToken.value = (await reGenerateToken(nodeUuid.value)) || "";
+    const newToken = await reGenerateToken(nodeUuid.value);
+    if (!newToken) {
+      toast.error("预生成 token 失败，可能会导致安装失败，请重试");
+      return;
+    }
+    generatedToken.value = newToken;
     step.value = 2;
     loadCrons();
   } else if (step.value === 2) {

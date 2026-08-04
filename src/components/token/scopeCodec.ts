@@ -9,6 +9,20 @@ import type {
 
 export const DEFAULT_SCOPE: TokenLimitScope = [{ global: null }];
 
+// 主控拒绝包含 ':' 或 '|' 的 username（这两个字符用于区分 "key:secret" /
+// "username|password" 两种鉴权格式）。因此发往后端的 username 一律 URI 编码，
+// 展示与用户输入层使用原文，读取时经 decodeTokenUsername 安全解码。
+export const encodeTokenUsername = (username: string): string =>
+  encodeURIComponent(username);
+
+export const decodeTokenUsername = (username: string): string => {
+  try {
+    return decodeURIComponent(username);
+  } catch {
+    return username;
+  }
+};
+
 export const createDefaultToken = (): Token => ({
   version: 1,
   timestamp_from: 0,
@@ -172,7 +186,7 @@ export const buildCredentialPayload = (
   const password = source.password.trim();
 
   return {
-    ...(username ? { username } : {}),
+    ...(username ? { username: encodeTokenUsername(username) } : {}),
     ...(password ? { password } : {}),
   };
 };
@@ -207,7 +221,7 @@ export const mapTokenDetailToForm = (detail: TokenDetail | null): Token => {
 
   return {
     version: detail.version ?? 1,
-    username: detail.username ?? "",
+    username: detail.username ? decodeTokenUsername(detail.username) : "",
     password: detail.password ?? "",
     timestamp_from: detail.timestamp_from ?? 0,
     timestamp_to: detail.timestamp_to ?? 0,

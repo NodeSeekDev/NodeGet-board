@@ -30,6 +30,7 @@ import {
   type splitConfig,
 } from "@/composables/useAgentConfig";
 import { compareVersions } from "compare-versions";
+import { agentUsername } from "@/components/agents/generateToken";
 
 const props = defineProps<{ uuid: string }>();
 
@@ -135,7 +136,7 @@ async function handleDelete() {
     // disable token, stop data report
     await rpc("token_delete", {
       token: currentBackend.value?.token,
-      target_token: `[agent]:${props.uuid}`,
+      target_token: agentUsername(props.uuid),
     });
   } catch {}
   setStep(0, "done");
