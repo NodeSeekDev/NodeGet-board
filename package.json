@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
-    "format": "prettier --write .",
+    "format": "prettier --write src/",
     "test": "node --test --experimental-strip-types tests/*.test.ts",
     "prepare": "husky",
     "generate:typed-router": "vite build --config scripts/typed-router.d.ts/config.ts"
