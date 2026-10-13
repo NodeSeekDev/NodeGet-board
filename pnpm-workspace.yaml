@@ -1,7 +1,0 @@
-allowBuilds:
-  esbuild: true
-  vue-demi: true
-onlyBuiltDependencies:
-  - esbuild
-  - json-editor-vue
-  - vue-demi
